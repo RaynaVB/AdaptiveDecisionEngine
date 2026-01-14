@@ -1,0 +1,37 @@
+flowchart LR
+  %% Adaptive Decision Engine (Health) — V2 Architecture
+
+  subgraph CLIENT[Client (Mobile App)]
+    UI1[Logging UI\n- Meal photo/text\n- Mood taps\n- Meal slot & tags]
+    UI2[Views\n- Timeline\n- Patterns summary\n- Recommendations feed]
+    UI3[Feedback Capture\nAccepted / Partial / Rejected]
+  end
+
+  subgraph SERVER[Server (API / Functions)]
+    INF[Inference / Labeling (Hybrid)\n- Suggest tags\n- Confidence\n- Clarify if low confidence]
+    PAT[Pattern Engine\n- Compute patterns\n- Confidence gating\n- Store pattern runs]
+    REC[Recommendation Engine\n- Generate candidates\n- Score + rank\n- Explain why]
+    FB[Feedback / Learning\n- Track outcomes\n- Adapt weights\n- Avoid repeats]
+  end
+
+  subgraph DATA[Data Store]
+    DB[(users\nmeal_events\nmood_events\npattern_runs/patterns\nrecommendation_runs/recommendations\nrecommendation_feedback)]
+  end
+
+  UI1 --> DB
+  UI1 --> INF
+  INF --> DB
+
+  DB --> PAT
+  PAT --> DB
+
+  DB --> REC
+  REC --> DB
+
+  UI2 <-- DB
+  UI2 <-- REC
+
+  UI3 --> DB
+  UI3 --> FB
+  FB --> DB
+  FB --> REC
