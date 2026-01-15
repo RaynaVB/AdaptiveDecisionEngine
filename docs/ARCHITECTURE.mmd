@@ -1,37 +1,44 @@
 flowchart LR
-  %% Adaptive Decision Engine (Health) — V2 Architecture
 
-  subgraph CLIENT[Client (Mobile App)]
-    UI1[Logging UI\n- Meal photo/text\n- Mood taps\n- Meal slot & tags]
-    UI2[Views\n- Timeline\n- Patterns summary\n- Recommendations feed]
-    UI3[Feedback Capture\nAccepted / Partial / Rejected]
-  end
+%% =========================
+%% Adaptive Decision Engine V2
+%% =========================
 
-  subgraph SERVER[Server (API / Functions)]
-    INF[Inference / Labeling (Hybrid)\n- Suggest tags\n- Confidence\n- Clarify if low confidence]
-    PAT[Pattern Engine\n- Compute patterns\n- Confidence gating\n- Store pattern runs]
-    REC[Recommendation Engine\n- Generate candidates\n- Score + rank\n- Explain why]
-    FB[Feedback / Learning\n- Track outcomes\n- Adapt weights\n- Avoid repeats]
-  end
+subgraph CLIENT[Client - Mobile App]
+  UI_LOG[Logging UI]
+  UI_VIEW[Views: Timeline / Patterns / Recommendations]
+  UI_FB[Feedback Capture]
+end
 
-  subgraph DATA[Data Store]
-    DB[(users\nmeal_events\nmood_events\npattern_runs/patterns\nrecommendation_runs/recommendations\nrecommendation_feedback)]
-  end
+subgraph SERVER[Server - API / Functions]
+  INF[Inference and Labeling]
+  PAT[Pattern Engine]
+  REC[Recommendation Engine]
+  LEARN[Feedback and Learning]
+end
 
-  UI1 --> DB
-  UI1 --> INF
-  INF --> DB
+subgraph DATA[Data Store]
+  DB[(Users + Events + Runs + Outputs)]
+end
 
-  DB --> PAT
-  PAT --> DB
+%% Writes
+UI_LOG --> DB
+UI_FB --> DB
 
-  DB --> REC
-  REC --> DB
+%% Reads
+DB --> UI_VIEW
 
-  UI2 <-- DB
-  UI2 <-- REC
+%% Inference + Intelligence
+UI_LOG --> INF
+INF --> DB
 
-  UI3 --> DB
-  UI3 --> FB
-  FB --> DB
-  FB --> REC
+DB --> PAT
+PAT --> DB
+
+DB --> REC
+REC --> DB
+
+%% Feedback loop
+UI_FB --> LEARN
+LEARN --> DB
+LEARN --> REC
