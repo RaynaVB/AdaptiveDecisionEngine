@@ -1,5 +1,6 @@
 import { Pattern, PatternContext } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { calculateSegmentation } from '../segmentation';
 
 export const analyzeLateNightCluster = (context: PatternContext): Pattern[] => {
     const { meals } = context;
@@ -25,6 +26,12 @@ export const analyzeLateNightCluster = (context: PatternContext): Pattern[] => {
     const percentage = lateCount / recentMeals.length;
 
     if (lateCount >= 3 || percentage >= 0.30) {
+        // Filter triggering meals for segmentation
+        const triggeringMeals = recentMeals.filter(meal => {
+            const date = new Date(meal.occurredAt);
+            return date.getHours() >= CUTOFF_HOUR || date.getHours() < 4;
+        });
+
         patterns.push({
             id: uuidv4(),
             patternType: 'late_night_eating_cluster',
@@ -38,6 +45,7 @@ export const analyzeLateNightCluster = (context: PatternContext): Pattern[] => {
                 total_weekly_meals: recentMeals.length,
                 percentage: percentage.toFixed(2)
             },
+            segmentation: calculateSegmentation(triggeringMeals),
             windowStart: sevenDaysAgo.toISOString(),
             windowEnd: new Date().toISOString(),
             createdAt: new Date().toISOString()

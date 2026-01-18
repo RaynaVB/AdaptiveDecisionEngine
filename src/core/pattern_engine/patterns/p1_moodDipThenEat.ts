@@ -1,5 +1,6 @@
 import { Pattern, PatternContext } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { calculateSegmentation } from '../segmentation';
 
 export const analyzeMoodDipThenEat = (context: PatternContext): Pattern[] => {
     const { meals, moods } = context;
@@ -33,6 +34,9 @@ export const analyzeMoodDipThenEat = (context: PatternContext): Pattern[] => {
     });
 
     if (triggerCount >= 2) {
+        // Collect triggering meals for segmentation
+        const triggeringMeals = meals.filter(m => triggers.some(t => t.mealId === m.id));
+
         patterns.push({
             id: uuidv4(),
             patternType: 'mood_dip_then_eat',
@@ -45,6 +49,7 @@ export const analyzeMoodDipThenEat = (context: PatternContext): Pattern[] => {
                 window_minutes: 60,
                 triggers
             },
+            segmentation: calculateSegmentation(triggeringMeals),
             windowStart: sortedMoods[0]?.occurredAt || new Date().toISOString(),
             windowEnd: sortedMoods[sortedMoods.length - 1]?.occurredAt || new Date().toISOString(),
             createdAt: new Date().toISOString()

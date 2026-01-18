@@ -1,6 +1,7 @@
 import { Pattern, PatternContext } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { MealTypeTag, MoodValence } from '../../../models/types';
+import { calculateSegmentation } from '../segmentation';
 
 export const analyzeMealTypeMoodAssociation = (context: PatternContext): Pattern[] => {
     const { meals, moods } = context;
@@ -61,6 +62,9 @@ export const analyzeMealTypeMoodAssociation = (context: PatternContext): Pattern
         if (total >= 3) { // Min sample size
             const rate = drops / total;
             if (rate >= 0.60) {
+                // Get meals with this tag for segmentation
+                const triggeringMeals = sortedMeals.filter(m => m.mealTypeTags.includes(tag as any));
+
                 patterns.push({
                     id: uuidv4(),
                     patternType: 'meal_type_mood_association',
@@ -68,6 +72,7 @@ export const analyzeMealTypeMoodAssociation = (context: PatternContext): Pattern
                     description: `${(rate * 100).toFixed(0)}% of '${tag.replace('_', ' ')}' meals are followed by negative mood within 4 hours.`,
                     confidence: rate >= 0.8 ? 'high' : 'medium', // 0.6 = medium, 0.8+ = high
                     evidence: { tag, total_tag_count: total, mood_drop_count: drops, rate: rate.toFixed(2) },
+                    segmentation: calculateSegmentation(triggeringMeals),
                     windowStart: meals[0]?.occurredAt || new Date().toISOString(),
                     windowEnd: new Date().toISOString(),
                     createdAt: new Date().toISOString()

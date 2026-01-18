@@ -55,9 +55,14 @@ export default function TimelineScreen() {
     React.useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
-                <TouchableOpacity onPress={handleClear} style={{ marginRight: 16 }}>
-                    <Text style={{ color: '#ef4444' }}>Clear</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 16 }}>
+                    <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')}>
+                        <Text style={{ color: '#2563eb', fontWeight: '600' }}>Patterns</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleClear}>
+                        <Text style={{ color: '#ef4444' }}>Clear</Text>
+                    </TouchableOpacity>
+                </View>
             ),
         });
     }, [navigation]);

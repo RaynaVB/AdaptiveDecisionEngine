@@ -14,6 +14,10 @@ export interface Pattern {
     confidence: 'low' | 'medium' | 'high';
     severity?: 'low' | 'medium' | 'high';
     evidence: Record<string, any>;
+    segmentation?: {
+        timeOfDay?: 'morning' | 'afternoon' | 'night' | 'late_night' | 'mixed';
+        dayType?: 'weekday' | 'weekend' | 'mixed';
+    };
     windowStart: string; // ISO
     windowEnd: string; // ISO
     createdAt: string; // ISO

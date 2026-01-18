@@ -36,6 +36,7 @@ const p2Results = runPatternEngine(lateMeals, []); // No moods needed for P2
 const p2 = p2Results.find(p => p.patternType === 'late_night_eating_cluster');
 if (p2) {
     console.log("✅ P2 Detected:", p2.description);
+    console.log("   Segmentation:", p2.segmentation);
 } else {
     console.error("❌ P2 FAILED to detect late night cluster");
 }

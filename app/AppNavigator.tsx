@@ -6,6 +6,7 @@ import TimelineScreen from './screens/TimelineScreen';
 import LogMealScreen from './screens/LogMealScreen';
 import LogMoodScreen from './screens/LogMoodScreen';
 import MealDetailScreen from './screens/MealDetailScreen';
+import WeeklyPatternsScreen from './screens/WeeklyPatternsScreen';
 import { TouchableOpacity, Text } from 'react-native';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -40,6 +41,11 @@ export default function AppNavigator() {
                 name="MealDetail"
                 component={MealDetailScreen}
                 options={{ title: 'Meal Details' }}
+            />
+            <Stack.Screen
+                name="WeeklyPatterns"
+                component={WeeklyPatternsScreen}
+                options={{ headerShown: false }}
             />
         </Stack.Navigator>
     );
