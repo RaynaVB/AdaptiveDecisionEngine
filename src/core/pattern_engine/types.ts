@@ -6,6 +6,11 @@ export type PatternType =
     | 'weekday_weekend_shift'
     | 'meal_type_mood_association';
 
+export interface Segmentation {
+    timeOfDay?: 'morning' | 'afternoon' | 'night' | 'late_night' | 'mixed';
+    dayType?: 'weekday' | 'weekend' | 'mixed';
+}
+
 export interface Pattern {
     id: string;
     patternType: PatternType;
@@ -14,10 +19,7 @@ export interface Pattern {
     confidence: 'low' | 'medium' | 'high';
     severity?: 'low' | 'medium' | 'high';
     evidence: Record<string, any>;
-    segmentation?: {
-        timeOfDay?: 'morning' | 'afternoon' | 'night' | 'late_night' | 'mixed';
-        dayType?: 'weekday' | 'weekend' | 'mixed';
-    };
+    segmentation?: Segmentation;
     windowStart: string; // ISO
     windowEnd: string; // ISO
     createdAt: string; // ISO

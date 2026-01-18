@@ -1,5 +1,5 @@
 import { MealEvent } from '../../models/types';
-import { Pattern } from './types';
+import { Pattern, Segmentation } from './types';
 
 export function calculateSegmentation(events: MealEvent[]): Pattern['segmentation'] {
     if (events.length === 0) return undefined;
@@ -35,14 +35,14 @@ export function calculateSegmentation(events: MealEvent[]): Pattern['segmentatio
     const total = events.length;
 
     // Determine dominant time
-    let timeOfDay: Pattern['segmentation']['timeOfDay'] = 'mixed';
+    let timeOfDay: Segmentation['timeOfDay'] = 'mixed';
     if (morning / total > 0.6) timeOfDay = 'morning';
     else if (afternoon / total > 0.6) timeOfDay = 'afternoon';
     else if (night / total > 0.6) timeOfDay = 'night';
     else if (lateNight / total > 0.6) timeOfDay = 'late_night';
 
     // Determine dominant day
-    let dayType: Pattern['segmentation']['dayType'] = 'mixed';
+    let dayType: Segmentation['dayType'] = 'mixed';
     if (weekday / total > 0.8) dayType = 'weekday'; // Higher threshold for weekday since 5/7 is normal
     else if (weekend / total > 0.6) dayType = 'weekend'; // 2/7 is normal, so > 60% is significant
 

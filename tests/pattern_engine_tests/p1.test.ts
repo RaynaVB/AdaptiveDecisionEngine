@@ -1,69 +1,91 @@
+jest.mock('uuid', () => ({
+    v4: () => 'test-uuid-1234'
+}));
+
 import { analyzeMoodDipThenEat } from '../../src/core/pattern_engine/patterns/p1_moodDipThenEat';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { v4 as uuidv4 } from 'uuid';
-
-// Simple mock runner (can be run via basic node script if needed, or jest)
-// For now, I'll print pass/fail results to console same as verify_patterns.
-
 import { PatternContext } from '../../src/core/pattern_engine/types';
 
-console.log("Running P1 Unit Tests...");
+describe('P1: Mood Dip Then Eat', () => {
 
-const mockContext: PatternContext = {
-    meals: [],
-    moods: []
-};
+    test('Should NOT trigger with insufficient data (< 2 instances)', () => {
+        const now = new Date();
+        const mood1: MoodEvent = {
+            id: uuidv4(),
+            createdAt: now.toISOString(),
+            occurredAt: now.toISOString(),
+            valence: 'negative',
+            energy: 'ok',
+            stress: 'high'
+        };
+        const meal1: MealEvent = {
+            id: uuidv4(),
+            createdAt: now.toISOString(),
+            occurredAt: new Date(now.getTime() + 10 * 60000).toISOString(), // 10 mins later
+            mealSlot: 'snack',
+            inputMode: 'text',
+            mealTypeTags: ['sweet']
+        };
 
-// Test Case 1: Insufficient Triggers (< 2)
-// 1 trigger only
-const now = new Date();
-const mood1: MoodEvent = {
-    id: uuidv4(),
-    createdAt: now.toISOString(),
-    occurredAt: now.toISOString(),
-    valence: 'negative',
-    energy: 'ok',
-    stress: 'high'
-};
-const meal1: MealEvent = {
-    id: uuidv4(),
-    createdAt: now.toISOString(),
-    occurredAt: new Date(now.getTime() + 10 * 60000).toISOString(), // 10 mins later
-    mealSlot: 'snack',
-    inputMode: 'text',
-    mealTypeTags: ['sweet']
-};
+        const context: PatternContext = {
+            meals: [meal1],
+            moods: [mood1]
+        };
 
-mockContext.moods = [mood1];
-mockContext.meals = [meal1];
+        const results = analyzeMoodDipThenEat(context);
+        expect(results).toHaveLength(0);
+    });
 
-const results1 = analyzeMoodDipThenEat(mockContext);
-if (results1.length === 0) {
-    console.log("✅ Case 1 Passed: No pattern for single trigger.");
-} else {
-    console.error("❌ Case 1 Failed: Should not trigger.", results1);
-}
+    test('Should trigger with sufficient data (2 instances)', () => {
+        const now = new Date();
+        const mood1: MoodEvent = {
+            id: uuidv4(),
+            createdAt: now.toISOString(),
+            occurredAt: now.toISOString(),
+            valence: 'negative',
+            energy: 'ok',
+            stress: 'high'
+        };
+        const meal1: MealEvent = {
+            id: uuidv4(),
+            createdAt: now.toISOString(),
+            occurredAt: new Date(now.getTime() + 10 * 60000).toISOString(),
+            mealSlot: 'text' as any, // 'text' isn't a slot but let's stick to valid types if possible, or cast
+            inputMode: 'text',
+            mealTypeTags: ['sweet']
+        };
+        // Fix slot
+        meal1.mealSlot = 'snack';
 
-// Test Case 2: Sufficient Triggers (2) -> Medium Confidence
-const mood2: MoodEvent = { ...mood1, id: uuidv4(), occurredAt: new Date(now.getTime() - 86400000).toISOString() }; // Yesterday
-const meal2: MealEvent = { ...meal1, id: uuidv4(), occurredAt: new Date(now.getTime() - 86400000 + 10 * 60000).toISOString() };
+        const mood2: MoodEvent = { ...mood1, id: uuidv4(), occurredAt: new Date(now.getTime() - 86400000).toISOString() };
+        const meal2: MealEvent = { ...meal1, id: uuidv4(), occurredAt: new Date(now.getTime() - 86400000 + 10 * 60000).toISOString() };
 
-mockContext.moods = [mood1, mood2];
-mockContext.meals = [meal1, meal2];
+        const context: PatternContext = {
+            meals: [meal1, meal2],
+            moods: [mood1, mood2]
+        };
 
-const results2 = analyzeMoodDipThenEat(mockContext);
-if (results2.length === 1 && results2[0].confidence === 'medium') {
-    console.log("✅ Case 2 Passed: Pattern detected with Medium confidence.");
-} else {
-    console.error("❌ Case 2 Failed.", results2);
-}
+        const results = analyzeMoodDipThenEat(context);
+        expect(results).toHaveLength(1);
+        expect(results[0].patternType).toBe('mood_dip_then_eat');
+        expect(results[0].confidence).toBe('medium');
+    });
 
-// Test Case 3: Segmentation Check
-// Both triggers happened around the same time of day?
-// mood1/meal1 = Now. mood2/meal2 = Yesterday same time.
-// Since 'now' in verify_patterns runs is usually 'daytime', let's check output.
-if (results2.length > 0 && results2[0].segmentation) {
-    console.log("✅ Case 3 Passed: Segmentation present:", results2[0].segmentation);
-} else {
-    console.error("❌ Case 3 Failed: Missing segmentation.");
-}
+    test('Should include segmentation data', () => {
+        const now = new Date(); // Assume 'daytime'
+        // Create trigger same as above
+        const mood1: MoodEvent = { id: uuidv4(), createdAt: now.toISOString(), occurredAt: now.toISOString(), valence: 'negative', energy: 'ok', stress: 'high' };
+        const meal1: MealEvent = { id: uuidv4(), createdAt: now.toISOString(), occurredAt: new Date(now.getTime() + 600000).toISOString(), mealSlot: 'snack', inputMode: 'text', mealTypeTags: [] };
+
+        const mood2 = { ...mood1, id: uuidv4(), occurredAt: new Date(now.getTime() - 86400000).toISOString() };
+        const meal2 = { ...meal1, id: uuidv4(), occurredAt: new Date(now.getTime() - 86400000 + 600000).toISOString() };
+
+        const context = { meals: [meal1, meal2], moods: [mood1, mood2] };
+        const results = analyzeMoodDipThenEat(context);
+
+        expect(results[0].segmentation).toBeDefined();
+        // Just verify structure
+        expect(results[0].segmentation?.timeOfDay).toBeDefined();
+    });
+});
