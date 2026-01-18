@@ -48,4 +48,57 @@ The application must implement these tags exactly:
 
 ### 3.1 Base Load Tags (recommended: choose one)
 These describe how “heavy” the meal felt.
-- `li
+- `light`
+- `regular`
+- `heavy`
+
+### 3.2 Craving Flavor (optional)
+- `sweet`
+- `savory`
+
+### 3.3 Source (optional)
+- `homemade`
+- `restaurant`
+- `packaged`
+
+### 3.4 Impact Heuristics (optional; allow 0–2)
+- `high_sugar`
+- `fried_greasy`
+- `high_protein`
+- `high_fiber`
+- `caffeinated`
+
+### 3.5 Fallback
+- `unknown`
+
+---
+
+## 4) Tagging Logic & Rules
+
+### 4.1 Tag Selection Rules
+1. **Zero Tags**: If user selects zero tags → set `['unknown']`.
+2. **Base Load Encouragement**: Encourage selecting 1 base load tag (`light`/`regular`/`heavy`) but do not hard-block saving if omitted (as long as something else is selected, or default to unknown).
+3. **Display**: Display tags as chips; allow one-tap removal.
+
+### 4.2 Quick-Pick Presets (Speed)
+For speed, provide these one-tap combinations:
+
+**“Quick Snack Sweet”**
+- `regular`
+- `sweet`
+- `packaged`
+
+**“Heavy Dinner Out”**
+- `heavy`
+- `savory`
+- `restaurant`
+
+**“Light Breakfast”**
+- `light`
+- `homemade`
+
+---
+
+## 5) Editing Tags
+Editing tags must be possible from the timeline (tap a row).
+User should be able to add/remove tags easily.
