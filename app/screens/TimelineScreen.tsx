@@ -5,7 +5,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
-import { Plus, ChevronRight } from 'lucide-react-native';
+import { Plus, ChevronRight, X } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 
 type TimelineScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timeline'>;
@@ -15,6 +15,7 @@ export default function TimelineScreen() {
     const [meals, setMeals] = useState<MealEvent[]>([]);
     const [moods, setMoods] = useState<MoodEvent[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isFabOpen, setIsFabOpen] = useState(false);
 
     const loadData = async () => {
         setLoading(true);
@@ -148,18 +149,55 @@ export default function TimelineScreen() {
                 />
             )}
 
-            <TouchableOpacity
-                style={[styles.fab, { bottom: 100, backgroundColor: '#8b5cf6' }]}
-                onPress={() => navigation.navigate('LogMood')}
-            >
-                <Text style={{ fontSize: 24 }}>😊</Text>
-            </TouchableOpacity>
+            {/* Speed Dial FAB */}
+            {isFabOpen && (
+                <>
+                    {/* Backdrop to close */}
+                    <TouchableOpacity
+                        style={StyleSheet.absoluteFill}
+                        activeOpacity={1}
+                        onPress={() => setIsFabOpen(false)}
+                    />
+
+                    <View style={{ position: 'absolute', bottom: 100, right: 28, alignItems: 'flex-end' }}>
+                        <TouchableOpacity
+                            style={[styles.subFab, { backgroundColor: '#8b5cf6', marginBottom: 16 }]}
+                            onPress={() => {
+                                setIsFabOpen(false);
+                                navigation.navigate('LogMood');
+                            }}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text style={styles.subFabLabel}>Log Mood</Text>
+                                <View style={styles.subFabIcon}>
+                                    <Text style={{ fontSize: 20 }}>😊</Text>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.subFab, { backgroundColor: '#2563eb' }]}
+                            onPress={() => {
+                                setIsFabOpen(false);
+                                navigation.navigate('LogMeal');
+                            }}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text style={styles.subFabLabel}>Log Meal</Text>
+                                <View style={styles.subFabIcon}>
+                                    <Text style={{ fontSize: 20 }}>🍽️</Text>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </>
+            )}
 
             <TouchableOpacity
-                style={styles.fab}
-                onPress={() => navigation.navigate('LogMeal')}
+                style={[styles.fab, isFabOpen ? { backgroundColor: '#4b5563' } : {}]}
+                onPress={() => setIsFabOpen(!isFabOpen)}
             >
-                <Plus color="#fff" size={32} />
+                {isFabOpen ? <X color="#fff" size={32} /> : <Plus color="#fff" size={32} />}
             </TouchableOpacity>
         </View>
     );
@@ -300,5 +338,37 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6b7280',
         fontWeight: '500',
+    },
+    subFab: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    subFabIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#fff', // Will be overridden or used as base
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 5,
+        marginLeft: 12, // Space between label and icon
+    },
+    subFabLabel: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
     },
 });
