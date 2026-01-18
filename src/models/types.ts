@@ -28,7 +28,7 @@ export interface MealEvent {
   mealSlot: MealSlot;
   inputMode: 'photo' | 'text';
   mealTypeTags: MealTypeTag[]; // non-empty, fallback ['unknown']
-  
+
   photoUri?: string;
   textDescription?: string;
   portionSize?: 'small' | 'medium' | 'large';
@@ -47,7 +47,8 @@ export interface MoodEvent {
   valence: MoodValence;
   energy: MoodEnergy;
   stress: MoodStress;
-  
+
   tag?: MoodTag;
   notes?: string;
+  linkedMealEventId?: string;
 }

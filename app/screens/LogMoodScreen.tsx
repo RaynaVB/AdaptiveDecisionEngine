@@ -21,7 +21,7 @@ export default function LogMoodScreen() {
     const [selectedTag, setSelectedTag] = useState<MoodTag | undefined>(undefined);
 
     const route = useRoute<RouteProp<RootStackParamList, 'LogMood'>>();
-    const { timestamp } = route.params || {};
+    const { timestamp, mealId } = route.params || {};
 
     const handleSave = async () => {
         const newMood: MoodEvent = {
@@ -32,6 +32,7 @@ export default function LogMoodScreen() {
             energy,
             stress,
             tag: selectedTag,
+            linkedMealEventId: mealId,
         };
 
         await StorageService.addMoodEvent(newMood);

@@ -75,8 +75,12 @@ export default function TimelineScreen() {
     };
 
     const getMoodForMeal = (meal: MealEvent) => {
+        // 1. Check for directly linked mood
+        const linkedMood = moods.find(m => m.linkedMealEventId === meal.id);
+        if (linkedMood) return linkedMood;
+
+        // 2. Fallback: Time Window (< 6 hours before)
         const mealTime = new Date(meal.occurredAt).getTime();
-        // Find most recent mood <= mealTime within last 6 hours
         const validMoods = moods.filter(m => {
             const moodTime = new Date(m.occurredAt).getTime();
             return moodTime <= mealTime && (mealTime - moodTime) <= 6 * 60 * 60 * 1000;
@@ -143,6 +147,13 @@ export default function TimelineScreen() {
                     }
                 />
             )}
+
+            <TouchableOpacity
+                style={[styles.fab, { bottom: 100, backgroundColor: '#8b5cf6' }]}
+                onPress={() => navigation.navigate('LogMood')}
+            >
+                <Text style={{ fontSize: 24 }}>😊</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
                 style={styles.fab}

@@ -99,7 +99,22 @@ export default function LogMealScreen() {
         };
 
         await StorageService.addMealEvent(newMeal);
-        navigation.navigate('LogMood', { mealId: newMeal.id, timestamp: newMeal.occurredAt });
+
+        Alert.alert(
+            'Meal Saved',
+            'Log mood now?',
+            [
+                {
+                    text: 'Not Now',
+                    style: 'cancel',
+                    onPress: () => navigation.navigate('Timeline')
+                },
+                {
+                    text: 'Log Mood',
+                    onPress: () => navigation.navigate('LogMood', { mealId: newMeal.id, timestamp: newMeal.occurredAt })
+                }
+            ]
+        );
     };
 
     return (
@@ -213,7 +228,7 @@ export default function LogMealScreen() {
 
             <View style={styles.footer}>
                 <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                    <Text style={styles.saveButtonText}>Save & Log Mood</Text>
+                    <Text style={styles.saveButtonText}>Save Meal</Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
