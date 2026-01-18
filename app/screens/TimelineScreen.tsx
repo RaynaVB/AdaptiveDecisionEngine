@@ -6,6 +6,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
 import { Plus, ChevronRight } from 'lucide-react-native';
+import { formatMealSummary } from '../../src/utils/mealSummary';
 
 type TimelineScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timeline'>;
 
@@ -98,18 +99,9 @@ export default function TimelineScreen() {
             >
                 <View style={styles.cardHeader}>
                     <Text style={styles.time}>{dayString} • {timeString}</Text>
-                    <View style={styles.slotBadge}>
-                        <Text style={styles.slotText}>{item.mealSlot}</Text>
-                    </View>
                 </View>
 
-                <View style={styles.tagsContainer}>
-                    {item.mealTypeTags.map((tag, idx) => (
-                        <View key={idx} style={styles.tag}>
-                            <Text style={styles.tagText}>{tag.replace('_', ' ')}</Text>
-                        </View>
-                    ))}
-                </View>
+                <Text style={styles.summaryText}>{formatMealSummary(item)}</Text>
 
                 {item.textDescription ? (
                     <Text style={styles.description} numberOfLines={1}>{item.textDescription}</Text>
@@ -139,6 +131,11 @@ export default function TimelineScreen() {
                     keyExtractor={item => item.id}
                     contentContainerStyle={styles.listContent}
                     refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
+                    ListHeaderComponent={
+                        <View style={{ paddingBottom: 16 }}>
+                            <Text style={styles.subtitle}>Showing last 7 days</Text>
+                        </View>
+                    }
                 />
             )}
 
@@ -276,5 +273,16 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 8,
+    },
+    summaryText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: 8,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: '#6b7280',
+        fontWeight: '500',
     },
 });

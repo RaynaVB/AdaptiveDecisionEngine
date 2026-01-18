@@ -11,7 +11,15 @@ export const StorageService = {
     async getMealEvents(): Promise<MealEvent[]> {
         try {
             const json = await AsyncStorage.getItem(STORAGE_KEYS.MEALS);
-            return json != null ? JSON.parse(json) : [];
+            const parsed = json != null ? JSON.parse(json) : [];
+
+            // Migration: Normalize empty tags to ['unknown']
+            return parsed.map((m: any) => ({
+                ...m,
+                mealTypeTags: (!m.mealTypeTags || m.mealTypeTags.length === 0)
+                    ? ['unknown']
+                    : m.mealTypeTags
+            }));
         } catch (e) {
             console.error('Failed to load meals', e);
             return [];

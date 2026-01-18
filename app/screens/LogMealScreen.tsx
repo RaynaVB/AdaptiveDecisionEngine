@@ -175,6 +175,9 @@ export default function LogMealScreen() {
                 {/* Tags */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Tags</Text>
+                    <Text style={[styles.subTitle, { marginBottom: 12, fontStyle: 'italic', fontSize: 13 }]}>
+                        Pick 1–3 tags (optional). If unsure, leave blank.
+                    </Text>
                     <Text style={styles.subTitle}>Base Load</Text>
                     <View style={styles.tagsRow}>
                         {BASE_LOAD_TAGS.map(tag => (
