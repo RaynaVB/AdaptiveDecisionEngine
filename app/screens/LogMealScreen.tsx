@@ -37,12 +37,12 @@ export default function LogMealScreen() {
                     return;
                 }
                 result = await ImagePicker.launchCameraAsync({
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    mediaTypes: 'images',
                     quality: 0.7,
                 });
             } else {
                 result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    mediaTypes: 'images',
                     quality: 0.7,
                 });
             }
@@ -99,7 +99,7 @@ export default function LogMealScreen() {
         };
 
         await StorageService.addMealEvent(newMeal);
-        navigation.navigate('LogMood', { mealId: newMeal.id });
+        navigation.navigate('LogMood', { mealId: newMeal.id, timestamp: newMeal.occurredAt });
     };
 
     return (

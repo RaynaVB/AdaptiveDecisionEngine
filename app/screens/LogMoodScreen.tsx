@@ -20,11 +20,14 @@ export default function LogMoodScreen() {
     const [stress, setStress] = useState<MoodStress>('low');
     const [selectedTag, setSelectedTag] = useState<MoodTag | undefined>(undefined);
 
+    const route = useRoute<RouteProp<RootStackParamList, 'LogMood'>>();
+    const { timestamp } = route.params || {};
+
     const handleSave = async () => {
         const newMood: MoodEvent = {
             id: uuidv4(),
             createdAt: new Date().toISOString(),
-            occurredAt: new Date().toISOString(),
+            occurredAt: timestamp || new Date().toISOString(),
             valence,
             energy,
             stress,
