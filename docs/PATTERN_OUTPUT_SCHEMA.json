@@ -1,0 +1,80 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Pattern Output Schema",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": [
+            "id",
+            "patternType",
+            "title",
+            "description",
+            "confidence",
+            "evidence",
+            "windowStart",
+            "windowEnd",
+            "createdAt"
+        ],
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Unique UUID for this pattern instance"
+            },
+            "patternType": {
+                "type": "string",
+                "enum": [
+                    "mood_dip_then_eat",
+                    "late_night_eating_cluster",
+                    "weekday_weekend_shift",
+                    "meal_type_mood_association"
+                ]
+            },
+            "title": {
+                "type": "string",
+                "description": "Human-readable short title"
+            },
+            "description": {
+                "type": "string",
+                "description": "Full explanation of the pattern finding"
+            },
+            "confidence": {
+                "type": "string",
+                "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                ],
+                "description": "Confidence level of the heuristic"
+            },
+            "severity": {
+                "type": "string",
+                "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                ],
+                "description": "Optional severity of the behavior impact"
+            },
+            "evidence": {
+                "type": "object",
+                "description": "Dynamic map of stats backing the pattern",
+                "additionalProperties": true
+            },
+            "windowStart": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Start of analysis window"
+            },
+            "windowEnd": {
+                "type": "string",
+                "format": "date-time",
+                "description": "End of analysis window"
+            },
+            "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When this pattern was detected"
+            }
+        }
+    }
+}
