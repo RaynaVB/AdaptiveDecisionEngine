@@ -12,6 +12,10 @@ type TimelineScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Tim
 
 export default function TimelineScreen() {
     const navigation = useNavigation<TimelineScreenNavigationProp>();
+    // Union Type for List
+    type TimelineItem = { type: 'meal', data: MealEvent } | { type: 'mood', data: MoodEvent };
+
+    const [timelineData, setTimelineData] = useState<TimelineItem[]>([]);
     const [meals, setMeals] = useState<MealEvent[]>([]);
     const [moods, setMoods] = useState<MoodEvent[]>([]);
     const [loading, setLoading] = useState(false);
@@ -27,9 +31,20 @@ export default function TimelineScreen() {
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         const filteredMeals = loadedMeals.filter(m => new Date(m.occurredAt) >= sevenDaysAgo);
+        const filteredMoods = loadedMoods.filter(m => new Date(m.occurredAt) >= sevenDaysAgo);
 
         setMeals(filteredMeals);
-        setMoods(loadedMoods);
+        setMoods(loadedMoods); // Keep full mood list for context lookup
+
+        // Merge and Sort
+        const merged: TimelineItem[] = [
+            ...filteredMeals.map(m => ({ type: 'meal' as const, data: m })),
+            ...filteredMoods.map(m => ({ type: 'mood' as const, data: m }))
+        ];
+
+        merged.sort((a, b) => new Date(b.data.occurredAt).getTime() - new Date(a.data.occurredAt).getTime());
+
+        setTimelineData(merged);
         setLoading(false);
     };
 
@@ -93,7 +108,7 @@ export default function TimelineScreen() {
         return validMoods.length > 0 ? validMoods[0] : null;
     };
 
-    const renderItem = ({ item }: { item: MealEvent }) => {
+    const renderMealItem = (item: MealEvent) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const dayString = date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
@@ -125,9 +140,52 @@ export default function TimelineScreen() {
         );
     };
 
+    const renderMoodItem = (item: MoodEvent) => {
+        const date = new Date(item.occurredAt);
+        const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dayString = date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+        // Mood Color Logic
+        const moodColor = item.valence === 'negative' ? '#fee2e2' : item.valence === 'positive' ? '#dcfce7' : '#f3f4f6';
+        const borderColor = item.valence === 'negative' ? '#fca5a5' : item.valence === 'positive' ? '#86efac' : '#e5e7eb';
+
+        return (
+            <View style={[styles.card, { borderLeftWidth: 4, borderLeftColor: borderColor }]}>
+                <View style={styles.cardHeader}>
+                    <Text style={styles.time}>{dayString} • {timeString}</Text>
+                    <View style={[styles.slotBadge, { backgroundColor: moodColor }]}>
+                        <Text style={[styles.slotText, { color: '#374151' }]}>Mood Check-in</Text>
+                    </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={{ fontSize: 24, marginRight: 8 }}>
+                        {item.valence === 'positive' ? '🙂' : item.valence === 'negative' ? '🙁' : '😐'}
+                    </Text>
+                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize' }}>
+                        {item.valence} • {item.energy} Energy
+                    </Text>
+                </View>
+
+                {item.tag && (
+                    <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                        <View style={styles.tag}>
+                            <Text style={styles.tagText}>{item.tag}</Text>
+                        </View>
+                    </View>
+                )}
+            </View>
+        );
+    };
+
+    const renderItem = ({ item }: { item: TimelineItem }) => {
+        if (item.type === 'meal') return renderMealItem(item.data);
+        return renderMoodItem(item.data);
+    };
+
     return (
         <View style={styles.container}>
-            {meals.length === 0 && !loading ? (
+            {timelineData.length === 0 && !loading ? (
                 <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>No logs found.</Text>
                     <TouchableOpacity style={styles.seedButton} onPress={handleSeed}>
@@ -136,9 +194,9 @@ export default function TimelineScreen() {
                 </View>
             ) : (
                 <FlatList
-                    data={meals}
+                    data={timelineData}
                     renderItem={renderItem}
-                    keyExtractor={item => item.id}
+                    keyExtractor={item => item.data.id}
                     contentContainerStyle={styles.listContent}
                     refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
                     ListHeaderComponent={
@@ -154,39 +212,35 @@ export default function TimelineScreen() {
                 <>
                     {/* Backdrop to close */}
                     <TouchableOpacity
-                        style={StyleSheet.absoluteFill}
+                        style={styles.backdrop}
                         activeOpacity={1}
                         onPress={() => setIsFabOpen(false)}
                     />
 
-                    <View style={{ position: 'absolute', bottom: 100, right: 28, alignItems: 'flex-end' }}>
+                    <View style={styles.speedDialContainer}>
                         <TouchableOpacity
-                            style={[styles.subFab, { backgroundColor: '#8b5cf6', marginBottom: 16 }]}
+                            style={styles.subFab}
                             onPress={() => {
                                 setIsFabOpen(false);
                                 navigation.navigate('LogMood');
                             }}
                         >
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Text style={styles.subFabLabel}>Log Mood</Text>
-                                <View style={styles.subFabIcon}>
-                                    <Text style={{ fontSize: 20 }}>😊</Text>
-                                </View>
+                            <Text style={styles.subFabLabel}>Log Mood</Text>
+                            <View style={[styles.subFabIcon, { backgroundColor: '#8b5cf6' }]}>
+                                <Text style={{ fontSize: 24 }}>😊</Text>
                             </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.subFab, { backgroundColor: '#2563eb' }]}
+                            style={styles.subFab}
                             onPress={() => {
                                 setIsFabOpen(false);
                                 navigation.navigate('LogMeal');
                             }}
                         >
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Text style={styles.subFabLabel}>Log Meal</Text>
-                                <View style={styles.subFabIcon}>
-                                    <Text style={{ fontSize: 20 }}>🍽️</Text>
-                                </View>
+                            <Text style={styles.subFabLabel}>Log Meal</Text>
+                            <View style={[styles.subFabIcon, { backgroundColor: '#2563eb' }]}>
+                                <Text style={{ fontSize: 24 }}>🍽️</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -247,11 +301,6 @@ const styles = StyleSheet.create({
         color: '#1d4ed8',
         fontWeight: '600',
         textTransform: 'capitalize',
-    },
-    tagsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginBottom: 8,
     },
     tag: {
         backgroundColor: '#f3f4f6',
@@ -327,6 +376,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 8,
+        zIndex: 50,
     },
     summaryText: {
         fontSize: 16,
@@ -339,23 +389,35 @@ const styles = StyleSheet.create({
         color: '#6b7280',
         fontWeight: '500',
     },
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        zIndex: 40,
+    },
+    speedDialContainer: {
+        position: 'absolute',
+        bottom: 110,
+        right: 28,
+        alignItems: 'flex-end',
+        zIndex: 50,
+    },
     subFab: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: 20,
     },
     subFabIcon: {
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: '#fff', // Will be overridden or used as base
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
         elevation: 5,
-        marginLeft: 12, // Space between label and icon
+        marginLeft: 12,
     },
     subFabLabel: {
         backgroundColor: '#fff',
@@ -367,8 +429,9 @@ const styles = StyleSheet.create({
         color: '#374151',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 2,
+        overflow: 'hidden',
     },
 });
