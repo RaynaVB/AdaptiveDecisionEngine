@@ -9,6 +9,7 @@ import { Camera, X } from 'lucide-react-native';
 import { RootStackParamList } from '../../src/models/navigation';
 import { MealSlot, MealTypeTag, MealEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
+import { NotificationService } from '../../src/services/NotificationService';
 
 type LogMealScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMeal'>;
 
@@ -99,6 +100,7 @@ export default function LogMealScreen() {
         };
 
         await StorageService.addMealEvent(newMeal);
+        await NotificationService.handleUserLoggedActivity('meal');
 
         Alert.alert(
             'Meal Saved',

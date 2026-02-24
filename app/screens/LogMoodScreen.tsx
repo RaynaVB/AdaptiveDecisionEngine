@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { MoodValence, MoodEnergy, MoodStress, MoodTag, MoodEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
+import { NotificationService } from '../../src/services/NotificationService';
 import { v4 as uuidv4 } from 'uuid';
 
 type LogMoodScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMood'>;
@@ -36,6 +37,7 @@ export default function LogMoodScreen() {
         };
 
         await StorageService.addMoodEvent(newMood);
+        await NotificationService.handleUserLoggedActivity('mood');
         navigation.popToTop(); // Go back to Timeline
     };
 

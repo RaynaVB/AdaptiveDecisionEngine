@@ -222,7 +222,7 @@ export default function TimelineScreen() {
                             style={styles.subFab}
                             onPress={() => {
                                 setIsFabOpen(false);
-                                navigation.navigate('LogMood');
+                                navigation.navigate('LogMood', {});
                             }}
                         >
                             <Text style={styles.subFabLabel}>Log Mood</Text>
