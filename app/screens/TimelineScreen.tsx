@@ -42,7 +42,22 @@ export default function TimelineScreen() {
             ...filteredMoods.map(m => ({ type: 'mood' as const, data: m }))
         ];
 
-        merged.sort((a, b) => new Date(b.data.occurredAt).getTime() - new Date(a.data.occurredAt).getTime());
+        const getEffectiveTime = (item: TimelineItem) => {
+            const d = new Date(item.data.occurredAt);
+            if (item.type === 'meal') {
+                const baseDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                switch (item.data.mealSlot) {
+                    case 'breakfast': return baseDay + 8 * 3600000; // 8 AM
+                    case 'lunch': return baseDay + 13 * 3600000; // 1 PM
+                    case 'snack': return baseDay + 16 * 3600000; // 4 PM
+                    case 'dinner': return baseDay + 19 * 3600000; // 7 PM
+                    default: return d.getTime();
+                }
+            }
+            return d.getTime();
+        };
+
+        merged.sort((a, b) => getEffectiveTime(b) - getEffectiveTime(a));
 
         setTimelineData(merged);
         setLoading(false);
@@ -226,7 +241,7 @@ export default function TimelineScreen() {
                             }}
                         >
                             <Text style={styles.subFabLabel}>Log Mood</Text>
-                            <View style={[styles.subFabIcon, { backgroundColor: '#8b5cf6' }]}>
+                            <View style={[styles.subFabIcon, { backgroundColor: '#8b5cf6' }]} pointerEvents="none">
                                 <Text style={{ fontSize: 24 }}>😊</Text>
                             </View>
                         </TouchableOpacity>
@@ -239,7 +254,7 @@ export default function TimelineScreen() {
                             }}
                         >
                             <Text style={styles.subFabLabel}>Log Meal</Text>
-                            <View style={[styles.subFabIcon, { backgroundColor: '#2563eb' }]}>
+                            <View style={[styles.subFabIcon, { backgroundColor: '#2563eb' }]} pointerEvents="none">
                                 <Text style={{ fontSize: 24 }}>🍽️</Text>
                             </View>
                         </TouchableOpacity>
@@ -251,7 +266,9 @@ export default function TimelineScreen() {
                 style={[styles.fab, isFabOpen ? { backgroundColor: '#4b5563' } : {}]}
                 onPress={() => setIsFabOpen(!isFabOpen)}
             >
-                {isFabOpen ? <X color="#fff" size={32} /> : <Plus color="#fff" size={32} />}
+                <View pointerEvents="none">
+                    {isFabOpen ? <X color="#fff" size={32} /> : <Plus color="#fff" size={32} />}
+                </View>
             </TouchableOpacity>
         </View>
     );
