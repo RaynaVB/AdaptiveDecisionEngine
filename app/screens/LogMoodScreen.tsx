@@ -7,6 +7,7 @@ import { MoodValence, MoodEnergy, MoodStress, MoodTag, MoodEvent } from '../../s
 import { StorageService } from '../../src/services/storage';
 import { NotificationService } from '../../src/services/NotificationService';
 import { v4 as uuidv4 } from 'uuid';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 type LogMoodScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMood'>;
 
@@ -14,27 +15,55 @@ const MOOD_TAGS: MoodTag[] = ['anxious', 'bored', 'sad', 'angry', 'lonely', 'cel
 
 export default function LogMoodScreen() {
     const navigation = useNavigation<LogMoodScreenNavigationProp>();
+    const route = useRoute<RouteProp<RootStackParamList, 'LogMood'>>();
+
+    const suggestedTimestamp = route.params?.timestamp;
+    const { mealId } = route.params || {};
 
     // Default stats
     const [valence, setValence] = useState<MoodValence>('neutral');
     const [energy, setEnergy] = useState<MoodEnergy>('ok');
-    const [stress, setStress] = useState<MoodStress>('low');
-    const [selectedTag, setSelectedTag] = useState<MoodTag | undefined>(undefined);
+    const [stress, setStress] = useState<MoodStress>('medium');
+    const [selectedTag, setSelectedTag] = useState<MoodTag | undefined>();
 
-    const route = useRoute<RouteProp<RootStackParamList, 'LogMood'>>();
-    const { timestamp, mealId } = route.params || {};
+    const [occurredAt, setOccurredAt] = useState<Date>(suggestedTimestamp ? new Date(suggestedTimestamp) : new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+
+    const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+        setShowDatePicker(false);
+        if (selectedDate) {
+            setOccurredAt(prevDate => {
+                const newDate = new Date(selectedDate);
+                newDate.setHours(prevDate.getHours(), prevDate.getMinutes(), prevDate.getSeconds(), prevDate.getMilliseconds());
+                return newDate;
+            });
+        }
+    };
+
+    const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+        setShowTimePicker(false);
+        if (selectedDate) {
+            setOccurredAt(prevDate => {
+                const newDate = new Date(prevDate);
+                newDate.setHours(selectedDate.getHours(), selectedDate.getMinutes(), selectedDate.getSeconds(), selectedDate.getMilliseconds());
+                return newDate;
+            });
+        }
+    };
 
     const handleSave = async () => {
         const newMood: MoodEvent = {
             id: uuidv4(),
             createdAt: new Date().toISOString(),
-            occurredAt: timestamp || new Date().toISOString(),
+            occurredAt: occurredAt.toISOString(),
             valence,
             energy,
             stress,
-            tag: selectedTag,
-            linkedMealEventId: mealId,
         };
+
+        if (selectedTag) newMood.tag = selectedTag;
+        if (mealId) newMood.linkedMealEventId = mealId;
 
         await StorageService.addMoodEvent(newMood);
         await NotificationService.handleUserLoggedActivity('mood');
@@ -112,6 +141,39 @@ export default function LogMoodScreen() {
                 <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                     <Text style={styles.saveButtonText}>Finish</Text>
                 </TouchableOpacity>
+                {/* Mood Date & Time */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>When did you feel this way?</Text>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
+                            <Text style={styles.dateTimeText}>
+                                {occurredAt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowTimePicker(true)}>
+                            <Text style={styles.dateTimeText}>
+                                {occurredAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={occurredAt}
+                            mode="date"
+                            display="default"
+                            onChange={onDateChange}
+                        />
+                    )}
+                    {showTimePicker && (
+                        <DateTimePicker
+                            value={occurredAt}
+                            mode="time"
+                            display="default"
+                            onChange={onTimeChange}
+                        />
+                    )}
+                </View>
             </View>
         </View>
     );
@@ -141,6 +203,17 @@ const styles = StyleSheet.create({
     tagChipSelected: { backgroundColor: '#bfdbfe', borderColor: '#2563eb' },
     tagText: { fontSize: 14, color: '#374151', textTransform: 'capitalize' },
     tagTextSelected: { color: '#1e40af', fontWeight: '500' },
+
+    dateTimeButton: {
+        flex: 1,
+        backgroundColor: '#f3f4f6',
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#e5e7eb'
+    },
+    dateTimeText: { color: '#111827', fontSize: 16, fontWeight: '500' },
 
     footer: { padding: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
     saveButton: { backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },

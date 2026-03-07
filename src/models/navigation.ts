@@ -6,4 +6,6 @@ export type RootStackParamList = {
     LogMood: { mealId?: string; timestamp?: string }; // optional link back
     MealDetail: { mealId: string };
     WeeklyPatterns: undefined;
+    Login: undefined;
+    SignUp: undefined;
 };

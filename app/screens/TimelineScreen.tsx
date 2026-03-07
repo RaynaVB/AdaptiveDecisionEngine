@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -7,6 +7,8 @@ import { MealEvent, MoodEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
 import { Plus, ChevronRight, X } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
+import { auth } from '../../src/services/firebaseConfig';
+import { signOut } from 'firebase/auth';
 
 type TimelineScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timeline'>;
 
@@ -14,8 +16,9 @@ export default function TimelineScreen() {
     const navigation = useNavigation<TimelineScreenNavigationProp>();
     // Union Type for List
     type TimelineItem = { type: 'meal', data: MealEvent } | { type: 'mood', data: MoodEvent };
+    type TimelineSection = { title: string, data: TimelineItem[] };
 
-    const [timelineData, setTimelineData] = useState<TimelineItem[]>([]);
+    const [timelineData, setTimelineData] = useState<TimelineSection[]>([]);
     const [meals, setMeals] = useState<MealEvent[]>([]);
     const [moods, setMoods] = useState<MoodEvent[]>([]);
     const [loading, setLoading] = useState(false);
@@ -42,24 +45,38 @@ export default function TimelineScreen() {
             ...filteredMoods.map(m => ({ type: 'mood' as const, data: m }))
         ];
 
-        const getEffectiveTime = (item: TimelineItem) => {
+        // Sort fully by exact occurredAt time descending
+        merged.sort((a, b) => new Date(b.data.occurredAt).getTime() - new Date(a.data.occurredAt).getTime());
+
+        // Group by Day
+        const grouped: { [key: string]: TimelineItem[] } = {};
+        merged.forEach(item => {
             const d = new Date(item.data.occurredAt);
-            if (item.type === 'meal') {
-                const baseDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-                switch (item.data.mealSlot) {
-                    case 'breakfast': return baseDay + 8 * 3600000; // 8 AM
-                    case 'lunch': return baseDay + 13 * 3600000; // 1 PM
-                    case 'snack': return baseDay + 16 * 3600000; // 4 PM
-                    case 'dinner': return baseDay + 19 * 3600000; // 7 PM
-                    default: return d.getTime();
-                }
+            // Format as "Wed, Oct 25" etc.
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            let dayTitle = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+            if (d.toDateString() === today.toDateString()) {
+                dayTitle = 'Today';
+            } else if (d.toDateString() === yesterday.toDateString()) {
+                dayTitle = 'Yesterday';
             }
-            return d.getTime();
-        };
 
-        merged.sort((a, b) => getEffectiveTime(b) - getEffectiveTime(a));
+            if (!grouped[dayTitle]) {
+                grouped[dayTitle] = [];
+            }
+            grouped[dayTitle].push(item);
+        });
 
-        setTimelineData(merged);
+        const sections: TimelineSection[] = Object.keys(grouped).map(key => ({
+            title: key,
+            data: grouped[key]
+        }));
+
+        setTimelineData(sections);
         setLoading(false);
     };
 
@@ -69,15 +86,14 @@ export default function TimelineScreen() {
         }, [])
     );
 
-    const handleClear = async () => {
-        Alert.alert('Confirm', 'Delete all logs?', [
+    const handleLogout = async () => {
+        Alert.alert('Sign Out', 'Are you sure you want to log out?', [
             { text: 'Cancel', style: 'cancel' },
             {
-                text: 'Delete',
+                text: 'Log Out',
                 style: 'destructive',
                 onPress: async () => {
-                    await StorageService.clearAllLogs();
-                    await loadData();
+                    await signOut(auth);
                 }
             }
         ]);
@@ -90,8 +106,8 @@ export default function TimelineScreen() {
                     <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')}>
                         <Text style={{ color: '#2563eb', fontWeight: '600' }}>Patterns</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleClear}>
-                        <Text style={{ color: '#ef4444' }}>Clear</Text>
+                    <TouchableOpacity onPress={handleLogout}>
+                        <Text style={{ color: '#ef4444' }}>Logout</Text>
                     </TouchableOpacity>
                 </View>
             ),
@@ -138,7 +154,12 @@ export default function TimelineScreen() {
                 onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
             >
                 <View style={styles.cardHeader}>
-                    <Text style={styles.time}>{dayString} • {timeString}</Text>
+                    <View style={styles.cardTitleRow}>
+                        <Text style={styles.time}>{timeString}</Text>
+                        <View style={styles.slotBadge}>
+                            <Text style={styles.slotText}>{item.mealSlot}</Text>
+                        </View>
+                    </View>
                 </View>
 
                 <Text style={styles.summaryText}>{formatMealSummary(item)}</Text>
@@ -167,7 +188,7 @@ export default function TimelineScreen() {
         return (
             <View style={[styles.card, { borderLeftWidth: 4, borderLeftColor: borderColor }]}>
                 <View style={styles.cardHeader}>
-                    <Text style={styles.time}>{dayString} • {timeString}</Text>
+                    <Text style={styles.time}>{timeString}</Text>
                     <View style={[styles.slotBadge, { backgroundColor: moodColor }]}>
                         <Text style={[styles.slotText, { color: '#374151' }]}>Mood Check-in</Text>
                     </View>
@@ -208,9 +229,14 @@ export default function TimelineScreen() {
                     </TouchableOpacity>
                 </View>
             ) : (
-                <FlatList
-                    data={timelineData}
+                <SectionList
+                    sections={timelineData}
                     renderItem={renderItem}
+                    renderSectionHeader={({ section: { title } }) => (
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionHeaderText}>{title}</Text>
+                        </View>
+                    )}
                     keyExtractor={item => item.data.id}
                     contentContainerStyle={styles.listContent}
                     refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
@@ -355,6 +381,23 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#1f2937',
         textTransform: 'capitalize',
+    },
+    cardTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    sectionHeader: {
+        backgroundColor: '#f9fafb',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        marginTop: 8,
+    },
+    sectionHeaderText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#111827',
     },
     emptyState: {
         flex: 1,

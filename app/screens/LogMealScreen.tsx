@@ -10,6 +10,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { MealSlot, MealTypeTag, MealEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
 import { NotificationService } from '../../src/services/NotificationService';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 type LogMealScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMeal'>;
 
@@ -25,8 +26,22 @@ export default function LogMealScreen() {
 
     const [textDescription, setTextDescription] = useState('');
     const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
-    const [selectedSlot, setSelectedSlot] = useState<MealSlot>('lunch'); // Default? Or empty?
+    const [selectedSlot, setSelectedSlot] = useState<MealSlot>('lunch'); // Kept for backend compatibility, but hidden from UI
     const [selectedTags, setSelectedTags] = useState<MealTypeTag[]>([]);
+
+    const [occurredAt, setOccurredAt] = useState<Date>(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+
+    const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+        setShowDatePicker(false);
+        if (selectedDate) setOccurredAt(selectedDate);
+    };
+
+    const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+        setShowTimePicker(false);
+        if (selectedDate) setOccurredAt(selectedDate);
+    };
 
     const pickImage = async (useCamera: boolean) => {
         try {
@@ -68,15 +83,22 @@ export default function LogMealScreen() {
     };
 
     const applyPreset = (preset: 'Quick Snack Sweet' | 'Heavy Dinner Out' | 'Light Breakfast') => {
+        const d = new Date();
         if (preset === 'Quick Snack Sweet') {
             setSelectedSlot('snack');
             setSelectedTags(['regular', 'sweet', 'packaged']);
+            d.setHours(16, 0, 0, 0); // 4 PM
+            setOccurredAt(d);
         } else if (preset === 'Heavy Dinner Out') {
             setSelectedSlot('dinner');
             setSelectedTags(['heavy', 'savory', 'restaurant']);
+            d.setHours(19, 0, 0, 0); // 7 PM
+            setOccurredAt(d);
         } else if (preset === 'Light Breakfast') {
             setSelectedSlot('breakfast');
             setSelectedTags(['light', 'homemade']);
+            d.setHours(8, 0, 0, 0); // 8 AM
+            setOccurredAt(d);
         }
     };
 
@@ -91,7 +113,7 @@ export default function LogMealScreen() {
         const newMeal: MealEvent = {
             id: uuidv4(),
             createdAt: new Date().toISOString(),
-            occurredAt: new Date().toISOString(),
+            occurredAt: occurredAt.toISOString(),
             mealSlot: selectedSlot,
             inputMode: photoUri ? 'photo' : 'text',
             mealTypeTags: tagsToSave as MealTypeTag[],
@@ -124,7 +146,10 @@ export default function LogMealScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.container}
         >
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+            >
 
                 {/* Photo / Text Section */}
                 <View style={styles.inputSection}>
@@ -148,10 +173,11 @@ export default function LogMealScreen() {
                     )}
 
                     <TextInput
-                        style={styles.textInput}
+                        style={[styles.textInput, { minHeight: 80, textAlignVertical: 'top' }]}
                         placeholder="What did you eat?"
                         value={textDescription}
                         onChangeText={setTextDescription}
+                        multiline={true}
                     />
                 </View>
 
@@ -171,22 +197,38 @@ export default function LogMealScreen() {
                     </ScrollView>
                 </View>
 
-                {/* Meal Slot */}
+                {/* Meal Date & Time */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Meal Slot</Text>
-                    <View style={styles.slotRow}>
-                        {MEAL_SLOTS.map(slot => (
-                            <TouchableOpacity
-                                key={slot}
-                                style={[styles.slotChip, selectedSlot === slot && styles.slotChipSelected]}
-                                onPress={() => setSelectedSlot(slot)}
-                            >
-                                <Text style={[styles.slotText, selectedSlot === slot && styles.slotTextSelected]}>
-                                    {slot}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                    <Text style={styles.sectionTitle}>When did you eat?</Text>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
+                            <Text style={styles.dateTimeText}>
+                                {occurredAt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowTimePicker(true)}>
+                            <Text style={styles.dateTimeText}>
+                                {occurredAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
+
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={occurredAt}
+                            mode="date"
+                            display="default"
+                            onChange={onDateChange}
+                        />
+                    )}
+                    {showTimePicker && (
+                        <DateTimePicker
+                            value={occurredAt}
+                            mode="time"
+                            display="default"
+                            onChange={onTimeChange}
+                        />
+                    )}
                 </View>
 
                 {/* Tags */}
@@ -269,14 +311,16 @@ const styles = StyleSheet.create({
     },
     presetText: { fontSize: 13, color: '#374151' },
 
-    slotRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    slotChip: {
-        flex: 1, alignItems: 'center', paddingVertical: 10,
-        borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, marginHorizontal: 4
+    dateTimeButton: {
+        flex: 1,
+        backgroundColor: '#f3f4f6',
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#e5e7eb'
     },
-    slotChipSelected: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-    slotText: { textTransform: 'capitalize', color: '#374151' },
-    slotTextSelected: { color: '#fff', fontWeight: '600' },
+    dateTimeText: { color: '#111827', fontSize: 16, fontWeight: '500' },
 
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap' },
     tagChip: {
