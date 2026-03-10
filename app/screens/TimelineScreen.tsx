@@ -103,6 +103,9 @@ export default function TimelineScreen() {
         navigation.setOptions({
             headerRight: () => (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 16 }}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Recommendations')}>
+                        <Text style={{ color: '#2563eb', fontWeight: '600' }}>Recommendations</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')}>
                         <Text style={{ color: '#2563eb', fontWeight: '600' }}>Patterns</Text>
                     </TouchableOpacity>

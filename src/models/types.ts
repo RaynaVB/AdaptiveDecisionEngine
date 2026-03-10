@@ -52,3 +52,13 @@ export interface MoodEvent {
   notes?: string;
   linkedMealEventId?: string;
 }
+
+export type FeedbackOutcome = 'accepted_fully' | 'accepted_partially' | 'rejected';
+
+export interface FeedbackEvent {
+  id: string; // uuid
+  recommendationId: string;
+  recommendationType: string;
+  outcome: FeedbackOutcome;
+  timestamp: string; // ISO
+}
