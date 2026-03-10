@@ -41,7 +41,7 @@ export default function RecommendationFeedScreen() {
             // 5. load feedback states
             const feedbackMap: Record<string, FeedbackOutcome | null> = {};
             for (const rec of recs) {
-                const outcome = await FeedbackStorageService.getLatestOutcomeForRecommendation(rec.id);
+                const outcome = await FeedbackStorageService.getLatestOutcomeForRecommendation(rec.templateId);
                 feedbackMap[rec.id] = outcome;
             }
             setFeedbacks(feedbackMap);
@@ -69,7 +69,7 @@ export default function RecommendationFeedScreen() {
     const handleFeedback = async (rec: Recommendation, outcome: FeedbackOutcome) => {
         const event: FeedbackEvent = {
             id: uuidv4(),
-            recommendationId: rec.id,
+            recommendationId: rec.templateId,
             recommendationType: rec.recommendationType,
             outcome,
             timestamp: new Date().toISOString()

@@ -11,7 +11,7 @@ Feedback represents a user's action taken on a specific recommendation generated
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | `string` | Unique identifier for this feedback event (UUID). |
-| `recommendationId` | `string` | ID of the `Recommendation` this feedback applies to. |
+| `recommendationId` | `string` | ID of the `ActionTemplate` this feedback applies to (from `actionLibrary.ts`). This allows feedback to persist across regenerations. |
 | `recommendationType` | `string` | The category of recommendation (e.g., `substitution`, `timing_intervention`). |
 | `outcome` | `FeedbackOutcome` | The explicitly chosen user outcome. |
 | `timestamp` | `string` | ISO string denoting when the user submitted the feedback. |

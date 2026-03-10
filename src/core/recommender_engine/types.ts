@@ -1,5 +1,6 @@
 export interface Recommendation {
-    id: string;
+    id: string; // Instance UUID
+    templateId: string; // The underlying template ID from actionLibrary
     recommendationType: string;
     title: string;
     action: string;

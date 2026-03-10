@@ -25,11 +25,20 @@ export async function runRecommendationEngine(patterns: Pattern[], context: Patt
             if (mealCount < template.minMealEventsInWindow) continue;
             if (moodCount < template.minMoodEventsInWindow) continue;
 
+            const latestEvent = await FeedbackStorageService.getLatestFeedbackEventForRecommendation(template.id);
+            if (latestEvent && latestEvent.outcome === 'rejected') {
+                const hoursSinceRejection = (new Date().getTime() - new Date(latestEvent.timestamp).getTime()) / (1000 * 60 * 60);
+                if (hoursSinceRejection < 24) {
+                    continue; // Cooldown: skip template if rejected in the last 24 hours
+                }
+            }
+
             const rejectionRate = await FeedbackStorageService.getRejectionRateByType(template.recommendationType);
             const scores = calculateScores(template, pattern, rejectionRate);
 
             candidates.push({
                 id: uuidv4(),
+                templateId: template.id,
                 recommendationType: template.recommendationType,
                 title: template.titleTemplate,
                 action: template.actionTemplate,
@@ -46,6 +55,7 @@ export async function runRecommendationEngine(patterns: Pattern[], context: Patt
         for (const template of safeTemplates) {
             candidates.push({
                 id: uuidv4(),
+                templateId: template.id,
                 recommendationType: template.recommendationType,
                 title: template.titleTemplate,
                 action: template.actionTemplate,

@@ -6,8 +6,10 @@ This document provides a comprehensive breakdown of the current implementation s
 ---
 
 ### **1. Core Concept & Infrastructure**
-The application is a mobile tracking tool (React Native + Expo) designed to record **Meals** and **Moods**, detect actionable patterns between them, and provide dynamically scored, low-friction recommendations.
-- **Backend/Storage**: Firebase Firestore via `StorageService` (`src/services/storage.ts`) and Firebase Auth.
+The application is a mobile tracking tool (React Native + Expo) designed to record **Meals** and **Moods**, detect actionable patterns between them, and provide dynamically scored, low-friction recommendations that adapt to user feedback.
+- **Backend/Storage**: 
+  - Firebase Firestore via `StorageService` (`src/services/storage.ts`) and Firebase Auth for meals and moods.
+  - Local Device Storage via `AsyncStorage` (`src/services/feedbackStorage.ts`) for recommendation feedback.
 - **Project Structure**: Uses Expo Router (`app/screens/`) for navigation. Core intelligence modules are decoupled (`src/core/pattern_engine/` and `src/core/recommender_engine/`).
 
 ---
@@ -43,7 +45,7 @@ Driven by Expo Router (`AppNavigator.tsx`):
 - **LogMealScreen / LogMoodScreen**: Data entry.
 - **MealDetailScreen**: Dedicated view for a saved log.
 - **WeeklyPatternsScreen**: Renders the analytical output from the Pattern Engine.
-- **RecommendationFeedScreen**: Renders the ranked output of the Recommender Engine.
+- **RecommendationFeedScreen**: Renders the ranked output of the Recommender Engine with interactive feedback buttons.
 - **LoginScreen / SignUpScreen**: User authentication.
 
 ---
@@ -69,17 +71,17 @@ Transforms recognized patterns into actionable interventions. Powered by `recomm
 - **Ranking**: The engine sorts all valid templates and outputs exactly 3 options:
   - 1 **Best Next Action**
   - 2 **Alternative Options**
-- **Safe Fallbacks**: If no patterns meet the strict data thresholds, the engine guarantees an output by serving a "safe" baseline intervention (e.g., "Start with a simple reset - Hydrate") with manually boosted feasibility.
+- **Safe Fallbacks / Trust Policy (`docs/TRUST_POLICY.md`)**: If no patterns meet the strict data thresholds, the engine guarantees an output by serving a "safe" baseline intervention (e.g., "Start with a simple reset - Hydrate") with manually boosted feasibility.
+
+#### **C. Learning & Adaptation Logic (Phase 3B Complete)**
+The recommendation system now acts as a closed, interactive loop that adapts to user behavior.
+- **Feedback Loop**: Users react to recommendations in the UI using buttons ("Adopted ✅", "Partially Accepted ⚠️", or "Rejected ❌"). This data is persisted locally via `AsyncStorage` (`src/services/feedbackStorage.ts`). Schema is documented in `docs/FEEDBACK_SCHEMA.md`.
+- **Adaptation (`docs/LEARNING_LOGIC.md`)**: The engine queries historical rejection rates (`getRejectionRateByType`) before surfacing new candidate actions. If a `recommendationType` (e.g., `substitution`) has been frequently rejected, the scoring engine applies a penalty (up to a 40% reduction in total score), demoting it in the ranking to optimize for higher adoption.
 
 ---
 
-### **5. Remaining / Unimplemented Work (Phases 3B & 4)**
-Comparing the current codebase to the `docs/FinalVersion.md` 90-Day Plan, the following pieces are visibly pending:
+### **5. Remaining / Unimplemented Work (Phase 4)**
+Comparing the current codebase to the `docs/FinalVersion.md` 90-Day Plan, Phases 1 through 3 are completed. The following pieces are visibly pending:
 
-- **Recommendation Feedback Loop (Phase 3B Pending)**: 
-  - There is currently no persistent database storage schema (`FEEDBACK_SCHEMA.md` is missing) for recommendation feedback.
-  - The `RecommendationFeedScreen.tsx` displays recommendations as static cards but lacks the UI buttons to capture "Adopted ✅", "Partially Accepted ⚠️", or "Rejected ❌".
-  - The functions `getRejectionRateByType()` and `getLatestOutcomeForRecommendation()` (intended for `AsyncStorage`) do not exist.
-  - The Learning Logic (`LEARNING_LOGIC.md`) that would adapt future rankings based on past rejection rates is not yet hooked into the `recommenderEngine.ts` scoring model.
 - **Model Inference**: Auto-labeling tags from photos/text via an external ML service is not active.
-- **Pilot Phase (Phase 4 Pending)**: Analytics tracking, friction bottlenecks, and iteration reporting are not yet present.
+- **Pilot Phase (Phase 4 Pending)**: Analytics tracking, friction bottlenecks, and iteration reporting (recruiting beta users to test efficacy) are not yet present. Exporting Pilot Data and analyzing results (`docs/PILOT_RESULTS.md`) remain on the roadmap.

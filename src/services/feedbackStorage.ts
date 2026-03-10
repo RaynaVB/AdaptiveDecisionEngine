@@ -34,14 +34,19 @@ export const FeedbackStorageService = {
         return rejections / typeFeedbacks.length;
     },
 
-    async getLatestOutcomeForRecommendation(recId: string): Promise<FeedbackOutcome | null> {
+    async getLatestOutcomeForRecommendation(templateId: string): Promise<FeedbackOutcome | null> {
+        const event = await this.getLatestFeedbackEventForRecommendation(templateId);
+        return event ? event.outcome : null;
+    },
+
+    async getLatestFeedbackEventForRecommendation(templateId: string): Promise<FeedbackEvent | null> {
         const history = await this.getFeedbackHistory();
         // Sort descending by timestamp
         const relevantFeedbacks = history
-            .filter(f => f.recommendationId === recId)
+            .filter(f => f.recommendationId === templateId)
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         
-        return relevantFeedbacks.length > 0 ? relevantFeedbacks[0].outcome : null;
+        return relevantFeedbacks.length > 0 ? relevantFeedbacks[0] : null;
     },
 
     async clearFeedbackHistory(): Promise<void> {

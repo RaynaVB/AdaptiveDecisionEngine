@@ -22,7 +22,15 @@ export function calculateScores(template: ActionTemplate, pattern: Pattern, reje
     else if (pattern.confidence === 'medium') confidence = 0.7;
     else if (pattern.confidence === 'low') confidence = 0.4;
 
-    let total = 0.4 * impact + 0.4 * feasibility + 0.2 * confidence;
+    let impactWeight = 0.4;
+    let feasibilityWeight = 0.4;
+
+    if (rejectionRate > 0) {
+        impactWeight = 0.2;
+        feasibilityWeight = 0.6;
+    }
+
+    let total = impactWeight * impact + feasibilityWeight * feasibility + 0.2 * confidence;
 
     if (rejectionRate > 0) {
         const penalty = rejectionRate * 0.4;
