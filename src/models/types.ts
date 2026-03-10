@@ -29,6 +29,9 @@ export interface MealEvent {
   inputMode: 'photo' | 'text';
   mealTypeTags: MealTypeTag[]; // non-empty, fallback ['unknown']
 
+  raw_text?: string;
+  tags?: string[]; // ['spicy', 'carb', 'heavy']
+
   photoUri?: string;
   textDescription?: string;
   portionSize?: 'small' | 'medium' | 'large';
@@ -44,9 +47,11 @@ export interface MoodEvent {
   id: string;
   createdAt: string; // ISO
   occurredAt: string; // ISO
-  valence: MoodValence;
-  energy: MoodEnergy;
-  stress: MoodStress;
+  valence?: number | 'positive' | 'neutral' | 'negative';
+  arousal?: number;
+  energy?: 'high' | 'ok' | 'low';
+  moodLabel?: string;
+  stress?: MoodStress;
 
   tag?: MoodTag;
   notes?: string;

@@ -99,6 +99,20 @@ export default function TimelineScreen() {
         ]);
     };
 
+    const handleClear = async () => {
+        Alert.alert('Confirm', 'Delete all logs?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                    await StorageService.clearAllLogs();
+                    await loadData();
+                }
+            }
+        ]);
+    };
+
     React.useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
@@ -108,6 +122,9 @@ export default function TimelineScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')}>
                         <Text style={{ color: '#2563eb', fontWeight: '600' }}>Patterns</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleClear}>
+                        <Text style={{ color: '#ef4444' }}>Clear</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleLogout}>
                         <Text style={{ color: '#ef4444' }}>Logout</Text>

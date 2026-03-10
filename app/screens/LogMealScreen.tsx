@@ -117,7 +117,9 @@ export default function LogMealScreen() {
             mealSlot: selectedSlot,
             inputMode: photoUri ? 'photo' : 'text',
             mealTypeTags: tagsToSave as MealTypeTag[],
+            tags: tagsToSave, // The ML-expected array
             textDescription: textDescription || undefined,
+            raw_text: textDescription || undefined, // The ML-expected text
             photoUri: photoUri,
         };
 

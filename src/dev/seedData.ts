@@ -46,7 +46,9 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[] } =
                 mealSlot: slot,
                 inputMode: 'text',
                 mealTypeTags: tags,
+                tags, // explicitly assign new ML field
                 textDescription: `Seed ${slot}`,
+                raw_text: `Seed ${slot}`, // explicitly assign new ML field
             });
 
             // P4 Bias: High Sugar -> Negative Mood
@@ -59,7 +61,9 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[] } =
                     id: uuidv4(),
                     createdAt: moodTime.toISOString(),
                     occurredAt: moodTime.toISOString(),
-                    valence: 'negative',
+                    valence: -0.8,
+                    arousal: -0.5,
+                    moodLabel: 'Sad',
                     stress: 'low',
                     energy: 'low',
                     tag: 'sad',
@@ -80,7 +84,9 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[] } =
                 id: uuidv4(),
                 createdAt: moodTime.toISOString(),
                 occurredAt: moodTime.toISOString(),
-                valence: 'negative', // triggers dip
+                valence: -0.6, // triggers dip
+                arousal: 0.8,
+                moodLabel: 'Anxious',
                 stress: 'high',
                 energy: 'low',
                 tag: 'anxious',
@@ -94,7 +100,9 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[] } =
                 id: uuidv4(),
                 createdAt: moodTime.toISOString(),
                 occurredAt: moodTime.toISOString(),
-                valence: 'positive',
+                valence: 0.8,
+                arousal: 0.8,
+                moodLabel: 'Excited',
                 stress: 'low',
                 energy: 'ok',
                 tag: 'celebratory'
