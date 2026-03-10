@@ -7,6 +7,7 @@ export type RootStackParamList = {
     MealDetail: { mealId: string };
     WeeklyPatterns: undefined;
     Recommendations: undefined;
+    FeedbackHistory: undefined;
     Login: undefined;
     SignUp: undefined;
 };

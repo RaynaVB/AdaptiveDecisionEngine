@@ -7,7 +7,11 @@ import { Recommendation } from '../../src/core/recommender_engine/types';
 import { FeedbackStorageService } from '../../src/services/feedbackStorage';
 import { FeedbackOutcome, FeedbackEvent } from '../../src/models/types';
 import { v4 as uuidv4 } from 'uuid';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../src/models/navigation';
+
+type RecsScreenProp = StackNavigationProp<RootStackParamList, 'Recommendations'>;
 
 export default function RecommendationFeedScreen() {
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -58,6 +62,21 @@ export default function RecommendationFeedScreen() {
         }, [])
     );
 
+    const navigation = useNavigation<RecsScreenProp>();
+
+    React.useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () => (
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('FeedbackHistory')}
+                    style={{ marginRight: 16 }}
+                >
+                    <Text style={{ color: '#2563eb', fontSize: 16, fontWeight: '500' }}>History</Text>
+                </TouchableOpacity>
+            ),
+        });
+    }, [navigation]);
+
     if (loading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -71,6 +90,8 @@ export default function RecommendationFeedScreen() {
             id: uuidv4(),
             recommendationId: rec.templateId,
             recommendationType: rec.recommendationType,
+            title: rec.title,
+            action: rec.action,
             outcome,
             timestamp: new Date().toISOString()
         };
@@ -111,6 +132,13 @@ export default function RecommendationFeedScreen() {
         );
     };
 
+    const getOutcomeText = (outcome: FeedbackOutcome | null) => {
+        if (outcome === 'accepted_fully') return 'Accepted';
+        if (outcome === 'accepted_partially') return 'Maybe';
+        if (outcome === 'rejected') return 'Rejected';
+        return 'None';
+    };
+
     const renderCard = (rec: Recommendation, isBest: boolean) => (
         <View key={rec.id} style={[styles.card, isBest ? styles.bestCard : styles.altCard]}>
             <Text style={styles.cardTitle}>{rec.title}</Text>
@@ -119,7 +147,14 @@ export default function RecommendationFeedScreen() {
                 <Text style={styles.whyLabel}>Why this?</Text>
                 <Text style={styles.whyText}>{rec.whyThis}</Text>
             </View>
-            {renderFeedbackButtons(rec)}
+            <View style={styles.outcomeRow}>
+                {feedbacks[rec.id] && (
+                    <Text style={styles.lastOutcomeText}>
+                        Last outcome: {getOutcomeText(feedbacks[rec.id])}
+                    </Text>
+                )}
+                {renderFeedbackButtons(rec)}
+            </View>
         </View>
     );
 
@@ -233,10 +268,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#9ca3af',
     },
+    outcomeRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 16,
+    },
+    lastOutcomeText: {
+        fontSize: 12,
+        color: '#6b7280',
+        fontWeight: '500',
+    },
     feedbackContainer: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
-        marginTop: 16,
         gap: 8,
     },
     feedbackButton: {

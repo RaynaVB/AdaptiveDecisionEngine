@@ -59,6 +59,8 @@ export interface FeedbackEvent {
   id: string; // uuid
   recommendationId: string;
   recommendationType: string;
+  title: string;
+  action: string;
   outcome: FeedbackOutcome;
   timestamp: string; // ISO
 }

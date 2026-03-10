@@ -8,6 +8,7 @@ import LogMoodScreen from './screens/LogMoodScreen';
 import MealDetailScreen from './screens/MealDetailScreen';
 import WeeklyPatternsScreen from './screens/WeeklyPatternsScreen';
 import RecommendationFeedScreen from './screens/RecommendationFeedScreen';
+import FeedbackHistoryScreen from './screens/FeedbackHistoryScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
@@ -78,6 +79,11 @@ export default function AppNavigator() {
                         name="Recommendations"
                         component={RecommendationFeedScreen}
                         options={{ title: 'Recommendations' }}
+                    />
+                    <Stack.Screen
+                        name="FeedbackHistory"
+                        component={FeedbackHistoryScreen}
+                        options={{ title: 'Feedback History' }}
                     />
                 </Stack.Group>
             ) : (
