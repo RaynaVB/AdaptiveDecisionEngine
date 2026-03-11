@@ -21,12 +21,21 @@ const OTHER_TAGS: MealTypeTag[] = [
     'high_sugar', 'fried_greasy', 'high_protein', 'high_fiber', 'caffeinated'
 ];
 
+const determineMealSlot = (date: Date): MealSlot => {
+    const hour = date.getHours();
+    if (hour >= 5 && hour < 11) return 'breakfast';
+    if (hour >= 11 && hour < 15) return 'lunch';
+    if (hour >= 15 && hour < 17) return 'snack';
+    if (hour >= 17 && hour < 22) return 'dinner';
+    return 'snack';
+};
+
 export default function LogMealScreen() {
     const navigation = useNavigation<LogMealScreenNavigationProp>();
 
     const [textDescription, setTextDescription] = useState('');
     const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
-    const [selectedSlot, setSelectedSlot] = useState<MealSlot>('lunch'); // Kept for backend compatibility, but hidden from UI
+    const [selectedSlot, setSelectedSlot] = useState<MealSlot>(determineMealSlot(new Date())); // Dynamically estimate based on current time
     const [selectedTags, setSelectedTags] = useState<MealTypeTag[]>([]);
 
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
@@ -35,12 +44,18 @@ export default function LogMealScreen() {
 
     const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
         setShowDatePicker(false);
-        if (selectedDate) setOccurredAt(selectedDate);
+        if (selectedDate) {
+            setOccurredAt(selectedDate);
+            setSelectedSlot(determineMealSlot(selectedDate));
+        }
     };
 
     const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
         setShowTimePicker(false);
-        if (selectedDate) setOccurredAt(selectedDate);
+        if (selectedDate) {
+            setOccurredAt(selectedDate);
+            setSelectedSlot(determineMealSlot(selectedDate));
+        }
     };
 
     const pickImage = async (useCamera: boolean) => {
