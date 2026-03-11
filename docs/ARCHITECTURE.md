@@ -71,10 +71,14 @@ Transforms patterns into ranked, explainable actions.
 
 **Responsibilities**
 - Generate candidate interventions from patterns.
+- Apply deeply personalized contexts with a **Contextual Bandit Model**:
+  - `contextBuilder.ts` builds the user's current behavioral state from recent mood and food history.
+  - `banditModel.ts` dynamically scores candidates beyond base impact/feasibility heuristics.
 - Score each candidate by:
   - expected impact
   - feasibility (friction)
   - confidence (data quality)
+  - ML preference score (learned via bandit)
   - recent acceptance/rejection history
 - Output **ranked recommendations**:
   - rank 1 = best next action

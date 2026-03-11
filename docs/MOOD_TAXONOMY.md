@@ -12,18 +12,25 @@ V2 mood capture is designed to be:
 ## 1. Core Mood Dimensions (Required)
 
 ### 1.1 Valence (How it feels)
-Pick one:
+Can be a numeric score or a coarse enum:
 - **Positive**
 - **Neutral**
 - **Negative**
+- *(Optional numeric value)*
 
-### 1.2 Energy (How activated you feel)
+### 1.2 Arousal (Activation Level)
+- *(Optional numeric value)*
+
+### 1.3 Energy
 Pick one:
 - **High**
 - **OK**
 - **Low**
 
-### 1.3 Stress (Pressure level)
+### 1.4 Mood Label
+- *(Optional free-text mood label)*
+
+### 1.5 Stress (Pressure level)
 Pick one:
 - **Low**
 - **Medium**

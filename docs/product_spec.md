@@ -61,13 +61,14 @@ Supports 4 explicitly programmed patterns:
 4. **Meal Type ↔ Mood Association (P4)**: Correlations between specific meal tags (e.g., high sugar) and subsequent moods.
 *Output is sorted by Severity then Confidence.*
 
-#### **B. Recommender Engine (Phase 3A Complete)**
-Transforms recognized patterns into actionable interventions. Powered by `recommenderEngine.ts`, `scoring.ts`, and `actionLibrary.ts`.
+#### **B. Recommender Engine & ML Integration (Phase 3A Complete)**
+Transforms recognized patterns into actionable interventions. Powered by `recommenderEngine.ts`, `scoring.ts`, `actionLibrary.ts`, and the **`ml/` submodule**.
+- **Contextual Bandit Model**: The app employs an advanced, personalized layer via `banditModel.ts` and `contextBuilder.ts` which uses recent mood decay factors, temporal contexts, and behavioral signals to predict user preference.
 - **Action Library**: Curated list of safe, low-medical-risk actions (`timing_intervention`, `substitution`, `prevention_plan`, `recovery`, `soft_intervention`).
 - **Scoring Function**: Candidates are scored dynamically (Max 1.0):
   - **Impact (40%)**: Derived from action intensity.
   - **Feasibility (40%)**: Inverse of friction (low intensity = high feasibility).
-  - **Confidence (20%)**: Derived from underlying Pattern Engine confidence.
+  - **ML Score & Confidence (20%)**: Derived from the Bandit Model’s predicted reward and the underlying Pattern Engine confidence.
 - **Ranking**: The engine sorts all valid templates and outputs exactly 3 options:
   - 1 **Best Next Action**
   - 2 **Alternative Options**

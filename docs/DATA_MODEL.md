@@ -68,11 +68,10 @@ A meal log entry (photo or short text), with meal slot + coarse meal type tags.
 | input_mode | enum | ✅ | `photo/text` |
 | photo_uri | string | ❌ | storage URL if photo |
 | text_description | string | ❌ | short description |
+| raw_text | string | ❌ | optional raw transcription |
+| tags | json/array | ❌ | string array of custom tags |
 | portion_size | enum | ❌ | `small/medium/large` |
 | meal_type_tags | json/array | ✅ | list of coarse tags (see MEAL_TAXONOMY) |
-| inferred_tags | json/array | ❌ | model-inferred tags (if any) |
-| inference_confidence | float | ❌ | 0.0–1.0 or categorical |
-| location_context | enum | ❌ | `home/work/school/restaurant/other` |
 | notes | string | ❌ | optional free text |
 
 **Constraints**
@@ -90,11 +89,12 @@ A fast mood check-in associated with time (and optionally linked to a meal).
 | user_id | UUID/string | ✅ | FK to users |
 | created_at | timestamp | ✅ | |
 | occurred_at | timestamp | ✅ | when mood was felt (default = created_at) |
-| valence | enum | ✅ | `positive/neutral/negative` |
-| energy | enum | ✅ | `high/ok/low` |
-| stress | enum | ✅ | `low/medium/high` |
+| valence | enum/float | ❌ | `positive/neutral/negative` or numeric score |
+| arousal | float | ❌ | optional numeric score |
+| energy | enum | ❌ | `high/ok/low` |
+| moodLabel | string | ❌ | optional text label |
+| stress | enum | ❌ | `low/medium/high` |
 | tag | enum | ❌ | optional single tag (anxious/bored/sad/angry/lonely/celebratory) |
-| confidence_self_report | enum | ❌ | `sure/unsure` (optional) |
 | linked_meal_event_id | UUID/string | ❌ | optionally link to meal event |
 | notes | string | ❌ | optional text |
 
@@ -192,14 +192,14 @@ Outcome and learning signal for recommendations.
 | Field | Type | Required | Notes |
 |------|------|----------|------|
 | id | UUID/string | ✅ | Primary key |
-| recommendation_id | UUID/string | ✅ | FK |
+| recommendationId | UUID/string | ✅ | FK |
 | user_id | UUID/string | ✅ | |
 | created_at | timestamp | ✅ | |
-| outcome | enum | ✅ | `accepted/partial/rejected` |
-| reason_tag | enum | ❌ | `too_hard/not_relevant/no_time/disagree/other` |
-| notes | string | ❌ | optional text |
-| follow_up_meal_event_id | UUID/string | ❌ | optional link if action affected meal |
-| follow_up_mood_event_id | UUID/string | ❌ | optional link if mood changed |
+| recommendationType | string | ✅ | |
+| title | string | ✅ | |
+| action | string | ✅ | |
+| outcome | enum | ✅ | `accepted_fully/accepted_partially/rejected` |
+| timestamp | timestamp | ✅ | |
 
 ---
 
