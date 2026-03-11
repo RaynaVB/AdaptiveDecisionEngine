@@ -139,7 +139,7 @@ export default function LogMealScreen() {
                 {
                     text: 'Not Now',
                     style: 'cancel',
-                    onPress: () => navigation.navigate('Timeline')
+                    onPress: () => navigation.popToTop()
                 },
                 {
                     text: 'Log Mood',
