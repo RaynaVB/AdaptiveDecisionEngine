@@ -5,6 +5,8 @@ import { calculateScores } from './scoring';
 import { rankRecommendations } from './ranker';
 import { v4 as uuidv4 } from 'uuid';
 import { FeedbackStorageService } from '../../services/feedbackStorage';
+import { banditModel } from './ml/banditModel';
+import { buildContextVector, ContextVector } from './ml/contextBuilder';
 
 const getConfidenceValue = (c: string): number => {
     if (c === 'high') return 3;
@@ -16,6 +18,14 @@ export async function runRecommendationEngine(patterns: Pattern[], context: Patt
     const candidates: Recommendation[] = [];
     const mealCount = context.meals.length;
     const moodCount = context.moods.length;
+
+    // Build the ContextVector for the ML Model predictions
+    // (We use all moods here, buildContextVector will filter to the last 4 hours)
+    await banditModel.initialize();
+    const targetTimeMs = Date.now();
+    const currentContext = buildContextVector(targetTimeMs, context.moods);
+    
+    console.log('[ML Model] Current Context Vector:', currentContext);
 
     for (const pattern of patterns) {
         const applicableTemplates = ACTION_LIBRARY.filter(t => t.applicablePatternTypes.includes(pattern.patternType as any));
@@ -34,7 +44,8 @@ export async function runRecommendationEngine(patterns: Pattern[], context: Patt
             }
 
             const rejectionRate = await FeedbackStorageService.getRejectionRateByType(template.recommendationType);
-            const scores = calculateScores(template, pattern, rejectionRate);
+            const scores = calculateScores(template, pattern, rejectionRate, currentContext);
+            console.log(`[ML Model] Score for ${template.id}:`, scores.mlScore);
 
             candidates.push({
                 id: uuidv4(),
@@ -61,7 +72,7 @@ export async function runRecommendationEngine(patterns: Pattern[], context: Patt
                 action: template.actionTemplate,
                 whyThis: template.whyTemplate,
                 linkedPatternIds: [],
-                scores: { impact: 0.3, feasibility: 1.0, confidence: 0.5, total: 0.62 },
+                scores: { impact: 0.3, feasibility: 1.0, confidence: 0.5, mlScore: 0.5, total: 0.62 },
                 createdAt: new Date().toISOString()
             });
         }

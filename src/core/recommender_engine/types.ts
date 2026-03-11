@@ -9,6 +9,7 @@ export interface Recommendation {
     scores: {
         impact: number;
         feasibility: number;
+        mlScore: number;
         confidence: number;
         total: number;
     };
