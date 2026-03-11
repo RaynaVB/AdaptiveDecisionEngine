@@ -118,10 +118,16 @@ export default function LogMealScreen() {
             inputMode: photoUri ? 'photo' : 'text',
             mealTypeTags: tagsToSave as MealTypeTag[],
             tags: tagsToSave, // The ML-expected array
-            textDescription: textDescription || undefined,
-            raw_text: textDescription || undefined, // The ML-expected text
-            photoUri: photoUri,
         };
+
+        if (textDescription) {
+            newMeal.textDescription = textDescription;
+            newMeal.raw_text = textDescription;
+        }
+
+        if (photoUri) {
+            newMeal.photoUri = photoUri;
+        }
 
         await StorageService.addMealEvent(newMeal);
         await NotificationService.handleUserLoggedActivity('meal');

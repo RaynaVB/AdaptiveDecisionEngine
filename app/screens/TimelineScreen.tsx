@@ -115,18 +115,19 @@ export default function TimelineScreen() {
 
     React.useLayoutEffect(() => {
         navigation.setOptions({
+            headerTitleAlign: 'left',
             headerRight: () => (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 12 }}>
                     <TouchableOpacity onPress={() => navigation.navigate('Recommendations')}>
-                        <Text style={{ color: '#2563eb', fontWeight: '600' }}>Recommendations</Text>
+                        <Text style={{ color: '#2563eb', fontWeight: '600' }}>Recs</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')}>
                         <Text style={{ color: '#2563eb', fontWeight: '600' }}>Patterns</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleClear}>
+                    <TouchableOpacity onPress={handleClear} style={{ marginLeft: 4 }}>
                         <Text style={{ color: '#ef4444' }}>Clear</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleLogout}>
+                    <TouchableOpacity onPress={handleLogout} style={{ marginLeft: 4 }}>
                         <Text style={{ color: '#ef4444' }}>Logout</Text>
                     </TouchableOpacity>
                 </View>

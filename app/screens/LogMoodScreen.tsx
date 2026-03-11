@@ -71,6 +71,7 @@ export default function LogMoodScreen() {
             valence: parseFloat(valence.toFixed(2)),
             arousal: parseFloat(energy.toFixed(2)),
             moodLabel: deriveMoodLabel(valence, energy),
+            stress: stress,
         };
 
         if (selectedTag) newMood.tag = selectedTag;
