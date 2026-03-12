@@ -203,8 +203,11 @@ export default function LogMoodScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {showDatePicker && (
-                        <View style={Platform.OS === 'ios' ? styles.iosPickerContainer : {}}>
+                    {(Platform.OS === 'ios' || showDatePicker) && (
+                        <View style={[
+                            Platform.OS === 'ios' ? styles.iosPickerContainer : {},
+                            Platform.OS === 'ios' && !showDatePicker ? { height: 0, marginTop: 0, overflow: 'hidden' } : {}
+                        ]}>
                             <DateTimePicker
                                 value={occurredAt}
                                 mode="date"
@@ -218,8 +221,11 @@ export default function LogMoodScreen() {
                             )}
                         </View>
                     )}
-                    {showTimePicker && (
-                         <View style={Platform.OS === 'ios' ? styles.iosPickerContainer : {}}>
+                    {(Platform.OS === 'ios' || showTimePicker) && (
+                         <View style={[
+                            Platform.OS === 'ios' ? styles.iosPickerContainer : {},
+                            Platform.OS === 'ios' && !showTimePicker ? { height: 0, marginTop: 0, overflow: 'hidden' } : {}
+                        ]}>
                             <DateTimePicker
                                 value={occurredAt}
                                 mode="time"
