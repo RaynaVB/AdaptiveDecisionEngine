@@ -117,8 +117,59 @@ export default function LogMoodScreen() {
 
     return (
         <View style={styles.container}>
-            <ScrollView contentContainerStyle={styles.content}>
-                <Text style={styles.header}>How are you feeling?</Text>
+            <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+                {/* Mood Date & Time */}
+                <View style={[styles.section, { marginTop: 0, marginBottom: 24 }]}>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => toggleDatePicker(!showDatePicker)}>
+                            <Text style={styles.dateTimeText}>
+                                {occurredAt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => toggleTimePicker(!showTimePicker)}>
+                            <Text style={styles.dateTimeText}>
+                                {occurredAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {(Platform.OS === 'ios' || showDatePicker) && (
+                        <View style={[
+                            Platform.OS === 'ios' ? styles.iosPickerContainer : {},
+                            Platform.OS === 'ios' && !showDatePicker ? { height: 0, marginTop: 0, overflow: 'hidden' } : {}
+                        ]}>
+                            <DateTimePicker
+                                value={occurredAt}
+                                mode="date"
+                                display="spinner"
+                                onChange={onDateChange}
+                            />
+                            {Platform.OS === 'ios' && (
+                                <TouchableOpacity style={styles.iosPickerDoneButton} onPress={() => toggleDatePicker(false)}>
+                                    <Text style={styles.iosPickerDoneText}>Done</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+                    {(Platform.OS === 'ios' || showTimePicker) && (
+                         <View style={[
+                            Platform.OS === 'ios' ? styles.iosPickerContainer : {},
+                            Platform.OS === 'ios' && !showTimePicker ? { height: 0, marginTop: 0, overflow: 'hidden' } : {}
+                        ]}>
+                            <DateTimePicker
+                                value={occurredAt}
+                                mode="time"
+                                display="spinner"
+                                onChange={onTimeChange}
+                            />
+                            {Platform.OS === 'ios' && (
+                                <TouchableOpacity style={styles.iosPickerDoneButton} onPress={() => toggleTimePicker(false)}>
+                                    <Text style={styles.iosPickerDoneText}>Done</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+                </View>
 
                 <View style={styles.sliderContainer}>
                     <Text style={styles.sliderLabel}>Pleasantness (Valence)</Text>
@@ -181,87 +232,31 @@ export default function LogMoodScreen() {
                         ))}
                     </View>
                 </View>
-            </ScrollView>
 
-            <View style={styles.footer}>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <TouchableOpacity style={[styles.saveButton, { marginTop: 16 }]} onPress={handleSave}>
                     <Text style={styles.saveButtonText}>Finish</Text>
                 </TouchableOpacity>
-                {/* Mood Date & Time */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>When did you feel this way?</Text>
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => toggleDatePicker(!showDatePicker)}>
-                            <Text style={styles.dateTimeText}>
-                                {occurredAt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => toggleTimePicker(!showTimePicker)}>
-                            <Text style={styles.dateTimeText}>
-                                {occurredAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {(Platform.OS === 'ios' || showDatePicker) && (
-                        <View style={[
-                            Platform.OS === 'ios' ? styles.iosPickerContainer : {},
-                            Platform.OS === 'ios' && !showDatePicker ? { height: 0, marginTop: 0, overflow: 'hidden' } : {}
-                        ]}>
-                            <DateTimePicker
-                                value={occurredAt}
-                                mode="date"
-                                display="spinner"
-                                onChange={onDateChange}
-                            />
-                            {Platform.OS === 'ios' && (
-                                <TouchableOpacity style={styles.iosPickerDoneButton} onPress={() => toggleDatePicker(false)}>
-                                    <Text style={styles.iosPickerDoneText}>Done</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    )}
-                    {(Platform.OS === 'ios' || showTimePicker) && (
-                         <View style={[
-                            Platform.OS === 'ios' ? styles.iosPickerContainer : {},
-                            Platform.OS === 'ios' && !showTimePicker ? { height: 0, marginTop: 0, overflow: 'hidden' } : {}
-                        ]}>
-                            <DateTimePicker
-                                value={occurredAt}
-                                mode="time"
-                                display="spinner"
-                                onChange={onTimeChange}
-                            />
-                            {Platform.OS === 'ios' && (
-                                <TouchableOpacity style={styles.iosPickerDoneButton} onPress={() => toggleTimePicker(false)}>
-                                    <Text style={styles.iosPickerDoneText}>Done</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    )}
-                </View>
-            </View>
+            </ScrollView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    content: { padding: 20 },
-    header: { fontSize: 24, fontWeight: '700', marginBottom: 32, textAlign: 'center' },
+    contentContainer: { padding: 20, flexGrow: 1, paddingBottom: 40, justifyContent: 'space-between' },
 
-    sliderContainer: { marginBottom: 28 },
-    sliderLabel: { fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 4 },
-    sliderSubtext: { fontSize: 14, color: '#6b7280', marginBottom: 12 },
+    sliderContainer: { marginBottom: 16 },
+    sliderLabel: { fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 2 },
+    sliderSubtext: { fontSize: 14, color: '#6b7280', marginBottom: 8 },
     slider: { width: '100%', height: 40 },
     sliderTicks: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 10 },
     tickText: { fontSize: 12, color: '#9ca3af' },
 
-    derivedBox: { backgroundColor: '#f3f4f6', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#e5e7eb' },
-    derivedLabel: { fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: '600', marginBottom: 4 },
+    derivedBox: { backgroundColor: '#f3f4f6', padding: 12, borderRadius: 12, alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#e5e7eb' },
+    derivedLabel: { fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: '600', marginBottom: 2 },
     derivedValue: { fontSize: 20, fontWeight: '700', color: '#1e40af' },
 
-    segmentContainer: { marginBottom: 24 },
+    segmentContainer: { marginBottom: 16 },
     segmentLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8, textTransform: 'uppercase' },
     segmentRow: { flexDirection: 'row', backgroundColor: '#f3f4f6', borderRadius: 8, padding: 4 },
     segmentBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 6 },
@@ -269,8 +264,8 @@ const styles = StyleSheet.create({
     segmentBtnText: { color: '#6b7280', fontWeight: '500', textTransform: 'capitalize' },
     segmentBtnTextSelected: { color: '#111827', fontWeight: '700' },
 
-    section: { marginTop: 12 },
-    sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#111827' },
+    section: { marginTop: 8 },
+    sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#111827' },
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap' },
     tagChip: {
         paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
@@ -295,7 +290,6 @@ const styles = StyleSheet.create({
     iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: '#e5e7eb', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
     iosPickerDoneText: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
 
-    footer: { padding: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
     saveButton: { backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
     saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

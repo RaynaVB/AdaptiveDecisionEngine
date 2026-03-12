@@ -63,7 +63,7 @@ export default function AppNavigator() {
                     <Stack.Screen
                         name="LogMood"
                         component={LogMoodScreen}
-                        options={{ title: 'Log Mood' }}
+                        options={{ title: 'How are you feeling?' }}
                     />
                     <Stack.Screen
                         name="MealDetail"
