@@ -10,4 +10,5 @@ export type RootStackParamList = {
     FeedbackHistory: undefined;
     Login: undefined;
     SignUp: undefined;
+    ForgotPassword: undefined;
 };

@@ -1,41 +1,50 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { auth } from '../../src/services/firebaseConfig';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
-type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
+type ForgotPasswordNavigationProp = StackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
 type Props = {
-    navigation: LoginScreenNavigationProp;
+    navigation: ForgotPasswordNavigationProp;
 };
 
-export default function LoginScreen({ navigation }: Props) {
+export default function ForgotPasswordScreen({ navigation }: Props) {
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async () => {
-        if (!email || !password) {
-            Alert.alert("Error", "Please enter email and password.");
+    const handleResetPassword = async () => {
+        if (!email) {
+            Alert.alert("Error", "Please enter your email address.");
             return;
         }
 
         setLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email.trim(), password);
-            // The auth state listener in AppNavigator should pick this up
+            await sendPasswordResetEmail(auth, email.trim());
+            Alert.alert(
+                "Check your email",
+                "If an account exists with that email, we've sent instructions to reset your password.",
+                [{ text: "OK", onPress: () => navigation.navigate('Login') }]
+            );
         } catch (error: any) {
-            Alert.alert("Login Failed", error.message);
+            // Depending heavily on error codes makes security worse by leaking emails.
+            // But if requested we can distinguish 'auth/user-not-found'
+            Alert.alert("Error", error.message);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Adaptive Health</Text>
+        <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.container}
+        >
+            <Text style={styles.title}>Reset Password</Text>
+            <Text style={styles.subtitle}>Enter the email associated with your account and we'll send you a link to reset your password.</Text>
 
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email</Text>
@@ -48,35 +57,22 @@ export default function LoginScreen({ navigation }: Props) {
                 />
             </View>
 
-            <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                    style={styles.input}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                />
-                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')} style={styles.forgotPasswordButton}>
-                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                </TouchableOpacity>
-            </View>
-
             <TouchableOpacity
                 style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleLogin}
+                onPress={handleResetPassword}
                 disabled={loading}
             >
                 {loading ? (
                     <ActivityIndicator color="#ffffff" />
                 ) : (
-                    <Text style={styles.buttonText}>Log In</Text>
+                    <Text style={styles.buttonText}>Send Reset Link</Text>
                 )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={styles.linkButton}>
-                <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.linkButton}>
+                <Text style={styles.linkText}>Back to Log In</Text>
             </TouchableOpacity>
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -92,10 +88,17 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#1e293b',
         textAlign: 'center',
+        marginBottom: 16,
+    },
+    subtitle: {
+        fontSize: 16,
+        color: '#64748b',
+        textAlign: 'center',
         marginBottom: 48,
+        lineHeight: 24,
     },
     inputContainer: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     label: {
         fontSize: 14,
@@ -136,15 +139,6 @@ const styles = StyleSheet.create({
     },
     linkText: {
         color: '#3b82f6',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    forgotPasswordButton: {
-        alignSelf: 'flex-end',
-        marginTop: 8,
-    },
-    forgotPasswordText: {
-        color: '#64748b',
         fontSize: 14,
         fontWeight: '500',
     },

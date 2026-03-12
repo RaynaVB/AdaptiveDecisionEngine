@@ -11,6 +11,7 @@ import RecommendationFeedScreen from './screens/RecommendationFeedScreen';
 import FeedbackHistoryScreen from './screens/FeedbackHistoryScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
 import { auth } from '../src/services/firebaseConfig';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -91,6 +92,7 @@ export default function AppNavigator() {
                 <Stack.Group screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="Login" component={LoginScreen} />
                     <Stack.Screen name="SignUp" component={SignUpScreen} />
+                    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
                 </Stack.Group>
             )}
         </Stack.Navigator>
