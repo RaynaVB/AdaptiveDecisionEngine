@@ -53,12 +53,15 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
 
         setSaving(true);
         try {
-            await updateUserProfile(user.uid, {
-                name: name.trim(),
-                dietaryRestrictions: finalRestrictions || undefined,
-                foodsDisliked: foodsDisliked.trim() || undefined,
-                primaryGoal: primaryGoal || undefined,
-            });
+            const profileUpdates: Partial<{ name: string, dietaryRestrictions: string, foodsDisliked: string, primaryGoal: string }> = {
+                name: name.trim()
+            };
+
+            if (finalRestrictions) profileUpdates.dietaryRestrictions = finalRestrictions;
+            if (foodsDisliked.trim()) profileUpdates.foodsDisliked = foodsDisliked.trim();
+            if (primaryGoal) profileUpdates.primaryGoal = primaryGoal;
+
+            await updateUserProfile(user.uid, profileUpdates);
             navigation.navigate('OnboardingComplete');
         } catch (error) {
             console.error("Failed to save profile:", error);

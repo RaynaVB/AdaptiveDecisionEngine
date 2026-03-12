@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform } from 'react-native';
+import { LineChart, BarChart } from 'react-native-chart-kit';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
-import { Plus, ChevronRight, X } from 'lucide-react-native';
+import { Plus, ChevronRight, X, Sparkles, TrendingUp, Trash2, LogOut } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 import { auth } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
@@ -23,6 +24,9 @@ export default function TimelineScreen() {
     const [moods, setMoods] = useState<MoodEvent[]>([]);
     const [loading, setLoading] = useState(false);
     const [isFabOpen, setIsFabOpen] = useState(false);
+    
+    // Chart State
+    const [chartData, setChartData] = useState<{ labels: string[], datasets: [{ data: number[], color?: any }], barData: number[] } | null>(null);
 
     const loadData = async () => {
         setLoading(true);
@@ -76,6 +80,64 @@ export default function TimelineScreen() {
             data: grouped[key]
         }));
 
+        // Compute Dual-Axis Chart Data
+        const statsByDay: Record<string, { moodSum: number, moodCount: number, mealCount: number, label: string }> = {};
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dayStr = d.toLocaleDateString([], { weekday: 'short' });
+            
+            // Generate a short label like "Mon 10" to fit the axis
+            const dayNum = d.getDate();
+            const shortLabel = `${dayStr.charAt(0)} ${dayNum}`;
+            
+            // We use the full dayStr as a reliable key for the dictionary,
+            // but we'll store the 'shortLabel' inside the stats object to use for the chart UI
+            statsByDay[dayStr] = { moodSum: 0, moodCount: 0, mealCount: 0, label: shortLabel };
+        }
+
+        filteredMoods.forEach(m => {
+            const d = new Date(m.occurredAt);
+            const dayStr = d.toLocaleDateString([], { weekday: 'short' });
+            if (statsByDay[dayStr]) {
+                const val = typeof m.valence === 'number' ? m.valence : 3;
+                statsByDay[dayStr].moodSum += val;
+                statsByDay[dayStr].moodCount += 1;
+            }
+        });
+
+        filteredMeals.forEach(m => {
+            const d = new Date(m.occurredAt);
+            const dayStr = d.toLocaleDateString([], { weekday: 'short' });
+            if (statsByDay[dayStr]) {
+                statsByDay[dayStr].mealCount += 1;
+            }
+        });
+
+        const labels: string[] = [];
+        const lineData: number[] = [];
+        const barData: number[] = [];
+
+        Object.entries(statsByDay).forEach(([day, stats], index) => {
+            // Only push a visible label every other day
+            labels.push(index % 2 === 0 ? stats.label : "");
+            lineData.push(stats.moodCount > 0 ? stats.moodSum / stats.moodCount : 3);
+            barData.push(stats.mealCount);
+        });
+
+        if (filteredMeals.length > 0 || filteredMoods.length > 0) {
+            setChartData({
+                labels,
+                datasets: [{ 
+                    data: lineData,
+                    color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`
+                }],
+                barData
+            });
+        } else {
+            setChartData(null);
+        }
+
         setTimelineData(sections);
         setLoading(false);
     };
@@ -86,7 +148,7 @@ export default function TimelineScreen() {
         }, [])
     );
 
-    const handleLogout = async () => {
+    const handleLogout = useCallback(async () => {
         Alert.alert('Sign Out', 'Are you sure you want to log out?', [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -97,9 +159,9 @@ export default function TimelineScreen() {
                 }
             }
         ]);
-    };
+    }, []);
 
-    const handleClear = async () => {
+    const handleClear = useCallback(async () => {
         Alert.alert('Confirm', 'Delete all logs?', [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -111,31 +173,13 @@ export default function TimelineScreen() {
                 }
             }
         ]);
-    };
+    }, []);
 
     React.useLayoutEffect(() => {
         navigation.setOptions({
-            headerTitleAlign: 'left', // Use left so it doesn't overlap the right buttons
-            headerRightContainerStyle: { paddingRight: 10 },
-            headerRight: () => (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => navigation.navigate('Recommendations')} style={{ paddingHorizontal: 6 }}>
-                        <Text style={{ color: '#2563eb', fontWeight: '600', fontSize: 13 }}>Recs</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')} style={{ paddingHorizontal: 6 }}>
-                        <Text style={{ color: '#2563eb', fontWeight: '600', fontSize: 13 }}>Patterns</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleClear} style={{ paddingHorizontal: 6 }}>
-                        <Text style={{ color: '#ef4444', fontSize: 13 }}>Clear</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleLogout} style={{ paddingHorizontal: 6 }}>
-                        <Text style={{ color: '#ef4444', fontSize: 13 }}>Logout</Text>
-                    </TouchableOpacity>
-                </View>
-            ),
-            headerLeft: undefined, // Let the default back button / spacing apply normally
+            headerShown: false, // Turn off native header to fix the cutoff bug
         });
-    }, [navigation]);
+    }, [navigation, handleClear, handleLogout]);
 
     const handleSeed = async () => {
         setLoading(true);
@@ -243,8 +287,27 @@ export default function TimelineScreen() {
     };
 
     return (
-        <View style={styles.container}>
-            {timelineData.length === 0 && !loading ? (
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.customHeader}>
+                <Text style={styles.headerTitleText}>Timeline</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Recommendations')} style={styles.headerIconButton}>
+                        <Sparkles color="#2563eb" size={22} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')} style={styles.headerIconButton}>
+                        <TrendingUp color="#2563eb" size={22} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleClear} style={styles.headerIconButton}>
+                        <Trash2 color="#ef4444" size={22} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleLogout} style={styles.headerIconButton}>
+                        <LogOut color="#ef4444" size={22} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            <View style={styles.container}>
+                {timelineData.length === 0 && !loading ? (
                 <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>No logs found.</Text>
                     <TouchableOpacity style={styles.seedButton} onPress={handleSeed}>
@@ -265,6 +328,66 @@ export default function TimelineScreen() {
                     refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
                     ListHeaderComponent={
                         <View style={{ paddingBottom: 16 }}>
+                            {chartData && (
+                                <View style={styles.chartCard}>
+                                    <Text style={styles.chartTitle}>Mood & Food Activity (7 Days)</Text>
+                                    <View>
+                                        <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8, marginTop: 4 }}>Mood Trend (1-5 Scale)</Text>
+                                        {/* Foreground Line Chart for Mood Trend */}
+                                        <LineChart
+                                            data={{
+                                                labels: chartData.labels,
+                                                datasets: chartData.datasets
+                                            }}
+                                            width={Dimensions.get("window").width - 64}
+                                            height={160}
+                                            yAxisLabel=""
+                                            yAxisSuffix=""
+                                            fromZero={false}
+                                            withInnerLines={true}
+                                            chartConfig={{
+                                                backgroundColor: "#ffffff",
+                                                backgroundGradientFrom: "#ffffff",
+                                                backgroundGradientTo: "#ffffff",
+                                                decimalPlaces: 1,
+                                                color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
+                                                labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                                                style: { borderRadius: 16 },
+                                                propsForDots: { r: "4", strokeWidth: "2", stroke: "#2563eb" }
+                                            }}
+                                            bezier
+                                            style={{ marginVertical: 8, borderRadius: 16 }}
+                                        />
+
+                                        <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8, marginTop: 12 }}>Meals Logged</Text>
+                                        {/* Background Bar Chart for Meal Frequency */}
+                                        <BarChart
+                                            data={{
+                                                labels: chartData.labels,
+                                                datasets: [{ data: chartData.barData }]
+                                            }}
+                                            width={Dimensions.get("window").width - 64}
+                                            height={160}
+                                            yAxisLabel=""
+                                            yAxisSuffix=""
+                                            fromZero={true}
+                                            showValuesOnTopOfBars={true}
+                                            withInnerLines={false}
+                                            chartConfig={{
+                                                backgroundColor: "#ffffff",
+                                                backgroundGradientFrom: "#ffffff",
+                                                backgroundGradientTo: "#ffffff",
+                                                decimalPlaces: 0,
+                                                color: (opacity = 1) => `rgba(147, 197, 253, ${opacity})`,
+                                                labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                                                barPercentage: 0.5,
+                                                style: { borderRadius: 16 },
+                                            }}
+                                            style={{ marginVertical: 8, borderRadius: 16 }}
+                                        />
+                                    </View>
+                                </View>
+                            )}
                             <Text style={styles.subtitle}>Showing last 7 days</Text>
                         </View>
                     }
@@ -320,10 +443,35 @@ export default function TimelineScreen() {
                 </View>
             </TouchableOpacity>
         </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#fff',
+        paddingTop: Platform.OS === 'android' ? 40 : 0
+    },
+    customHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+    },
+    headerTitleText: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    headerIconButton: {
+        marginLeft: 16,
+        padding: 4,
+    },
     container: {
         flex: 1,
         backgroundColor: '#fff',
@@ -471,6 +619,42 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6b7280',
         fontWeight: '500',
+    },
+    chartCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+        alignItems: 'center',
+    },
+    chartTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: 4,
+        alignSelf: 'flex-start',
+    },
+    chartLegend: {
+        flexDirection: 'row',
+        alignSelf: 'flex-start',
+        marginBottom: 8,
+        alignItems: 'center',
+    },
+    legendDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        marginRight: 6,
+    },
+    legendText: {
+        fontSize: 12,
+        color: '#6b7280',
+        marginRight: 16,
     },
     backdrop: {
         ...StyleSheet.absoluteFillObject,
