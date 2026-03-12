@@ -31,6 +31,24 @@ export default function LogMoodScreen() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
 
+    const handleValenceChange = (val: number) => {
+        // Snap to zero if within a small threshold to make "Neutral" easier to hit
+        if (Math.abs(val) < 0.15) {
+            setValence(0.0);
+        } else {
+            setValence(val);
+        }
+    };
+
+    const handleEnergyChange = (val: number) => {
+        // Snap to zero if within a small threshold to make "Neutral" easier to hit
+        if (Math.abs(val) < 0.15) {
+            setEnergy(0.0);
+        } else {
+            setEnergy(val);
+        }
+    };
+
     const toggleDatePicker = (show: boolean) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setShowDatePicker(show);
@@ -180,7 +198,7 @@ export default function LogMoodScreen() {
                         maximumValue={1.0}
                         step={0.1}
                         value={valence}
-                        onValueChange={setValence}
+                        onValueChange={handleValenceChange}
                         minimumTrackTintColor="#2563eb"
                         maximumTrackTintColor="#d1d5db"
                     />
@@ -199,7 +217,7 @@ export default function LogMoodScreen() {
                         maximumValue={1.0}
                         step={0.1}
                         value={energy}
-                        onValueChange={setEnergy}
+                        onValueChange={handleEnergyChange}
                         minimumTrackTintColor="#2563eb"
                         maximumTrackTintColor="#d1d5db"
                     />
