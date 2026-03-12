@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform, LayoutAnimation } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -42,8 +42,20 @@ export default function LogMealScreen() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
 
+    const toggleDatePicker = (show: boolean) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setShowDatePicker(show);
+    };
+
+    const toggleTimePicker = (show: boolean) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setShowTimePicker(show);
+    };
+
     const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-        setShowDatePicker(false);
+        if (Platform.OS !== 'ios') {
+            toggleDatePicker(false);
+        }
         if (selectedDate) {
             setOccurredAt(selectedDate);
             setSelectedSlot(determineMealSlot(selectedDate));
@@ -51,7 +63,9 @@ export default function LogMealScreen() {
     };
 
     const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-        setShowTimePicker(false);
+        if (Platform.OS !== 'ios') {
+            toggleTimePicker(false);
+        }
         if (selectedDate) {
             setOccurredAt(selectedDate);
             setSelectedSlot(determineMealSlot(selectedDate));
@@ -224,12 +238,12 @@ export default function LogMealScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>When did you eat?</Text>
                     <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => toggleDatePicker(!showDatePicker)}>
                             <Text style={styles.dateTimeText}>
                                 {occurredAt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                             </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowTimePicker(true)}>
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={() => toggleTimePicker(!showTimePicker)}>
                             <Text style={styles.dateTimeText}>
                                 {occurredAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </Text>
@@ -237,20 +251,34 @@ export default function LogMealScreen() {
                     </View>
 
                     {showDatePicker && (
-                        <DateTimePicker
-                            value={occurredAt}
-                            mode="date"
-                            display="default"
-                            onChange={onDateChange}
-                        />
+                        <View style={Platform.OS === 'ios' ? styles.iosPickerContainer : {}}>
+                            <DateTimePicker
+                                value={occurredAt}
+                                mode="date"
+                                display="spinner"
+                                onChange={onDateChange}
+                            />
+                            {Platform.OS === 'ios' && (
+                                <TouchableOpacity style={styles.iosPickerDoneButton} onPress={() => toggleDatePicker(false)}>
+                                    <Text style={styles.iosPickerDoneText}>Done</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     )}
                     {showTimePicker && (
-                        <DateTimePicker
-                            value={occurredAt}
-                            mode="time"
-                            display="default"
-                            onChange={onTimeChange}
-                        />
+                         <View style={Platform.OS === 'ios' ? styles.iosPickerContainer : {}}>
+                            <DateTimePicker
+                                value={occurredAt}
+                                mode="time"
+                                display="spinner"
+                                onChange={onTimeChange}
+                            />
+                            {Platform.OS === 'ios' && (
+                                <TouchableOpacity style={styles.iosPickerDoneButton} onPress={() => toggleTimePicker(false)}>
+                                    <Text style={styles.iosPickerDoneText}>Done</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     )}
                 </View>
 
@@ -344,6 +372,9 @@ const styles = StyleSheet.create({
         borderColor: '#e5e7eb'
     },
     dateTimeText: { color: '#111827', fontSize: 16, fontWeight: '500' },
+    iosPickerContainer: { backgroundColor: '#f9fafb', borderRadius: 12, marginTop: 8, overflow: 'hidden' },
+    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: '#e5e7eb', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
+    iosPickerDoneText: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
 
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap' },
     tagChip: {
