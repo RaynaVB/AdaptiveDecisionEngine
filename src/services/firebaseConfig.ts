@@ -1,6 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getAI, GoogleAIBackend } from "firebase/ai";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,5 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
+const geminiAI = getAI(app, { backend: new GoogleAIBackend() });
 
-export { app, auth, db };
+export { app, auth, db, storage, geminiAI };

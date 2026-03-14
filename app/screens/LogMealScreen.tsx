@@ -11,6 +11,8 @@ import { MealSlot, MealTypeTag, MealEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
 import { NotificationService } from '../../src/services/NotificationService';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { analyzeFoodImage, uploadImageToFirebase } from '../../src/services/visionService';
+import { auth } from '../../src/services/firebaseConfig';
 
 type LogMealScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMeal'>;
 
@@ -41,6 +43,8 @@ export default function LogMealScreen() {
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
+    const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     const toggleDatePicker = (show: boolean) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -84,16 +88,44 @@ export default function LogMealScreen() {
                 result = await ImagePicker.launchCameraAsync({
                     mediaTypes: 'images',
                     quality: 0.7,
+                    base64: true,
                 });
             } else {
                 result = await ImagePicker.launchImageLibraryAsync({
                     mediaTypes: 'images',
                     quality: 0.7,
+                    base64: true,
                 });
             }
 
-            if (!result.canceled) {
-                setPhotoUri(result.assets[0].uri);
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const selectedAsset = result.assets[0];
+                setPhotoUri(selectedAsset.uri);
+
+                if (selectedAsset.base64) {
+                    setIsAnalyzingImage(true);
+                    try {
+                        // Assuming JPEG format from Expo ImagePicker
+                        const analysis = await analyzeFoodImage(selectedAsset.base64, 'image/jpeg');
+                        
+                        if (analysis.description) {
+                            setTextDescription(prev => prev ? `${prev}\n${analysis.description}` : analysis.description);
+                        }
+                        
+                        if (analysis.tags && analysis.tags.length > 0) {
+                            setSelectedTags(prevTags => {
+                                const newTags = new Set([...prevTags, ...analysis.tags]);
+                                return Array.from(newTags);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Vision API Error:', error);
+                        // Fails smoothly, user can still manually enter details
+                        // Alert.alert('Notice', 'Could not auto-analyze image, please enter details manually.');
+                    } finally {
+                        setIsAnalyzingImage(false);
+                    }
+                }
             }
         } catch (error) {
             console.error(error);
@@ -137,10 +169,12 @@ export default function LogMealScreen() {
             return;
         }
 
+        setIsSaving(true);
         const tagsToSave = selectedTags.length > 0 ? selectedTags : ['unknown'];
+        const mealId = uuidv4();
 
         const newMeal: MealEvent = {
-            id: uuidv4(),
+            id: mealId,
             createdAt: new Date().toISOString(),
             occurredAt: occurredAt.toISOString(),
             mealSlot: selectedSlot,
@@ -154,12 +188,23 @@ export default function LogMealScreen() {
             newMeal.raw_text = textDescription;
         }
 
-        if (photoUri) {
-            newMeal.photoUri = photoUri;
-        }
+        try {
+            if (photoUri) {
+                // Upload image to Firebase Storage
+                const userId = auth.currentUser?.uid || 'anonymous';
+                const remoteUrl = await uploadImageToFirebase(photoUri, mealId, userId);
+                newMeal.photoUri = remoteUrl;
+            }
 
-        await StorageService.addMealEvent(newMeal);
-        await NotificationService.handleUserLoggedActivity('meal');
+            await StorageService.addMealEvent(newMeal);
+            await NotificationService.handleUserLoggedActivity('meal');
+
+        } catch (error) {
+            console.error("Save Error", error);
+            Alert.alert("Error", "Failed to clear the save process to server.")
+        } finally {
+            setIsSaving(false);
+        }
 
         Alert.alert(
             'Meal Saved',
@@ -202,19 +247,25 @@ export default function LogMealScreen() {
 
                     {photoUri && (
                         <View style={styles.photoPreviewContainer}>
-                            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                            <Image source={{ uri: photoUri }} style={[styles.photoPreview, isAnalyzingImage && { opacity: 0.5 }]} />
                             <TouchableOpacity style={styles.removePhoto} onPress={() => setPhotoUri(undefined)}>
                                 <X color="#fff" size={16} />
                             </TouchableOpacity>
+                            {isAnalyzingImage && (
+                                <View style={styles.analyzingOverlay}>
+                                    <Text style={styles.analyzingText}>Analyzing...</Text>
+                                </View>
+                            )}
                         </View>
                     )}
 
                     <TextInput
-                        style={[styles.textInput, { minHeight: 80, textAlignVertical: 'top' }]}
-                        placeholder="What did you eat?"
+                        style={[styles.textInput, { minHeight: 80, textAlignVertical: 'top' }, isAnalyzingImage && { backgroundColor: '#f9fafb' }]}
+                        placeholder={isAnalyzingImage ? "AI is describing your food..." : "What did you eat?"}
                         value={textDescription}
                         onChangeText={setTextDescription}
                         multiline={true}
+                        editable={!isAnalyzingImage}
                     />
                 </View>
 
@@ -328,8 +379,8 @@ export default function LogMealScreen() {
             </ScrollView>
 
             <View style={styles.footer}>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                    <Text style={styles.saveButtonText}>Save Meal</Text>
+                <TouchableOpacity style={[styles.saveButton, isSaving && { opacity: 0.7 }]} onPress={handleSave} disabled={isSaving || isAnalyzingImage}>
+                    <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save Meal'}</Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
@@ -356,6 +407,14 @@ const styles = StyleSheet.create({
     },
     photoPreviewContainer: { marginBottom: 12, position: 'relative', alignSelf: 'flex-start' },
     photoPreview: { width: 100, height: 100, borderRadius: 8 },
+    analyzingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        borderRadius: 8,
+    },
+    analyzingText: { color: '#1e3a8a', fontWeight: 'bold', fontSize: 12 },
     removePhoto: {
         position: 'absolute', top: -6, right: -6, backgroundColor: '#ef4444',
         borderRadius: 12, padding: 4
