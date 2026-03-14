@@ -21,12 +21,15 @@ export type MealTypeTag =
   // Fallback
   | 'unknown';
 
+export type MealReason = 'hungry' | 'meal_time' | 'social' | 'late_night' | 'boredom' | 'craving';
+
 export interface MealEvent {
   id: string; // uuid
   createdAt: string; // ISO
   occurredAt: string; // ISO
   mealSlot: MealSlot;
   inputMode: 'photo' | 'text';
+  mealReason?: MealReason;
   mealTypeTags: MealTypeTag[]; // non-empty, fallback ['unknown']
 
   raw_text?: string;

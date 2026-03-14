@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Camera, X } from 'lucide-react-native';
 
 import { RootStackParamList } from '../../src/models/navigation';
-import { MealSlot, MealTypeTag, MealEvent } from '../../src/models/types';
+import { MealSlot, MealTypeTag, MealEvent, MealReason } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
 import { NotificationService } from '../../src/services/NotificationService';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -38,6 +38,7 @@ export default function LogMealScreen() {
     const [textDescription, setTextDescription] = useState('');
     const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
     const [selectedSlot, setSelectedSlot] = useState<MealSlot>(determineMealSlot(new Date())); // Dynamically estimate based on current time
+    const [selectedReason, setSelectedReason] = useState<MealReason | undefined>(undefined);
     const [selectedTags, setSelectedTags] = useState<MealTypeTag[]>([]);
 
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
@@ -179,6 +180,7 @@ export default function LogMealScreen() {
             occurredAt: occurredAt.toISOString(),
             mealSlot: selectedSlot,
             inputMode: photoUri ? 'photo' : 'text',
+            mealReason: selectedReason,
             mealTypeTags: tagsToSave as MealTypeTag[],
             tags: tagsToSave, // The ML-expected array
         };
@@ -267,6 +269,31 @@ export default function LogMealScreen() {
                         multiline={true}
                         editable={!isAnalyzingImage}
                     />
+                </View>
+
+                {/* Why are you eating? */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Why are you eating?</Text>
+                    <View style={styles.tagsRow}>
+                        {[
+                            { id: 'hungry', label: 'Hungry' },
+                            { id: 'meal_time', label: "It's Meal Time" },
+                            { id: 'social', label: 'Social' },
+                            { id: 'late_night', label: 'Late Night Stay' },
+                            { id: 'boredom', label: 'Boredom' },
+                            { id: 'craving', label: 'Craving' },
+                        ].map(reason => (
+                            <TouchableOpacity
+                                key={reason.id}
+                                style={[styles.tagChip, selectedReason === reason.id && styles.tagChipSelected]}
+                                onPress={() => setSelectedReason(reason.id as MealReason)}
+                            >
+                                <Text style={[styles.tagText, selectedReason === reason.id && styles.tagTextSelected]}>
+                                    {reason.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
 
                 {/* Quick Presets */}
