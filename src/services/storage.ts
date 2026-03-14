@@ -1,6 +1,7 @@
 import { collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, getDoc } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 import { MealEvent, MoodEvent } from '../models/types';
+import { SymptomEvent } from '../models/Symptom';
 import { generateSeedData } from '../dev/seedData';
 
 export const StorageService = {
@@ -17,6 +18,10 @@ export const StorageService = {
 
     getMoodsCollectionRef() {
         return collection(this.getUserDocRef(), 'moods');
+    },
+
+    getSymptomsCollectionRef() {
+        return collection(this.getUserDocRef(), 'symptoms');
     },
 
     // MEALS
@@ -106,6 +111,40 @@ export const StorageService = {
         }
     },
 
+    // SYMPTOMS
+
+    async getSymptomEvents(): Promise<SymptomEvent[]> {
+        try {
+            if (!auth.currentUser) return [];
+            const q = query(this.getSymptomsCollectionRef(), orderBy('occurredAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => doc.data() as SymptomEvent);
+        } catch (e) {
+            console.error('Failed to load symptoms', e);
+            return [];
+        }
+    },
+
+    async addSymptomEvent(event: SymptomEvent): Promise<void> {
+        if (!auth.currentUser) return;
+        try {
+            const docRef = doc(this.getSymptomsCollectionRef(), event.id);
+            await setDoc(docRef, event);
+        } catch (e) {
+            console.error('Failed to add symptom', e);
+        }
+    },
+
+    async deleteSymptomEvent(id: string): Promise<void> {
+        if (!auth.currentUser) return;
+        try {
+            const docRef = doc(this.getSymptomsCollectionRef(), id);
+            await deleteDoc(docRef);
+        } catch (e) {
+            console.error('Failed to delete symptom', e);
+        }
+    },
+
     // UTILS
 
     async seedDemoLogs(): Promise<void> {
@@ -138,6 +177,11 @@ export const StorageService = {
 
             const moodsSnapshot = await getDocs(this.getMoodsCollectionRef());
             moodsSnapshot.forEach(docSnap => {
+                deleteDoc(docSnap.ref);
+            });
+
+            const symptomsSnapshot = await getDocs(this.getSymptomsCollectionRef());
+            symptomsSnapshot.forEach(docSnap => {
                 deleteDoc(docSnap.ref);
             });
         } catch (e) {

@@ -1,6 +1,6 @@
 // src/models/healthlab.ts
 
-export type ExperimentCategory = 'nutrition' | 'timing' | 'energy' | 'stress';
+export type ExperimentCategory = 'nutrition' | 'timing' | 'energy' | 'stress' | 'symptom';
 export type ExperimentMetricType = 
     | 'avg_mood' 
     | 'avg_energy' 
@@ -9,7 +9,9 @@ export type ExperimentMetricType =
     | 'meal_timing_variance'
     | 'afternoon_energy'
     | 'next_day_energy'
-    | 'mood_stability';
+    | 'mood_stability'
+    | 'symptom_frequency'
+    | 'symptom_severity';
 
 export type ExperimentStatus = 'active' | 'completed' | 'abandoned';
 export type ExperimentConfidence = 'low' | 'medium' | 'high';

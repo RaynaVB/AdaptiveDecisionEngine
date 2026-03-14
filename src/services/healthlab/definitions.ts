@@ -51,5 +51,25 @@ export const EXPERIMENT_LIBRARY: ExperimentDefinition[] = [
         baselineWindowDays: 7,
         targetMetric: "stress_frequency",
         requiredEvents: ["stress_log"]
+    },
+    {
+        id: "dairy_reduction",
+        name: "Dairy Reduction Week",
+        category: "nutrition",
+        hypothesis: "Cutting out dairy at breakfast reduces instances of afternoon bloating and fatigue.",
+        durationDays: 7,
+        baselineWindowDays: 7,
+        targetMetric: "symptom_frequency",
+        requiredEvents: ["meal_log", "symptom_log"]
+    },
+    {
+        id: "hydration_brain_fog",
+        name: "Hydration for Brain Fog",
+        category: "symptom",
+        hypothesis: "Consistent morning hydration reduces the severity and frequency of brain fog.",
+        durationDays: 5,
+        baselineWindowDays: 7,
+        targetMetric: "symptom_severity",
+        requiredEvents: ["symptom_log"]
     }
 ];

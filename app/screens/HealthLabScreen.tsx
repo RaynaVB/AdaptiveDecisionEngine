@@ -9,6 +9,7 @@ import { ArrowLeft, Beaker, Play, ChevronRight, History } from 'lucide-react-nat
 import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
 import { ExperimentRun, ExperimentDefinition } from '../../src/models/healthlab';
+import { StorageService } from '../../src/services/storage';
 
 type HealthLabScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'HealthLab'>;
@@ -18,6 +19,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     const [loading, setLoading] = useState(true);
     const [activeExperiment, setActiveExperiment] = useState<ExperimentRun | null>(null);
     const [availableExperiments, setAvailableExperiments] = useState<ExperimentDefinition[]>(EXPERIMENT_LIBRARY);
+    const [hasRecentSymptoms, setHasRecentSymptoms] = useState(false);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -28,12 +30,14 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [active, history] = await Promise.all([
+            const [active, history, recentSymptoms] = await Promise.all([
                 ExperimentEngine.getActiveExperiment(),
-                ExperimentEngine.getExperimentRuns()
+                ExperimentEngine.getExperimentRuns(),
+                StorageService.getSymptomEvents()
             ]);
             
             setActiveExperiment(active);
+            setHasRecentSymptoms(recentSymptoms.length > 0);
 
             // Filter out experiments that have been completed with High/Medium confidence
             const excludedIds = history
@@ -66,7 +70,11 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                         <Text style={styles.cardHypothesis} numberOfLines={2}>{item.hypothesis}</Text>
                         <View style={styles.cardFooter}>
                             <Text style={styles.durationTag}>{item.durationDays} Days</Text>
-                            <Text style={styles.categoryTag}>{item.category}</Text>
+                            {hasRecentSymptoms && item.category === 'symptom' ? (
+                                <Text style={[styles.categoryTag, { backgroundColor: '#fef2f2', color: '#991b1b' }]}>✨ Recommended</Text>
+                            ) : (
+                                <Text style={styles.categoryTag}>{item.category}</Text>
+                            )}
                         </View>
                     </View>
                     {isActive ? (

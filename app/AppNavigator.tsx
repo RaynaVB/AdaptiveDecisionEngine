@@ -5,8 +5,10 @@ import { RootStackParamList } from '../src/models/navigation';
 import TimelineScreen from './screens/TimelineScreen';
 import LogMealScreen from './screens/LogMealScreen';
 import LogMoodScreen from './screens/LogMoodScreen';
+import SymptomLoggerScreen from './screens/SymptomLoggerScreen';
 import MealDetailScreen from './screens/MealDetailScreen';
 import WeeklyPatternsScreen from './screens/WeeklyPatternsScreen';
+import InsightFeedScreen from './screens/InsightFeedScreen';
 import RecommendationFeedScreen from './screens/RecommendationFeedScreen';
 import FeedbackHistoryScreen from './screens/FeedbackHistoryScreen';
 import LoginScreen from './screens/LoginScreen';
@@ -105,6 +107,19 @@ export default function AppNavigator() {
                             options={{ title: 'Log Mood' }}
                         />
                         <Stack.Screen
+                            name="SymptomLogger"
+                            component={SymptomLoggerScreen}
+                            options={({ navigation }) => ({
+                                title: 'Log Symptom',
+                                presentation: 'modal',
+                                headerLeft: () => (
+                                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 16 }}>
+                                        <Text style={{ color: '#2563eb', fontSize: 16 }}>Cancel</Text>
+                                    </TouchableOpacity>
+                                )
+                            })}
+                        />
+                        <Stack.Screen
                             name="MealDetail"
                             component={MealDetailScreen}
                             options={{ title: 'Meal Details' }}
@@ -113,6 +128,11 @@ export default function AppNavigator() {
                             name="WeeklyPatterns"
                             component={WeeklyPatternsScreen}
                             options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="InsightFeed"
+                            component={InsightFeedScreen}
+                            options={{ title: 'AI Insights' }}
                         />
                         <Stack.Screen
                             name="Recommendations"

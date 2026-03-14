@@ -35,6 +35,7 @@ describe('ExperimentAnalysis', () => {
             mockDefinition,
             mockMeals,
             mockMoods,
+            [],
             startDate,
             endDate
         );
@@ -48,6 +49,7 @@ describe('ExperimentAnalysis', () => {
             mockDefinition,
             mockMeals,
             mockMoods,
+            [],
             startDate,
             endDate
         );
@@ -61,6 +63,7 @@ describe('ExperimentAnalysis', () => {
             mockDefinition,
             mockMeals,
             mockMoods,
+            [],
             startDate,
             endDate
         );

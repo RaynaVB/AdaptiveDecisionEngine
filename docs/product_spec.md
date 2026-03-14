@@ -27,10 +27,12 @@ The system is a modular React Native application (Expo) with a clear separation 
 - **Temporal Slotting**: Automatic assignment to `breakfast`, `lunch`, `dinner`, or `snack` slots based on time of entry.
 - **Meal Detail View**: Dedicated screen (`MealDetailScreen`) showing the full structured record, linked mood context, and photo.
 
-#### B. Mood & Stress Tracking
-- **Multi-Dimensional Logging**: Captures Valence (positive/neutral/negative), Energy (high/ok/low), and Stress (low/medium/high).
-- **Contextual Linking**: Implicitly links mood events to the most recent meal event for correlation analysis.
-- **Granular Tags**: Optional emotion tags (e.g., `anxious`, `bored`, `celebratory`).
+#### B. Integrated Symptom & Mood Tracking
+- **Unified Logging Interface**: A single, dynamic `SymptomLoggerScreen` handles both physical symptoms (e.g., Nausea, Headache) and emotional check-ins (e.g., Anxiety, Low Energy).
+- **Multi-Logging with Sliders**: Users can log multiple symptoms simultaneously by adjusting severity sliders (0-5 scale) with dynamic color transitions.
+- **Duration Presets**: Quick-select presets (5m, 15m, 1h, etc.) for symptoms.
+- **Single Event Model**: Both physical and emotional symptoms utilize the `SymptomEvent` data model, allowing the pattern engine to seamlessly correlate both against lifestyle factors without separate pipelines.
+- **Top 5 Personalization**: The logging interface automatically surfaces the user's most frequently logged symptoms for their selected mode.
 
 #### C. Timeline — Chronological Feed
 - **7-Day Sliding Feed**: Displays all meals and mood events in a `SectionList` grouped by day.
@@ -91,6 +93,8 @@ Five built-in experiments, each with a defined hypothesis, duration, baseline wi
 | `hydration_boost` | Hydration Boost | Nutrition | Mood Stability | 5 days |
 | `protein_snack_3pm` | Protein Snack at 3 PM | Energy | Afternoon Energy | 5 days |
 | `stress_reset_60s` | 60-Second Stress Reset | Stress | Stress Frequency | 5 days |
+| `dairy_reduction` | Dairy-Free Week | Nutrition | Symptom Frequency | 7 days |
+| `hydration_brain_fog` | Hydration vs Brain Fog | Interventions | Symptom Severity | 5 days |
 
 #### B. Experiment Lifecycle
 1. **Discovery**: `HealthLabScreen` lists all available experiments. Experiments already completed with High/Medium confidence are hidden from the list.
@@ -113,6 +117,8 @@ Five built-in experiments, each with a defined hypothesis, duration, baseline wi
 - `next_day_energy` — Average energy 6–10 AM
 - `mood_stability` — Average mood valence
 - `stress_frequency` — High-stress events per day
+- `symptom_frequency` — Count of reported symptoms per day
+- `symptom_severity` — Average severity score of reported symptoms
 - `avg_energy`, `avg_mood` — General daily averages
 
 #### D. Smart UX Behaviors
@@ -130,7 +136,7 @@ Five built-in experiments, each with a defined hypothesis, duration, baseline wi
 |---|---|---|
 | Timeline | `Timeline` | 7-day feed of meals and moods with swipe-to-delete and charts |
 | Log Meal | `LogMeal` | Camera/text meal entry with ML-powered tagging |
-| Log Mood | `LogMood` | Multi-dimensional mood check-in |
+| Log Mood / Symptom | `SymptomLogger` | Unified slider-based interface for multi-logging symptoms and moods |
 | Meal Detail | `MealDetail` | Full record view for a single meal event |
 | Weekly Patterns | `WeeklyPatterns` | Visual display of recognized behavioral patterns |
 | Recommendation Feed | `Recommendations` | Personalized, ranked interventions with feedback controls |

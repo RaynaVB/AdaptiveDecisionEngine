@@ -114,11 +114,13 @@ export const ExperimentEngine = {
 
             const meals = await StorageService.getMealEvents();
             const moods = await StorageService.getMoodEvents();
+            const symptoms = await StorageService.getSymptomEvents();
             
             const results = ExperimentAnalysis.calculateResults(
                 definition,
                 meals,
                 moods,
+                symptoms,
                 new Date(runData.startDate),
                 new Date()
             );

@@ -5,9 +5,13 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
+import { SymptomEvent } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
-import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker } from 'lucide-react-native';
+import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
+import { WeeklyReport } from '../../src/components/WeeklyReport';
+import { generateInsightsFromPatterns, Insight } from '../../src/core/insight_engine/insightEngine';
+import { runPatternEngine } from '../../src/core/pattern_engine/patternEngine';
 import { auth } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
 
@@ -99,12 +103,14 @@ type TimelineScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Tim
 export default function TimelineScreen() {
     const navigation = useNavigation<TimelineScreenNavigationProp>();
     // Union Type for List
-    type TimelineItem = { type: 'meal', data: MealEvent } | { type: 'mood', data: MoodEvent };
+    type TimelineItem = { type: 'meal', data: MealEvent } | { type: 'mood', data: MoodEvent } | { type: 'symptom', data: SymptomEvent };
     type TimelineSection = { title: string, data: TimelineItem[] };
 
     const [timelineData, setTimelineData] = useState<TimelineSection[]>([]);
     const [meals, setMeals] = useState<MealEvent[]>([]);
     const [moods, setMoods] = useState<MoodEvent[]>([]);
+    const [symptoms, setSymptoms] = useState<SymptomEvent[]>([]);
+    const [weeklyInsights, setWeeklyInsights] = useState<Insight[]>([]);
     const [loading, setLoading] = useState(false);
     const [isFabOpen, setIsFabOpen] = useState(false);
     
@@ -115,6 +121,7 @@ export default function TimelineScreen() {
         setLoading(true);
         const loadedMeals = await StorageService.getMealEvents();
         const loadedMoods = await StorageService.getMoodEvents();
+        const loadedSymptoms = await StorageService.getSymptomEvents();
 
         // Strict requirement: Timeline shows last 7 days of items
         const sevenDaysAgo = new Date();
@@ -122,14 +129,17 @@ export default function TimelineScreen() {
 
         const filteredMeals = loadedMeals.filter(m => new Date(m.occurredAt) >= sevenDaysAgo);
         const filteredMoods = loadedMoods.filter(m => new Date(m.occurredAt) >= sevenDaysAgo);
+        const filteredSymptoms = loadedSymptoms.filter(s => new Date(s.occurredAt) >= sevenDaysAgo);
 
         setMeals(filteredMeals);
         setMoods(loadedMoods); // Keep full mood list for context lookup
+        setSymptoms(filteredSymptoms);
 
         // Merge and Sort
         const merged: TimelineItem[] = [
             ...filteredMeals.map(m => ({ type: 'meal' as const, data: m })),
-            ...filteredMoods.map(m => ({ type: 'mood' as const, data: m }))
+            ...filteredMoods.map(m => ({ type: 'mood' as const, data: m })),
+            ...filteredSymptoms.map(s => ({ type: 'symptom' as const, data: s }))
         ];
 
         // Sort fully by exact occurredAt time descending
@@ -162,9 +172,14 @@ export default function TimelineScreen() {
             title: key,
             data: grouped[key]
         }));
+        
+        // Generate insights for weekly report
+        const patterns = runPatternEngine(filteredMeals, filteredMoods, filteredSymptoms);
+        const insights = generateInsightsFromPatterns(patterns);
+        setWeeklyInsights(insights);
 
         // Compute Dual-Axis Chart Data
-        const statsByDay: Record<string, { moodSum: number, moodCount: number, mealCount: number, label: string }> = {};
+        const statsByDay: Record<string, { moodSum: number, moodCount: number, mealCount: number, symptomLoad: number, label: string }> = {};
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
@@ -177,7 +192,7 @@ export default function TimelineScreen() {
             
             // We use the full dayStr as a reliable key for the dictionary,
             // but we'll store the 'shortLabel' inside the stats object to use for the chart UI
-            statsByDay[dayStr] = { moodSum: 0, moodCount: 0, mealCount: 0, label: shortLabel };
+            statsByDay[dayStr] = { moodSum: 0, moodCount: 0, mealCount: 0, symptomLoad: 0, label: shortLabel };
         }
 
         filteredMoods.forEach(m => {
@@ -198,6 +213,14 @@ export default function TimelineScreen() {
             }
         });
 
+        filteredSymptoms.forEach(s => {
+            const d = new Date(s.occurredAt);
+            const dayStr = d.toLocaleDateString([], { weekday: 'short' });
+            if (statsByDay[dayStr]) {
+                statsByDay[dayStr].symptomLoad += s.severity;
+            }
+        });
+
         const labels: string[] = [];
         const lineData: number[] = [];
         const barData: number[] = [];
@@ -205,16 +228,17 @@ export default function TimelineScreen() {
         Object.entries(statsByDay).forEach(([day, stats], index) => {
             // Only push a visible label every other day
             labels.push(index % 2 === 0 ? stats.label : "");
-            lineData.push(stats.moodCount > 0 ? stats.moodSum / stats.moodCount : 3);
+            // Let's plot Symptom Load on the line chart to show burden trends, or fallback to 0
+            lineData.push(stats.symptomLoad);
             barData.push(stats.mealCount);
         });
 
-        if (filteredMeals.length > 0 || filteredMoods.length > 0) {
+        if (filteredMeals.length > 0 || filteredSymptoms.length > 0 || filteredMoods.length > 0) {
             setChartData({
                 labels,
                 datasets: [{ 
                     data: lineData,
-                    color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`
+                    color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})` // Red for symptoms
                 }],
                 barData
             });
@@ -378,8 +402,43 @@ export default function TimelineScreen() {
         );
     };
 
+    const renderSymptomItem = (item: SymptomEvent) => {
+        const date = new Date(item.occurredAt);
+        const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        return (
+            <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteSymptomEvent(item.id))}>
+                <View style={[styles.card, { borderLeftWidth: 4, borderLeftColor: '#ef4444' }]}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.time}>{timeString}</Text>
+                        <View style={[styles.slotBadge, { backgroundColor: '#fee2e2' }]}>
+                            <Text style={[styles.slotText, { color: '#991b1b' }]}>Symptom</Text>
+                        </View>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 24, marginRight: 8 }}>🤒</Text>
+                        <Text style={{ fontSize: 18, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize' }}>
+                            {item.symptomType}
+                        </Text>
+                    </View>
+                    <Text style={{ fontSize: 14, color: '#4b5563', marginBottom: 8 }}>
+                        Severity: {item.severity}/5 {item.durationMinutes ? `• ${item.durationMinutes} min` : ''}
+                    </Text>
+
+                    {item.notes && (
+                        <Text style={[styles.description, { marginTop: 4 }]} numberOfLines={2}>
+                            {item.notes}
+                        </Text>
+                    )}
+                </View>
+            </SwipeToDeleteCard>
+        );
+    };
+
     const renderItem = ({ item }: { item: TimelineItem }) => {
         if (item.type === 'meal') return renderMealItem(item.data);
+        if (item.type === 'symptom') return renderSymptomItem(item.data);
         return renderMoodItem(item.data);
     };
 
@@ -388,6 +447,9 @@ export default function TimelineScreen() {
             <View style={styles.customHeader}>
                 <Text style={styles.headerTitleText}>Timeline</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.navigate('InsightFeed')} style={styles.headerIconButton}>
+                        <Lightbulb color="#f59e0b" size={22} />
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('Recommendations')} style={styles.headerIconButton}>
                         <Sparkles color="#2563eb" size={22} />
                     </TouchableOpacity>
@@ -428,12 +490,13 @@ export default function TimelineScreen() {
                     refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
                     ListHeaderComponent={
                         <View style={{ paddingBottom: 16 }}>
+                            <WeeklyReport symptoms={symptoms} insights={weeklyInsights} />
                             {chartData && (
                                 <View style={styles.chartCard}>
-                                    <Text style={styles.chartTitle}>Mood & Food Activity (7 Days)</Text>
+                                    <Text style={styles.chartTitle}>Symptom Burden & Meals (7 Days)</Text>
                                     <View>
-                                        <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8, marginTop: 4 }}>Mood Trend (1-5 Scale)</Text>
-                                        {/* Foreground Line Chart for Mood Trend */}
+                                        <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8, marginTop: 4 }}>Daily Symptom Load (Severity Sum)</Text>
+                                        {/* Foreground Line Chart for Symptom Trend */}
                                         <LineChart
                                             data={{
                                                 labels: chartData.labels,
@@ -450,10 +513,10 @@ export default function TimelineScreen() {
                                                 backgroundGradientFrom: "#ffffff",
                                                 backgroundGradientTo: "#ffffff",
                                                 decimalPlaces: 1,
-                                                color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
+                                                    color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`, // Red string for line
                                                 labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
                                                 style: { borderRadius: 16 },
-                                                propsForDots: { r: "4", strokeWidth: "2", stroke: "#2563eb" }
+                                                propsForDots: { r: "4", strokeWidth: "2", stroke: "#ef4444" } // Red dots
                                             }}
                                             bezier
                                             style={{ marginVertical: 8, borderRadius: 16 }}
@@ -509,7 +572,20 @@ export default function TimelineScreen() {
                             style={styles.subFab}
                             onPress={() => {
                                 setIsFabOpen(false);
-                                navigation.navigate('LogMood', {});
+                                navigation.navigate('SymptomLogger', { mode: 'symptom' });
+                            }}
+                        >
+                            <Text style={styles.subFabLabel}>Log Symptom</Text>
+                            <View style={[styles.subFabIcon, { backgroundColor: '#ef4444' }]} pointerEvents="none">
+                                <Text style={{ fontSize: 24 }}>🤒</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.subFab}
+                            onPress={() => {
+                                setIsFabOpen(false);
+                                navigation.navigate('SymptomLogger', { mode: 'mood' });
                             }}
                         >
                             <Text style={styles.subFabLabel}>Log Mood</Text>
