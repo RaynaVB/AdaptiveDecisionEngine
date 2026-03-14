@@ -1,7 +1,8 @@
 import { MealEvent } from '../models/types';
 
 export function formatMealSummary(meal: MealEvent): string {
-    const slot = meal.mealSlot.charAt(0).toUpperCase() + meal.mealSlot.slice(1);
+    const slotValue = meal.mealSlot || 'unknown';
+    const slot = slotValue.charAt(0).toUpperCase() + slotValue.slice(1);
 
     // Filter out 'unknown' if there are other tags, or keep it if it's the only one
     let tagsToShow = meal.mealTypeTags.filter(t => t !== 'unknown');

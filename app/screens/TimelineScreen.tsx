@@ -1,15 +1,98 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform, Animated, LayoutAnimation, UIManager, PanResponder } from 'react-native';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
-import { Plus, ChevronRight, X, Sparkles, TrendingUp, Trash2, LogOut } from 'lucide-react-native';
+import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 import { auth } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+type SwipeToDeleteProps = {
+    onDelete: () => void;
+    children: React.ReactNode;
+};
+
+function SwipeToDeleteCard({ onDelete, children }: SwipeToDeleteProps) {
+    const translateX = useRef(new Animated.Value(0)).current;
+    const THRESHOLD = SCREEN_WIDTH * 0.50;
+    const deleteTriggered = useRef(false);
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onMoveShouldSetPanResponder: (_, { dx, dy }) => dx > 8 && Math.abs(dx) > Math.abs(dy) * 1.5,
+            onPanResponderMove: (_, { dx }) => {
+                if (dx > 0) translateX.setValue(dx);
+            },
+            onPanResponderRelease: (_, { dx, vx }) => {
+                if (dx > THRESHOLD || vx > 1.0) {
+                    Animated.timing(translateX, {
+                        toValue: SCREEN_WIDTH,
+                        duration: 250,
+                        useNativeDriver: true,
+                    }).start(() => {
+                        if (!deleteTriggered.current) {
+                            deleteTriggered.current = true;
+                            onDelete();
+                        }
+                    });
+                } else {
+                    Animated.spring(translateX, {
+                        toValue: 0,
+                        useNativeDriver: true,
+                        bounciness: 6,
+                    }).start();
+                }
+            },
+            onPanResponderTerminate: () => {
+                Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+            },
+        })
+    ).current;
+
+    const bgOpacity = translateX.interpolate({
+        inputRange: [0, THRESHOLD * 0.3, THRESHOLD],
+        outputRange: [0, 0.3, 1],
+        extrapolate: 'clamp',
+    });
+
+    return (
+        <View>
+            <Animated.View
+                style={{
+                    ...StyleSheet.absoluteFillObject,
+                    backgroundColor: '#ef4444',
+                    borderRadius: 12,
+                    opacity: bgOpacity,
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    paddingLeft: 20,
+                    flexDirection: 'row',
+                    gap: 8,
+                    paddingTop: 0,
+                }}
+            >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center' }}>
+                    <Trash2 color="#fff" size={26} />
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Delete</Text>
+                </View>
+            </Animated.View>
+            <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+                {children}
+            </Animated.View>
+        </View>
+    );
+}
 
 type TimelineScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timeline'>;
 
@@ -89,7 +172,8 @@ export default function TimelineScreen() {
             
             // Generate a short label like "Mon 10" to fit the axis
             const dayNum = d.getDate();
-            const shortLabel = `${dayStr.charAt(0)} ${dayNum}`;
+            const firstChar = dayStr ? dayStr.charAt(0) : '?';
+            const shortLabel = `${firstChar} ${dayNum}`;
             
             // We use the full dayStr as a reliable key for the dictionary,
             // but we'll store the 'shortLabel' inside the stats object to use for the chart UI
@@ -175,6 +259,16 @@ export default function TimelineScreen() {
         ]);
     }, []);
 
+    const deleteWithAnimation = useCallback(async (deleteOp: () => Promise<void>) => {
+        LayoutAnimation.configureNext({
+            duration: 300,
+            update: { type: LayoutAnimation.Types.easeInEaseOut },
+            delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+        });
+        await deleteOp();
+        await loadData();
+    }, [loadData]);
+
     React.useLayoutEffect(() => {
         navigation.setOptions({
             headerShown: false, // Turn off native header to fix the cutoff bug
@@ -216,68 +310,71 @@ export default function TimelineScreen() {
         const moodColor = mood?.valence === 'negative' ? '#fee2e2' : mood?.valence === 'positive' ? '#dcfce7' : '#f3f4f6';
 
         return (
-            <TouchableOpacity
-                style={styles.card}
-                onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
-            >
-                <View style={styles.cardHeader}>
-                    <View style={styles.cardTitleRow}>
-                        <Text style={styles.time}>{timeString}</Text>
-                        <View style={styles.slotBadge}>
-                            <Text style={styles.slotText}>{item.mealSlot}</Text>
+            <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteMealEvent(item.id))}>
+                <TouchableOpacity
+                    style={styles.card}
+                    onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
+                >
+                    <View style={styles.cardHeader}>
+                        <View style={styles.cardTitleRow}>
+                            <Text style={styles.time}>{timeString}</Text>
+                            <View style={styles.slotBadge}>
+                                <Text style={styles.slotText}>{item.mealSlot}</Text>
+                            </View>
                         </View>
                     </View>
-                </View>
 
-                <Text style={styles.summaryText}>{formatMealSummary(item)}</Text>
+                    <Text style={styles.summaryText}>{formatMealSummary(item)}</Text>
 
-                {item.textDescription ? (
-                    <Text style={styles.description} numberOfLines={1}>{item.textDescription}</Text>
-                ) : null}
+                    {item.textDescription ? (
+                        <Text style={styles.description} numberOfLines={1}>{item.textDescription}</Text>
+                    ) : null}
 
-                <View style={[styles.moodContainer, { backgroundColor: moodColor }]}>
-                    <Text style={styles.moodLabel}>Mood context:</Text>
-                    <Text style={styles.moodValue}>{moodText}</Text>
-                </View>
-            </TouchableOpacity>
+                    <View style={[styles.moodContainer, { backgroundColor: moodColor }]}>
+                        <Text style={styles.moodLabel}>Mood context:</Text>
+                        <Text style={styles.moodValue}>{moodText}</Text>
+                    </View>
+                </TouchableOpacity>
+            </SwipeToDeleteCard>
         );
     };
 
     const renderMoodItem = (item: MoodEvent) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const dayString = date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
         // Mood Color Logic
         const moodColor = item.valence === 'negative' ? '#fee2e2' : item.valence === 'positive' ? '#dcfce7' : '#f3f4f6';
         const borderColor = item.valence === 'negative' ? '#fca5a5' : item.valence === 'positive' ? '#86efac' : '#e5e7eb';
 
         return (
-            <View style={[styles.card, { borderLeftWidth: 4, borderLeftColor: borderColor }]}>
-                <View style={styles.cardHeader}>
-                    <Text style={styles.time}>{timeString}</Text>
-                    <View style={[styles.slotBadge, { backgroundColor: moodColor }]}>
-                        <Text style={[styles.slotText, { color: '#374151' }]}>Mood Check-in</Text>
-                    </View>
-                </View>
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                    <Text style={{ fontSize: 24, marginRight: 8 }}>
-                        {item.valence === 'positive' ? '🙂' : item.valence === 'negative' ? '🙁' : '😐'}
-                    </Text>
-                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize' }}>
-                        {item.valence} • {item.energy} Energy
-                    </Text>
-                </View>
-
-                {item.tag && (
-                    <View style={{ flexDirection: 'row', marginTop: 8 }}>
-                        <View style={styles.tag}>
-                            <Text style={styles.tagText}>{item.tag}</Text>
+            <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteMoodEvent(item.id))}>
+                <View style={[styles.card, { borderLeftWidth: 4, borderLeftColor: borderColor }]}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.time}>{timeString}</Text>
+                        <View style={[styles.slotBadge, { backgroundColor: moodColor }]}>
+                            <Text style={[styles.slotText, { color: '#374151' }]}>Mood Check-in</Text>
                         </View>
                     </View>
-                )}
-            </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 24, marginRight: 8 }}>
+                            {item.valence === 'positive' ? '🙂' : item.valence === 'negative' ? '🙁' : '😐'}
+                        </Text>
+                        <Text style={{ fontSize: 18, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize' }}>
+                            {item.valence} • {item.energy} Energy
+                        </Text>
+                    </View>
+
+                    {item.tag && (
+                        <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                            <View style={styles.tag}>
+                                <Text style={styles.tagText}>{item.tag}</Text>
+                            </View>
+                        </View>
+                    )}
+                </View>
+            </SwipeToDeleteCard>
         );
     };
 
@@ -296,6 +393,9 @@ export default function TimelineScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')} style={styles.headerIconButton}>
                         <TrendingUp color="#2563eb" size={22} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate('HealthLab')} style={styles.headerIconButton}>
+                        <Beaker color="#2563eb" size={22} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleClear} style={styles.headerIconButton}>
                         <Trash2 color="#ef4444" size={22} />
@@ -471,6 +571,20 @@ const styles = StyleSheet.create({
     headerIconButton: {
         marginLeft: 16,
         padding: 4,
+    },
+    deleteAction: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+        width: 90,
+        borderRadius: 12,
+        marginBottom: 16,
+        gap: 6,
+    },
+    deleteActionText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 14,
     },
     container: {
         flex: 1,

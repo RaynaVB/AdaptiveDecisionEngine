@@ -96,6 +96,16 @@ export const StorageService = {
         }
     },
 
+    async deleteMoodEvent(id: string): Promise<void> {
+        if (!auth.currentUser) return;
+        try {
+            const moodDocRef = doc(this.getMoodsCollectionRef(), id);
+            await deleteDoc(moodDocRef);
+        } catch (e) {
+            console.error('Failed to delete mood', e);
+        }
+    },
+
     // UTILS
 
     async seedDemoLogs(): Promise<void> {

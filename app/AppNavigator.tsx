@@ -11,6 +11,10 @@ import RecommendationFeedScreen from './screens/RecommendationFeedScreen';
 import FeedbackHistoryScreen from './screens/FeedbackHistoryScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
+import HealthLabScreen from './screens/HealthLabScreen';
+import ExperimentDetailScreen from './screens/ExperimentDetailScreen';
+import ExperimentHistoryScreen from './screens/ExperimentHistoryScreen';
+import ExperimentResultScreen from './screens/ExperimentResultScreen';
 
 // New onboarding screens
 import OnboardingWelcomeScreen from './screens/OnboardingWelcomeScreen';
@@ -119,6 +123,26 @@ export default function AppNavigator() {
                             name="FeedbackHistory"
                             component={FeedbackHistoryScreen}
                             options={{ title: 'Feedback History' }}
+                        />
+                        <Stack.Screen
+                            name="HealthLab"
+                            component={HealthLabScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="ExperimentDetail"
+                            component={ExperimentDetailScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="ExperimentHistory"
+                            component={ExperimentHistoryScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="ExperimentResult"
+                            component={ExperimentResultScreen}
+                            options={{ headerShown: false }}
                         />
                     </Stack.Group>
                 ) : (

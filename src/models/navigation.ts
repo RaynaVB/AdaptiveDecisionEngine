@@ -8,6 +8,10 @@ export type RootStackParamList = {
     WeeklyPatterns: undefined;
     Recommendations: undefined;
     FeedbackHistory: undefined;
+    HealthLab: undefined;
+    ExperimentDetail: { experimentId: string };
+    ExperimentHistory: undefined;
+    ExperimentResult: { runId: string };
     Login: undefined;
     SignUp: undefined;
     ForgotPassword: undefined;
