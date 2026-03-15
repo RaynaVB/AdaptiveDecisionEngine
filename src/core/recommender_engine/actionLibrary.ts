@@ -37,6 +37,9 @@ export type ActionTemplate = {
     titleTemplate: string;
     actionTemplate: string; // explicit, doable next step
     whyTemplate: string; // must reference the pattern, not medical claims
+
+    // Experiment linking
+    associatedExperimentId?: string; // Optional link to HealthLab experiment
 };
 
 // Notes:
@@ -61,6 +64,7 @@ export const ACTION_LIBRARY: ActionTemplate[] = [
             "Next time you notice a low mood or high stress, pause for 60 seconds before eating. Take 5 slow breaths, then decide.",
         whyTemplate:
             "Your logs suggest eating often happens soon after a mood dip. A short pause can help you choose intentionally.",
+        associatedExperimentId: "stress_reset_60s",
     },
     {
         id: "p1_timing_delay_10min",
@@ -125,6 +129,7 @@ export const ACTION_LIBRARY: ActionTemplate[] = [
             "Pick a realistic kitchen close time (e.g., 9:00 PM) for 3 nights this week. If you eat after it, just log it—no judgment.",
         whyTemplate:
             "Your logs show a cluster of late-night eating. A gentle cutoff can reduce the frequency without requiring big changes.",
+        associatedExperimentId: "no_late_snacks",
     },
     {
         id: "p2_prevention_plan_evening_snack",
@@ -247,5 +252,6 @@ export const ACTION_LIBRARY: ActionTemplate[] = [
             "Before your next snack, drink a glass of water and wait 2 minutes. If you still want food, eat and log it.",
         whyTemplate:
             "You’re still building consistent logs. This is a safe, low-effort step while the system learns your patterns.",
+        associatedExperimentId: "hydration_boost",
     },
 ];

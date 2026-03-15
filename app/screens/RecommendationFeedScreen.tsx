@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { StorageService } from '../../src/services/storage';
 import { runPatternEngine } from '../../src/core/pattern_engine/patternEngine';
 import { runRecommendationEngine } from '../../src/core/recommender_engine/recommenderEngine';
@@ -10,17 +10,24 @@ import { v4 as uuidv4 } from 'uuid';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
+import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
+import { ExperimentRun } from '../../src/models/healthlab';
+import { Play, CheckCircle } from 'lucide-react-native';
 
 type RecsScreenProp = StackNavigationProp<RootStackParamList, 'Recommendations'>;
 
 export default function RecommendationFeedScreen() {
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [feedbacks, setFeedbacks] = useState<Record<string, FeedbackOutcome | null>>({});
+    const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
     const [loading, setLoading] = useState(true);
 
     const loadRecommendations = async () => {
         setLoading(true);
         try {
+            const actives = await ExperimentEngine.getActiveExperiments();
+            setActiveExperiments(actives);
+
             // 1. fetch recent meals and moods from Firestore
             const meals = await StorageService.getMealEvents();
             const moods = await StorageService.getMoodEvents();
@@ -40,9 +47,13 @@ export default function RecommendationFeedScreen() {
             })));
             
             // 4. render recommendations
-            setRecommendations(recs);
+            // Filter out recommendations that are already active experiments
+            const filteredRecs = recs.filter((r: Recommendation) => 
+                !r.associatedExperimentId || 
+                !actives.some((run: ExperimentRun) => run.experimentId === r.associatedExperimentId)
+            );
+            setRecommendations(filteredRecs);
 
-            // 5. load feedback states
             const feedbackMap: Record<string, FeedbackOutcome | null> = {};
             for (const rec of recs) {
                 const outcome = await FeedbackStorageService.getLatestOutcomeForRecommendation(rec.templateId);
@@ -97,10 +108,24 @@ export default function RecommendationFeedScreen() {
         };
         await FeedbackStorageService.saveFeedback(event);
         
-        setFeedbacks(prev => ({
+        setFeedbacks((prev: Record<string, FeedbackOutcome | null>) => ({
             ...prev,
             [rec.id]: outcome
         }));
+    };
+
+    const handleStartExperiment = async (experimentId: string) => {
+        try {
+            setLoading(true);
+            await ExperimentEngine.startExperiment(experimentId);
+            Alert.alert("Success", "Experiment started! You can track your progress on the home screen.");
+            navigation.navigate('Timeline');
+        } catch (e) {
+            console.error("Failed to start experiment:", e);
+            Alert.alert("Error", "Could not start experiment. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const renderFeedbackButtons = (rec: Recommendation) => {
@@ -147,6 +172,24 @@ export default function RecommendationFeedScreen() {
                 <Text style={styles.whyLabel}>Why this?</Text>
                 <Text style={styles.whyText}>{rec.whyThis}</Text>
             </View>
+            
+            {rec.associatedExperimentId && !activeExperiments.some(run => run.experimentId === rec.associatedExperimentId) && (
+                <TouchableOpacity 
+                    style={styles.experimentButton}
+                    onPress={() => handleStartExperiment(rec.associatedExperimentId!)}
+                >
+                    <Play size={16} color="#fff" fill="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.experimentButtonText}>Start 5-Day Experiment</Text>
+                </TouchableOpacity>
+            )}
+
+            {rec.associatedExperimentId && activeExperiments.some(run => run.experimentId === rec.associatedExperimentId) && (
+                <View style={styles.activeExperimentTag}>
+                    <CheckCircle size={14} color="#16a34a" style={{ marginRight: 6 }} />
+                    <Text style={styles.activeExperimentText}>Running as Experiment</Text>
+                </View>
+            )}
+
             <View style={styles.outcomeRow}>
                 {feedbacks[rec.id] && (
                     <Text style={styles.lastOutcomeText}>
@@ -296,5 +339,35 @@ const styles = StyleSheet.create({
     },
     feedbackEmoji: {
         fontSize: 16,
+    },
+    experimentButton: {
+        backgroundColor: '#2563eb',
+        borderRadius: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 12,
+    },
+    experimentButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    activeExperimentTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#dcfce7',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 6,
+        marginTop: 12,
+        alignSelf: 'flex-start',
+    },
+    activeExperimentText: {
+        color: '#166534',
+        fontSize: 13,
+        fontWeight: '600',
     }
 });

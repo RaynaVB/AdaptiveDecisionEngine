@@ -55,7 +55,7 @@ export const ExperimentEngine = {
         if (!auth.currentUser) return null;
         
         try {
-
+            // Support multiple active experiments - removed auto-abandon logic
             const now = new Date().toISOString();
             const id = uuidv4();
             const newRun: ExperimentRun = {

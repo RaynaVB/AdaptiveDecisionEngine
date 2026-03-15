@@ -15,6 +15,10 @@ import { runPatternEngine } from '../../src/core/pattern_engine/patternEngine';
 import { auth } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
+import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
+import { ExperimentRun } from '../../src/models/healthlab';
+import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
+import { Play, ChevronRight, Beaker as BeakerIcon } from 'lucide-react-native';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -116,15 +120,35 @@ export default function TimelineScreen() {
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [selectedDayEvents, setSelectedDayEvents] = useState<{ dateStr: string; events: TimelineItem[] } | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
 
     // Week at a Glance State
     const [weekAtGlanceData, setWeekAtGlanceData] = useState<{ label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[]>([]);
 
+    const handleStartExperimentFocus = async (experimentId: string) => {
+        try {
+            setLoading(true);
+            await ExperimentEngine.startExperiment(experimentId);
+            Alert.alert("Success", "Experiment started! You can track your progress right here on the home screen.");
+            await loadData();
+        } catch (e) {
+            console.error("Failed to start experiment from focus:", e);
+            Alert.alert("Error", "Could not start experiment. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const loadData = async () => {
         setLoading(true);
-        const loadedMeals = await StorageService.getMealEvents();
-        const loadedMoods = await StorageService.getMoodEvents();
-        const loadedSymptoms = await StorageService.getSymptomEvents();
+        const [loadedMeals, loadedMoods, loadedSymptoms, activeExps] = await Promise.all([
+            StorageService.getMealEvents(),
+            StorageService.getMoodEvents(),
+            StorageService.getSymptomEvents(),
+            ExperimentEngine.getActiveExperiments()
+        ]);
+        
+        setActiveExperiments(activeExps);
         
         if (auth.currentUser) {
             const profile = await getUserProfile(auth.currentUser.uid);
@@ -491,7 +515,35 @@ export default function TimelineScreen() {
                         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
                         ListHeaderComponent={
                             <View style={{ paddingBottom: 16 }}>
-                                <WeeklyReport symptoms={symptoms} insights={weeklyInsights} />
+                                {activeExperiments.length > 0 && (
+                                    <View style={styles.activeExperimentsSection}>
+                                        <Text style={[styles.chartTitle, { marginBottom: 12 }]}>Active Experiments</Text>
+                                        {activeExperiments.map(run => (
+                                            <TouchableOpacity 
+                                                key={run.id}
+                                                style={styles.activeExpCard}
+                                                onPress={() => navigation.navigate('HealthLab')}
+                                            >
+                                                <View style={styles.activeExpIcon}>
+                                                    <Play size={20} color="#fff" fill="#fff" />
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.activeExpTitle}>
+                                                        {EXPERIMENT_LIBRARY.find(e => e.id === run.experimentId)?.name || 'Unknown'}
+                                                    </Text>
+                                                    <Text style={styles.activeExpSub}>Day {Math.floor((Date.now() - new Date(run.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1} of {EXPERIMENT_LIBRARY.find(e => e.id === run.experimentId)?.durationDays}</Text>
+                                                </View>
+                                                <ChevronRight size={20} color="#94a3b8" />
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                                <WeeklyReport 
+                                    symptoms={symptoms} 
+                                    insights={weeklyInsights} 
+                                    activeExperiments={activeExperiments} 
+                                    onStartExperiment={handleStartExperimentFocus}
+                                />
                                 {weekAtGlanceData.length > 0 && (
                                     <View style={[styles.chartCard, { paddingVertical: 20 }]}>
                                         <Text style={styles.chartTitle}>Week at a Glance</Text>
@@ -1093,5 +1145,42 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#374151',
+    },
+    activeExperimentsSection: {
+        marginBottom: 24,
+    },
+    activeExpCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    activeExpIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#2563eb',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    activeExpTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1e293b',
+    },
+    activeExpSub: {
+        fontSize: 13,
+        color: '#64748b',
+        marginTop: 2,
     }
 });

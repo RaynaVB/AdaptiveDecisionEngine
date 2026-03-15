@@ -13,5 +13,6 @@ export interface Recommendation {
         confidence: number;
         total: number;
     };
+    associatedExperimentId?: string;
     createdAt: string;
 }

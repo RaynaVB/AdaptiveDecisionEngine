@@ -4,12 +4,21 @@ import { Insight } from '../core/insight_engine/insightEngine';
 import { SymptomEvent } from '../models/Symptom';
 import { Sparkles, TrendingDown, Target } from 'lucide-react-native';
 
+import { ExperimentRun } from '../models/healthlab';
+
 interface WeeklyReportProps {
     symptoms: SymptomEvent[];
     insights: Insight[];
+    activeExperiments?: ExperimentRun[];
+    onStartExperiment?: (experimentId: string) => void;
 }
 
-export const WeeklyReport: React.FC<WeeklyReportProps> = ({ symptoms, insights }) => {
+export const WeeklyReport: React.FC<WeeklyReportProps> = ({ 
+    symptoms, 
+    insights, 
+    activeExperiments = [],
+    onStartExperiment 
+}) => {
     // Basic computation for presentation
     const symptomCounts: Record<string, number> = {};
     symptoms.forEach(s => symptomCounts[s.symptomType] = (symptomCounts[s.symptomType] || 0) + 1);
@@ -56,16 +65,21 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ symptoms, insights }
 
             <View style={[styles.section, { borderBottomWidth: 0 }]}>
                 <Text style={styles.sectionTitle}>Suggested Focus</Text>
-                {insights.filter(i => i.actionableInsight).length > 0 ? (
-                    insights.filter(i => i.actionableInsight).map((actionInsight, index, arr) => (
+                {insights.filter(i => 
+                    i.actionableInsight && 
+                    !activeExperiments.some(run => run.experimentId === i.actionableInsight?.experimentIdToStart)
+                ).length > 0 ? (
+                    insights.filter(i => 
+                        i.actionableInsight && 
+                        !activeExperiments.some(run => run.experimentId === i.actionableInsight?.experimentIdToStart)
+                    ).map((actionInsight, index, arr) => (
                         <View key={actionInsight.id} style={[styles.insightBoxBlue, index < arr.length - 1 && { marginBottom: 12 }]}>
                             <TrendingDown color="#2563eb" size={16} />
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.insightTextBlue}>{actionInsight.description}</Text>
                                 <TouchableOpacity 
                                     style={{ marginTop: 12, backgroundColor: '#2563eb', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6, alignSelf: 'flex-start' }}
-                                    // In a real app we would navigate to HealthLab with params, but for now we just show an alert
-                                    onPress={() => alert(`Starting experiment: ${actionInsight.actionableInsight?.label}`)}
+                                    onPress={() => onStartExperiment?.(actionInsight.actionableInsight!.experimentIdToStart)}
                                 >
                                     <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{actionInsight.actionableInsight?.label}</Text>
                                 </TouchableOpacity>

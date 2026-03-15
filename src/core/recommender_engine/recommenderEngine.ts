@@ -56,6 +56,7 @@ export async function runRecommendationEngine(patterns: Pattern[], context: Patt
                 whyThis: template.whyTemplate,
                 linkedPatternIds: [pattern.id],
                 scores,
+                associatedExperimentId: template.associatedExperimentId,
                 createdAt: new Date().toISOString()
             });
         }
