@@ -14,6 +14,7 @@ import { generateInsightsFromPatterns, Insight } from '../../src/core/insight_en
 import { runPatternEngine } from '../../src/core/pattern_engine/patternEngine';
 import { auth } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
+import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -114,6 +115,7 @@ export default function TimelineScreen() {
     const [loading, setLoading] = useState(false);
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [selectedDayEvents, setSelectedDayEvents] = useState<{ dateStr: string; events: TimelineItem[] } | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
     // Week at a Glance State
     const [weekAtGlanceData, setWeekAtGlanceData] = useState<{ label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[]>([]);
@@ -123,6 +125,11 @@ export default function TimelineScreen() {
         const loadedMeals = await StorageService.getMealEvents();
         const loadedMoods = await StorageService.getMoodEvents();
         const loadedSymptoms = await StorageService.getSymptomEvents();
+        
+        if (auth.currentUser) {
+            const profile = await getUserProfile(auth.currentUser.uid);
+            setUserProfile(profile);
+        }
 
         // Strict requirement: Timeline shows last 5 days of items
         const fiveDaysAgo = new Date();
@@ -449,9 +456,11 @@ export default function TimelineScreen() {
                     <TouchableOpacity onPress={() => navigation.navigate('HealthLab')} style={styles.headerIconButton}>
                         <Beaker color="#2563eb" size={22} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleClear} style={styles.headerIconButton}>
-                        <Trash2 color="#ef4444" size={22} />
-                    </TouchableOpacity>
+                    {isInternalUser(userProfile) && (
+                        <TouchableOpacity onPress={handleClear} style={styles.headerIconButton}>
+                            <Trash2 color="#ef4444" size={22} />
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity onPress={handleLogout} style={styles.headerIconButton}>
                         <LogOut color="#ef4444" size={22} />
                     </TouchableOpacity>
@@ -462,9 +471,11 @@ export default function TimelineScreen() {
                 {timelineData.length === 0 && !loading ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyText}>No logs found.</Text>
-                        <TouchableOpacity style={styles.seedButton} onPress={handleSeed}>
-                            <Text style={styles.seedButtonText}>Seed Demo Logs</Text>
-                        </TouchableOpacity>
+                        {isInternalUser(userProfile) && (
+                            <TouchableOpacity style={styles.seedButton} onPress={handleSeed}>
+                                <Text style={styles.seedButtonText}>Seed Demo Logs</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 ) : (
                     <SectionList

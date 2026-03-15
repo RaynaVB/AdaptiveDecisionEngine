@@ -4,12 +4,21 @@ import { db } from './firebaseConfig';
 export interface UserProfile {
     uid: string;
     hasCompletedOnboarding: boolean;
+    role?: 'admin' | 'internal' | 'user';
     name?: string;
     dietaryRestrictions?: string;
     foodsDisliked?: string;
     primaryGoal?: string;
     createdAt?: number;
     updatedAt?: number;
+}
+
+/**
+ * Helper to determine if a user has internal/admin privileges.
+ */
+export function isInternalUser(profile: UserProfile | null): boolean {
+    if (!profile) return false;
+    return profile.role === 'admin' || profile.role === 'internal';
 }
 
 /**

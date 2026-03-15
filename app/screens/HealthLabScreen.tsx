@@ -10,6 +10,8 @@ import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine'
 import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
 import { ExperimentRun, ExperimentDefinition } from '../../src/models/healthlab';
 import { StorageService } from '../../src/services/storage';
+import { auth } from '../../src/services/firebaseConfig';
+import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
 
 type HealthLabScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'HealthLab'>;
@@ -20,6 +22,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
     const [availableExperiments, setAvailableExperiments] = useState<ExperimentDefinition[]>(EXPERIMENT_LIBRARY);
     const [hasRecentSymptoms, setHasRecentSymptoms] = useState(false);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -36,6 +39,11 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                 StorageService.getSymptomEvents()
             ]);
             
+            if (auth.currentUser) {
+                const profile = await getUserProfile(auth.currentUser.uid);
+                setUserProfile(profile);
+            }
+
             setActiveExperiments(actives);
             setHasRecentSymptoms(recentSymptoms.length > 0);
 
@@ -119,12 +127,14 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <View style={styles.debugSection}>
-                        <TouchableOpacity style={styles.debugButton} onPress={handleSimulateTest}>
-                            <Beaker size={18} color="#2563eb" style={{ marginRight: 8 }} />
-                            <Text style={styles.debugButtonText}>Simulate Full 7-Day Study Result</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {isInternalUser(userProfile) && (
+                        <View style={styles.debugSection}>
+                            <TouchableOpacity style={styles.debugButton} onPress={handleSimulateTest}>
+                                <Beaker size={18} color="#2563eb" style={{ marginRight: 8 }} />
+                                <Text style={styles.debugButtonText}>Simulate Full 7-Day Study Result</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {activeExperiments.length > 0 && (
                         <View style={styles.activeSection}>
