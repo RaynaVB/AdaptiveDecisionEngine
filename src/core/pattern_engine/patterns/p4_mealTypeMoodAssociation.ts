@@ -72,6 +72,11 @@ export const analyzeMealTypeMoodAssociation = (context: PatternContext): Pattern
                     description: `${(rate * 100).toFixed(0)}% of '${tag.replace('_', ' ')}' meals are followed by negative mood within 4 hours.`,
                     confidence: rate >= 0.8 ? 'high' : 'medium', // 0.6 = medium, 0.8+ = high
                     evidence: { tag, total_tag_count: total, mood_drop_count: drops, rate: rate.toFixed(2) },
+                    actionableInsight: {
+                        label: 'Try PM Protein Snack',
+                        experimentIdToStart: 'protein_snack_3pm',
+                        actionType: 'start_experiment'
+                    },
                     segmentation: calculateSegmentation(triggeringMeals),
                     windowStart: meals[0]?.occurredAt || new Date().toISOString(),
                     windowEnd: new Date().toISOString(),

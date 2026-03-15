@@ -50,8 +50,8 @@ export const analyzeMoodDipThenEat = (context: PatternContext): Pattern[] => {
                 triggers
             },
             actionableInsight: {
-                label: 'Try 3-Meal Structure',
-                experimentIdToStart: '3_meal_structure',
+                label: 'Try 60s Stress Reset',
+                experimentIdToStart: 'stress_reset_60s',
                 actionType: 'start_experiment'
             },
             segmentation: calculateSegmentation(triggeringMeals),

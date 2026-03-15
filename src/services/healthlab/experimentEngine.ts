@@ -19,24 +19,23 @@ export const ExperimentEngine = {
         return collection(this.getUserDocRef(), 'experiment_runs');
     },
 
-    async getActiveExperiment(): Promise<ExperimentRun | null> {
-        if (!auth.currentUser) return null;
+    async getActiveExperiments(): Promise<ExperimentRun[]> {
+        if (!auth.currentUser) return [];
         try {
             const q = query(
                 this.getExperimentsCollectionRef(), 
                 where('status', '==', 'active')
             );
             const querySnapshot = await getDocs(q);
-            if (querySnapshot.empty) return null;
+            if (querySnapshot.empty) return [];
             
             const docs = querySnapshot.docs.map(d => d.data() as ExperimentRun);
-            // Sort in memory to avoid needing a composite index in Firestore
             docs.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
             
-            return docs[0];
+            return docs;
         } catch (e) {
-            console.error('Failed to load active experiment', e);
-            return null;
+            console.error('Failed to load active experiments', e);
+            return [];
         }
     },
 
@@ -56,11 +55,6 @@ export const ExperimentEngine = {
         if (!auth.currentUser) return null;
         
         try {
-            // Check if there's already an active experiment
-            const active = await this.getActiveExperiment();
-            if (active) {
-                throw new Error("Only one experiment can be active at a time.");
-            }
 
             const now = new Date().toISOString();
             const id = uuidv4();
@@ -83,13 +77,10 @@ export const ExperimentEngine = {
         }
     },
 
-    async abandonActiveExperiment(): Promise<void> {
+    async abandonExperiment(runId: string): Promise<void> {
         if (!auth.currentUser) return;
         try {
-            const active = await this.getActiveExperiment();
-            if (!active) return;
-
-            const docRef = doc(this.getExperimentsCollectionRef(), active.id);
+            const docRef = doc(this.getExperimentsCollectionRef(), runId);
             await updateDoc(docRef, {
                 status: 'abandoned',
                 updatedAt: new Date().toISOString()
@@ -145,7 +136,8 @@ export const ExperimentEngine = {
         if (!auth.currentUser) throw new Error("Not authenticated");
         
         // 1. Detect if there's already an active run we should "complete" with simulation
-        const active = await this.getActiveExperiment();
+        const activeList = await this.getActiveExperiments();
+        const active = activeList.length > 0 ? activeList[0] : null;
         let runId: string;
         let experimentId: string;
         let startOfExperiment: Date;

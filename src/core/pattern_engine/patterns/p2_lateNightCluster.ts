@@ -45,6 +45,11 @@ export const analyzeLateNightCluster = (context: PatternContext): Pattern[] => {
                 total_weekly_meals: recentMeals.length,
                 percentage: percentage.toFixed(2)
             },
+            actionableInsight: {
+                label: 'Try No Late Snacks Week',
+                experimentIdToStart: 'no_late_snacks',
+                actionType: 'start_experiment'
+            },
             segmentation: calculateSegmentation(triggeringMeals),
             windowStart: sevenDaysAgo.toISOString(),
             windowEnd: new Date().toISOString(),

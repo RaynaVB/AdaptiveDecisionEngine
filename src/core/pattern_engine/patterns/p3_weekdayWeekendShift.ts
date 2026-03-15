@@ -48,6 +48,11 @@ export const analyzeWeekdayWeekendShift = (context: PatternContext): Pattern[] =
             description: `You snack ${ratio.toFixed(1)}x more often on weekends than weekdays.`,
             confidence: 'medium',
             evidence: { weekday_freq: weekdayFreq, weekend_freq: weekendFreq, ratio: ratio.toFixed(2) },
+            actionableInsight: {
+                label: 'Try Hydration Boost',
+                experimentIdToStart: 'hydration_boost',
+                actionType: 'start_experiment'
+            },
             windowStart: meals[meals.length - 1]?.occurredAt, // Oldest
             windowEnd: meals[0]?.occurredAt, // Newest (assuming sort)
             createdAt: new Date().toISOString()
@@ -60,6 +65,11 @@ export const analyzeWeekdayWeekendShift = (context: PatternContext): Pattern[] =
             description: `You snack ${inverseRatio.toFixed(1)}x more often on weekdays than weekends.`,
             confidence: 'medium',
             evidence: { weekday_freq: weekdayFreq, weekend_freq: weekendFreq, ratio: inverseRatio.toFixed(2) },
+            actionableInsight: {
+                label: 'Try Hydration Boost',
+                experimentIdToStart: 'hydration_boost',
+                actionType: 'start_experiment'
+            },
             windowStart: meals[0]?.occurredAt,
             windowEnd: meals[meals.length - 1]?.occurredAt,
             createdAt: new Date().toISOString()

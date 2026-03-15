@@ -17,7 +17,7 @@ type HealthLabScreenProps = {
 
 export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     const [loading, setLoading] = useState(true);
-    const [activeExperiment, setActiveExperiment] = useState<ExperimentRun | null>(null);
+    const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
     const [availableExperiments, setAvailableExperiments] = useState<ExperimentDefinition[]>(EXPERIMENT_LIBRARY);
     const [hasRecentSymptoms, setHasRecentSymptoms] = useState(false);
 
@@ -30,13 +30,13 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [active, history, recentSymptoms] = await Promise.all([
-                ExperimentEngine.getActiveExperiment(),
+            const [actives, history, recentSymptoms] = await Promise.all([
+                ExperimentEngine.getActiveExperiments(),
                 ExperimentEngine.getExperimentRuns(),
                 StorageService.getSymptomEvents()
             ]);
             
-            setActiveExperiment(active);
+            setActiveExperiments(actives);
             setHasRecentSymptoms(recentSymptoms.length > 0);
 
             // Filter out experiments that have been completed with High/Medium confidence
@@ -54,7 +54,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     };
 
     const renderExperimentItem = ({ item }: { item: ExperimentDefinition }) => {
-        const isActive = activeExperiment?.experimentId === item.id;
+        const isActive = activeExperiments.some(run => run.experimentId === item.id);
 
         return (
             <TouchableOpacity 
@@ -126,26 +126,29 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                         </TouchableOpacity>
                     </View>
 
-                    {activeExperiment && (
+                    {activeExperiments.length > 0 && (
                         <View style={styles.activeSection}>
-                            <Text style={styles.sectionTitle}>Active Experiment</Text>
-                            <TouchableOpacity 
-                                style={styles.activeHighlightCard}
-                                onPress={() => navigation.navigate('ExperimentDetail', { experimentId: activeExperiment.experimentId })}
-                            >
-                                <View style={styles.activeHeader}>
-                                    <View style={styles.activeIconContainer}>
-                                        <Play size={24} color="#fff" fill="#fff" />
+                            <Text style={styles.sectionTitle}>Active Experiments</Text>
+                            {activeExperiments.map(activeRun => (
+                                <TouchableOpacity 
+                                    key={activeRun.id}
+                                    style={[styles.activeHighlightCard, { marginBottom: 16 }]}
+                                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: activeRun.experimentId })}
+                                >
+                                    <View style={styles.activeHeader}>
+                                        <View style={styles.activeIconContainer}>
+                                            <Play size={24} color="#fff" fill="#fff" />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.activeTitle}>
+                                                {availableExperiments.find(e => e.id === activeRun.experimentId)?.name || 'Unknown Experiment'}
+                                            </Text>
+                                            <Text style={styles.activeSub}>Track your progress daily</Text>
+                                        </View>
+                                        <ChevronRight size={24} color="#fff" />
                                     </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.activeTitle}>
-                                            {availableExperiments.find(e => e.id === activeExperiment.experimentId)?.name}
-                                        </Text>
-                                        <Text style={styles.activeSub}>Track your progress daily</Text>
-                                    </View>
-                                    <ChevronRight size={24} color="#fff" />
-                                </View>
-                            </TouchableOpacity>
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     )}
 

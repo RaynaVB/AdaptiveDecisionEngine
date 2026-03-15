@@ -204,6 +204,15 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                                                     {getSegmentationText(pattern.segmentation)}
                                                 </Text>
                                             )}
+
+                                            {pattern.actionableInsight && pattern.actionableInsight.actionType === 'start_experiment' && (
+                                                <TouchableOpacity 
+                                                    style={styles.actionButton}
+                                                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: pattern.actionableInsight!.experimentIdToStart })}
+                                                >
+                                                    <Text style={styles.actionButtonText}>{pattern.actionableInsight.label}</Text>
+                                                </TouchableOpacity>
+                                            )}
                                         </View>
                                     ))}
                                 </>
@@ -316,6 +325,21 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         marginTop: 8,
         fontStyle: 'italic',
+    },
+    actionButton: {
+        marginTop: 16,
+        backgroundColor: '#f0fdf4', // Light green 50
+        borderColor: '#22c55e', // Green 500
+        borderWidth: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    actionButtonText: {
+        color: '#15803d', // Green 700
+        fontWeight: '600',
+        fontSize: 14,
     },
     emptyState: {
         padding: 32,

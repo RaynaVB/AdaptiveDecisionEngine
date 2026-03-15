@@ -58,6 +58,9 @@ Detects behavioral clusters using a 7-day sliding window with an **Uncertainty P
 | P2 | Late-Night Clustering | Contiguous eating events in late-night hours |
 | P3 | Routine Shifts | Divergence in eating/mood between weekdays and weekends |
 | P4 | Meal-Mood Correlations | Specific meal tags linked to subsequent mood/energy shifts |
+| P5 | Symptom Correlations | Specific meal tags linked to subsequent physical or emotional symptoms |
+
+- **Actionable Insights / Experiment Pipeline**: Detected patterns automatically surface an `actionableInsight`. This insight acts as a direct suggestion to the user, providing a 1-tap pathway to start a specific, relevant HealthLab Experiment right from the Weekly Patterns screen.
 
 #### B. Personalized Recommender Engine
 Transforms detected patterns into ranked, actionable interventions using a **Contextual Bandit Model**.
@@ -101,8 +104,8 @@ Five built-in experiments, each with a defined hypothesis, duration, baseline wi
 
 #### B. Experiment Lifecycle
 1. **Discovery**: `HealthLabScreen` lists all available experiments. Experiments already completed with High/Medium confidence are hidden from the list.
-2. **Activation**: User starts an experiment from `ExperimentDetailScreen`. Only one experiment can be active at a time.
-3. **Active Banner**: An in-progress experiment appears as a highlighted card on the HealthLab dashboard.
+2. **Activation**: User starts an experiment from `ExperimentDetailScreen`. **Multiple experiments can be active concurrently**, allowing a user to run short and long-term studies simultaneously.
+3. **Active Banner**: In-progress experiments appear as a list of highlighted cards on the HealthLab dashboard.
 4. **Completion**: User manually completes the experiment, triggering the Analysis Engine.
 5. **Results**: `ExperimentResultScreen` displays the delta %, confidence score, and a contextual recommendation.
 
@@ -129,7 +132,7 @@ Five built-in experiments, each with a defined hypothesis, duration, baseline wi
 - **Smart Filtering**: Completed high/medium-confidence experiments are removed from the Available list, keeping the dashboard focused on new studies.
 - **Experiment History**: A dedicated `ExperimentHistoryScreen` shows all past runs (completed and abandoned) with their delta and confidence scores.
 - **Focus Refresh**: The HealthLab dashboard automatically re-fetches data when navigated back to, ensuring state is always current.
-- **Simulation Utility**: A developer "Simulate Full 7-Day Study" button seeds backdated mood/meal data for the active experiment and immediately completes it, enabling end-to-end testing of the analysis pipeline.
+- **Simulation Utility**: A developer "Simulate Full 7-Day Study" button seeds backdated mood, meal, and **symptom** data for the active experiment and immediately completes it, enabling end-to-end testing of the analysis pipeline and the surfacing of pattern-triggered experiments (like P5).
 
 ---
 

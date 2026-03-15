@@ -150,7 +150,7 @@ export const StorageService = {
     async seedDemoLogs(): Promise<void> {
         if (!auth.currentUser) return;
         try {
-            const { meals, moods } = generateSeedData();
+            const { meals, moods, symptoms } = generateSeedData();
 
             // Note: In production, batching would be better, but doing it sequentially for simplicity
             for (const meal of meals) {
@@ -159,6 +159,10 @@ export const StorageService = {
 
             for (const mood of moods) {
                 await this.addMoodEvent(mood);
+            }
+            
+            for (const symptom of symptoms) {
+                await this.addSymptomEvent(symptom);
             }
         } catch (e) {
             console.error('Failed to seed logs', e);

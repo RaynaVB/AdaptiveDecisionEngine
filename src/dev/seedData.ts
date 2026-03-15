@@ -1,9 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { MealEvent, MoodEvent, MealSlot, MealTypeTag, MoodValence, MoodStress, MoodEnergy, MoodTag } from '../models/types';
+import { SymptomEvent } from '../models/Symptom';
 
-export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[] } => {
+export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], symptoms: SymptomEvent[] } => {
     const meals: MealEvent[] = [];
     const moods: MoodEvent[] = [];
+    const symptoms: SymptomEvent[] = [];
 
     const now = new Date();
     const oneDay = 24 * 60 * 60 * 1000;
@@ -16,8 +18,8 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[] } =
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
         // Base Schedule: Breakfast (8am), Lunch (12pm), Dinner (7pm)
-        const baseSlots: { slot: MealSlot, hour: number, tags: MealTypeTag[] }[] = [
-            { slot: 'breakfast', hour: 8, tags: ['light', 'homemade', 'high_fiber'] },
+        const baseSlots: { slot: MealSlot, hour: number, tags: string[] }[] = [
+            { slot: 'breakfast', hour: 8, tags: ['light', 'homemade', 'high_fiber', 'dairy'] },
             { slot: 'lunch', hour: 12, tags: ['regular', 'savory'] },
             { slot: 'dinner', hour: 19, tags: ['heavy', 'savory'] },
         ];
@@ -45,7 +47,7 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[] } =
                 occurredAt: mealTime.toISOString(),
                 mealSlot: slot,
                 inputMode: 'text',
-                mealTypeTags: tags,
+                mealTypeTags: tags as MealTypeTag[],
                 tags, // explicitly assign new ML field
                 textDescription: `Seed ${slot}`,
                 raw_text: `Seed ${slot}`, // explicitly assign new ML field
@@ -108,11 +110,29 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[] } =
                 tag: 'celebratory'
             });
         }
+        
+        // P5 Bias: Symptom Correlation (Dairy -> Bloating)
+        // Since we put 'dairy' in every breakfast (8:15 AM), let's schedule 'bloating' at 10:30 AM
+        const symTime = new Date(date);
+        symTime.setHours(10, 30);
+        symptoms.push({
+            id: uuidv4(),
+            createdAt: symTime.toISOString(),
+            occurredAt: symTime.toISOString(),
+            symptomType: 'bloating',
+            category: 'digestive',
+            isOngoing: false,
+            source: 'manual',
+            severity: 3,
+            durationMinutes: 60,
+            notes: 'Felt bloated after breakfast'
+        });
     }
 
     // Sort by occurredAt desc
     meals.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
     moods.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+    symptoms.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
 
-    return { meals, moods };
+    return { meals, moods, symptoms };
 };

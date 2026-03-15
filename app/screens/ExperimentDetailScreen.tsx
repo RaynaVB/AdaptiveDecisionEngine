@@ -1,6 +1,6 @@
 // app/screens/ExperimentDetailScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -30,12 +30,9 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
 
     const loadRun = async () => {
         try {
-            const active = await ExperimentEngine.getActiveExperiment();
-            if (active && active.experimentId === experimentId) {
-                setActiveRun(active);
-            } else {
-                setActiveRun(null);
-            }
+            const activeList = await ExperimentEngine.getActiveExperiments();
+            const active = activeList.find(run => run.experimentId === experimentId);
+            setActiveRun(active || null);
         } catch (e) {
             console.error(e);
         } finally {
@@ -50,16 +47,17 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
             await ExperimentEngine.startExperiment(definition.id);
             await loadRun();
         } catch (e) {
-            alert(e instanceof Error ? e.message : "Failed to start experiment");
+            Alert.alert("Error", e instanceof Error ? e.message : "Failed to start experiment");
         } finally {
             setLoading(false);
         }
     };
 
     const handleAbandon = async () => {
+        if (!activeRun) return;
         try {
             setLoading(true);
-            await ExperimentEngine.abandonActiveExperiment();
+            await ExperimentEngine.abandonExperiment(activeRun.id);
             await loadRun();
         } catch (e) {
             console.error(e);
