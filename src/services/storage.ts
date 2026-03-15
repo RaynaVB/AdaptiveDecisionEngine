@@ -25,6 +25,16 @@ export const StorageService = {
     },
 
     // MEALS
+    // Internal helper to strip undefined values which Firebase rejects
+    _sanitize(data: any) {
+        const sanitized = { ...data };
+        Object.keys(sanitized).forEach(key => {
+            if (sanitized[key] === undefined) {
+                delete sanitized[key];
+            }
+        });
+        return sanitized;
+    },
 
     async getMealEvents(): Promise<MealEvent[]> {
         try {
@@ -51,7 +61,7 @@ export const StorageService = {
         if (!auth.currentUser) return;
         try {
             const mealDocRef = doc(this.getMealsCollectionRef(), event.id);
-            await setDoc(mealDocRef, event);
+            await setDoc(mealDocRef, this._sanitize(event));
         } catch (e) {
             console.error('Failed to add meal', e);
         }
@@ -95,7 +105,7 @@ export const StorageService = {
         if (!auth.currentUser) return;
         try {
             const moodDocRef = doc(this.getMoodsCollectionRef(), event.id);
-            await setDoc(moodDocRef, event);
+            await setDoc(moodDocRef, this._sanitize(event));
         } catch (e) {
             console.error('Failed to add mood', e);
         }
@@ -129,7 +139,7 @@ export const StorageService = {
         if (!auth.currentUser) return;
         try {
             const docRef = doc(this.getSymptomsCollectionRef(), event.id);
-            await setDoc(docRef, event);
+            await setDoc(docRef, this._sanitize(event));
         } catch (e) {
             console.error('Failed to add symptom', e);
         }
