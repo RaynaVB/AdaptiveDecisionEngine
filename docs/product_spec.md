@@ -35,10 +35,13 @@ The system is a modular React Native application (Expo) with a clear separation 
 - **Top 5 Personalization**: The logging interface automatically surfaces the user's most frequently logged symptoms for their selected mode.
 
 #### C. Timeline — Chronological Feed
-- **7-Day Sliding Feed**: Displays all meals and mood events in a `SectionList` grouped by day.
+- **7-Day Sliding Feed**: Displays all meals, moods, and symptoms in a `SectionList` grouped by day.
+- **Week at a Glance**: A summarized top row showing 7 distinct visual dot indicators, with each dot corresponding to total logged daily events. Color coding reflects symptom severities.
+- **Daily Timeline Modal**: Tapping a day's dot in the Week at a Glance opens a custom, interactive `Modal` presenting the day's timeline for meals, moods, and symptoms mirroring the chronological UI aesthetic.
 - **Swipe-to-Delete**: Native-feel gesture-based deletion (`PanResponder`) for both meal and mood cards with animated red delete indicator.
 - **Animated Removal**: Uses `LayoutAnimation` for smooth card collapse on deletion.
 - **Chart Summaries**: Embedded weekly bar/line charts showing mood and meal trends.
+- **Weekly Intelligence**: An intelligence summary section displaying dynamic insights. This features a specialized dense "Tag Cloud" layout for top weekly symptoms to preserve vertical real estate and present quick density views.
 - **Quick Actions**: Log Meal, Log Mood, and navigation to intelligence features accessible from the header.
 
 ---

@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform, Animated, LayoutAnimation, UIManager, PanResponder, Image } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform, Animated, LayoutAnimation, UIManager, PanResponder, Image, Modal, ScrollView } from 'react-native';
+
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -113,9 +113,10 @@ export default function TimelineScreen() {
     const [weeklyInsights, setWeeklyInsights] = useState<Insight[]>([]);
     const [loading, setLoading] = useState(false);
     const [isFabOpen, setIsFabOpen] = useState(false);
+    const [selectedDayEvents, setSelectedDayEvents] = useState<{ dateStr: string; events: TimelineItem[] } | null>(null);
 
-    // Chart State
-    const [chartData, setChartData] = useState<{ labels: string[], datasets: [{ data: number[], color?: any }], barData: number[] } | null>(null);
+    // Week at a Glance State
+    const [weekAtGlanceData, setWeekAtGlanceData] = useState<{ label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[]>([]);
 
     const loadData = async () => {
         setLoading(true);
@@ -178,73 +179,44 @@ export default function TimelineScreen() {
         const insights = generateInsightsFromPatterns(patterns);
         setWeeklyInsights(insights);
 
-        // Compute Dual-Axis Chart Data
-        const statsByDay: Record<string, { moodSum: number, moodCount: number, mealCount: number, symptomLoad: number, label: string }> = {};
-        for (let i = 4; i >= 0; i--) {
+        // Compute Week at a Glance (7 Days)
+        const weekAtGlance: { label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[] = [];
+        for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
-            const dayStr = d.toLocaleDateString([], { weekday: 'short' });
-
-            // Generate a short label like "Mon 10" to fit the axis
-            const dayNum = d.getDate();
-            const firstChar = dayStr ? dayStr.charAt(0) : '?';
-            const shortLabel = `${firstChar} ${dayNum}`;
-
-            // We use the full dayStr as a reliable key for the dictionary,
-            // but we'll store the 'shortLabel' inside the stats object to use for the chart UI
-            statsByDay[dayStr] = { moodSum: 0, moodCount: 0, mealCount: 0, symptomLoad: 0, label: shortLabel };
+            const weekdayShort = d.toLocaleDateString([], { weekday: 'short' });
+            const label = weekdayShort ? weekdayShort.charAt(0) : '?';
+            const dateStr = d.toLocaleDateString();
+            const displayDate = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+            weekAtGlance.push({ label, score: 0, dateStr, displayDate, events: [] });
         }
 
-        filteredMoods.forEach(m => {
-            const d = new Date(m.occurredAt);
-            const dayStr = d.toLocaleDateString([], { weekday: 'short' });
-            if (statsByDay[dayStr]) {
-                const val = typeof m.valence === 'number' ? m.valence : 3;
-                statsByDay[dayStr].moodSum += val;
-                statsByDay[dayStr].moodCount += 1;
+        const sevenDaysAgoForDots = new Date();
+        sevenDaysAgoForDots.setDate(sevenDaysAgoForDots.getDate() - 7);
+        
+        const recentSymptomsForDots = loadedSymptoms.filter(s => new Date(s.occurredAt) >= sevenDaysAgoForDots);
+        const recentMealsForDots = loadedMeals.filter(m => new Date(m.occurredAt) >= sevenDaysAgoForDots);
+        const recentMoodsForDots = loadedMoods.filter(m => new Date(m.occurredAt) >= sevenDaysAgoForDots);
+        
+        const merged7Days: TimelineItem[] = [
+            ...recentMealsForDots.map(m => ({ type: 'meal' as const, data: m })),
+            ...recentMoodsForDots.map(m => ({ type: 'mood' as const, data: m })),
+            ...recentSymptomsForDots.map(s => ({ type: 'symptom' as const, data: s }))
+        ];
+        merged7Days.sort((a, b) => new Date(b.data.occurredAt).getTime() - new Date(a.data.occurredAt).getTime());
+
+        merged7Days.forEach(item => {
+            const dStr = new Date(item.data.occurredAt).toLocaleDateString();
+            const dayEntry = weekAtGlance.find(w => w.dateStr === dStr);
+            if (dayEntry) {
+                dayEntry.events.push(item);
+                if (item.type === 'symptom') {
+                    dayEntry.score += item.data.severity;
+                }
             }
         });
 
-        filteredMeals.forEach(m => {
-            const d = new Date(m.occurredAt);
-            const dayStr = d.toLocaleDateString([], { weekday: 'short' });
-            if (statsByDay[dayStr]) {
-                statsByDay[dayStr].mealCount += 1;
-            }
-        });
-
-        filteredSymptoms.forEach(s => {
-            const d = new Date(s.occurredAt);
-            const dayStr = d.toLocaleDateString([], { weekday: 'short' });
-            if (statsByDay[dayStr]) {
-                statsByDay[dayStr].symptomLoad += s.severity;
-            }
-        });
-
-        const labels: string[] = [];
-        const lineData: number[] = [];
-        const barData: number[] = [];
-
-        Object.entries(statsByDay).forEach(([day, stats], index) => {
-            // Only push a visible label every other day
-            labels.push(index % 2 === 0 ? stats.label : "");
-            // Let's plot Symptom Load on the line chart to show burden trends, or fallback to 0
-            lineData.push(stats.symptomLoad);
-            barData.push(stats.mealCount);
-        });
-
-        if (filteredMeals.length > 0 || filteredSymptoms.length > 0 || filteredMoods.length > 0) {
-            setChartData({
-                labels,
-                datasets: [{
-                    data: lineData,
-                    color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})` // Red for symptoms
-                }],
-                barData: [] // Bar chart removed
-            });
-        } else {
-            setChartData(null);
-        }
+        setWeekAtGlanceData(weekAtGlance);
 
         setTimelineData(sections);
         setLoading(false);
@@ -509,36 +481,43 @@ export default function TimelineScreen() {
                         ListHeaderComponent={
                             <View style={{ paddingBottom: 16 }}>
                                 <WeeklyReport symptoms={symptoms} insights={weeklyInsights} />
-                                {chartData && (
-                                    <View style={styles.chartCard}>
-                                        <Text style={styles.chartTitle}>Symptom Burden (5 Days)</Text>
-                                        <View>
-                                            <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 8, marginTop: 4 }}>Daily Symptom Load (Severity Sum)</Text>
-                                            {/* Foreground Line Chart for Symptom Trend */}
-                                            <LineChart
-                                                data={{
-                                                    labels: chartData.labels,
-                                                    datasets: chartData.datasets
-                                                }}
-                                                width={Dimensions.get("window").width - 64}
-                                                height={160}
-                                                yAxisLabel=""
-                                                yAxisSuffix=""
-                                                fromZero={false}
-                                                withInnerLines={true}
-                                                chartConfig={{
-                                                    backgroundColor: "#ffffff",
-                                                    backgroundGradientFrom: "#ffffff",
-                                                    backgroundGradientTo: "#ffffff",
-                                                    decimalPlaces: 1,
-                                                    color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`, // Red string for line
-                                                    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-                                                    style: { borderRadius: 16 },
-                                                    propsForDots: { r: "4", strokeWidth: "2", stroke: "#ef4444" } // Red dots
-                                                }}
-                                                bezier
-                                                style={{ marginVertical: 8, borderRadius: 16 }}
-                                            />
+                                {weekAtGlanceData.length > 0 && (
+                                    <View style={[styles.chartCard, { paddingVertical: 20 }]}>
+                                        <Text style={styles.chartTitle}>Week at a Glance</Text>
+                                        <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 16, marginTop: 4, alignSelf: 'flex-start' }}>
+                                            Symptom Burden (7 Days)
+                                        </Text>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignSelf: 'stretch', paddingHorizontal: 4 }}>
+                                            {weekAtGlanceData.map((day, idx) => {
+                                                let bgColor = '#f3f4f6'; // Minimal Grey
+                                                if (day.score === 0) bgColor = '#f3f4f6';
+                                                else if (day.score <= 3) bgColor = '#fde047'; // Yellow
+                                                else if (day.score <= 6) bgColor = '#fb923c'; // Orange
+                                                else bgColor = '#ef4444'; // Red
+                                                
+                                                return (
+                                                    <TouchableOpacity 
+                                                        key={idx} 
+                                                        style={{ alignItems: 'center' }}
+                                                        onPress={() => {
+                                                            if (day.events.length > 0) {
+                                                                setSelectedDayEvents({ dateStr: day.displayDate, events: day.events });
+                                                            } else {
+                                                                Alert.alert('No Logs', 'You had no activity logged on this day.');
+                                                            }
+                                                        }}
+                                                    >
+                                                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: bgColor, marginBottom: 8 }}>
+                                                            {day.events.length > 0 && (
+                                                                <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#3b82f6', borderRadius: 8, width: 16, height: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#fff' }}>
+                                                                    <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold' }}>{day.events.length}</Text>
+                                                                </View>
+                                                            )}
+                                                        </View>
+                                                        <Text style={{ fontSize: 13, color: '#4b5563', fontWeight: '500' }}>{day.label}</Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
                                         </View>
                                     </View>
                                 )}
@@ -609,6 +588,119 @@ export default function TimelineScreen() {
                         {isFabOpen ? <X color="#fff" size={32} /> : <Plus color="#fff" size={32} />}
                     </View>
                 </TouchableOpacity>
+
+                {/* Custom Daily Timeline Modal */}
+                <Modal
+                    visible={selectedDayEvents !== null}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setSelectedDayEvents(null)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <View style={{ backgroundColor: '#e0e7ff', padding: 8, borderRadius: 8, marginRight: 12 }}>
+                                        <Text style={{ fontSize: 20 }}>🗓️</Text>
+                                    </View>
+                                    <View>
+                                        <Text style={styles.modalTitle}>Daily Timeline</Text>
+                                        <Text style={styles.modalSubtitle}>{selectedDayEvents?.dateStr}</Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity onPress={() => setSelectedDayEvents(null)} style={{ padding: 4 }}>
+                                    <X color="#9ca3af" size={24} />
+                                </TouchableOpacity>
+                            </View>
+                            
+                            <SectionList
+                                style={{ maxHeight: Dimensions.get('window').height * 0.6 }}
+                                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+                                sections={[{ title: 'Events', data: selectedDayEvents?.events || [] }]}
+                                renderItem={({ item }) => {
+                                    const timeStr = new Date(item.data.occurredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                                    
+                                    if (item.type === 'symptom') {
+                                        const sym = item.data;
+                                        let severityColor = '#fbbf24';
+                                        if (sym.severity >= 4) severityColor = '#ef4444';
+                                        else if (sym.severity === 3) severityColor = '#f97316';
+                                        
+                                        return (
+                                            <View style={[styles.timelineRow, { marginBottom: 2 }]}>
+                                                <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
+                                                    <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
+                                                </View>
+                                                <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: severityColor, shadowOpacity: 0, elevation: 0 }]}>
+                                                    <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4}}>
+                                                        <View style={{flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingRight: 8}}>
+                                                            <Text style={{fontSize: 16, marginRight: 6}}>🤒</Text>
+                                                            <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]} numberOfLines={1}>{sym.symptomType}</Text>
+                                                        </View>
+                                                        <View style={{alignItems: 'flex-end'}}>
+                                                            <Text style={[styles.symptomSeverityText, { color: severityColor, marginBottom: 2, fontSize: 11 }]}>Severity: {sym.severity}/5</Text>
+                                                            <View style={styles.severityBarContainer}>
+                                                                {[1,2,3,4,5].map(level => (
+                                                                    <View key={level} style={[styles.severitySegment, { height: 3, width: 8, backgroundColor: level <= sym.severity ? severityColor : '#e5e7eb' }]} />
+                                                                ))}
+                                                            </View>
+                                                        </View>
+                                                    </View>
+                                                    {sym.notes ? <Text style={[styles.symptomNotes, { marginTop: 4 }]} numberOfLines={2}>{sym.notes}</Text> : null}
+                                                </View>
+                                            </View>
+                                        );
+                                    } else if (item.type === 'meal') {
+                                        const meal = item.data;
+                                        return (
+                                            <View style={[styles.timelineRow, { marginBottom: 2 }]}>
+                                                <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
+                                                    <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
+                                                </View>
+                                                <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#3b82f6', shadowOpacity: 0, elevation: 0 }]}>
+                                                    <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
+                                                        <Text style={{fontSize: 16, marginRight: 6}}>🍽️</Text>
+                                                        <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]} numberOfLines={1}>{meal.mealSlot}</Text>
+                                                    </View>
+                                                    <Text style={styles.symptomNotes} numberOfLines={2}>{formatMealSummary(meal)}</Text>
+                                                </View>
+                                            </View>
+                                        );
+                                    } else {
+                                        const mood = item.data;
+                                        let emoji = '😐';
+                                        if (mood.valence === 'positive') emoji = '🙂';
+                                        else if (mood.valence === 'negative') emoji = '🙁';
+                                        const borderColor = mood.valence === 'negative' ? '#fca5a5' : mood.valence === 'positive' ? '#86efac' : '#e5e7eb';
+                                        
+                                        return (
+                                            <View style={[styles.timelineRow, { marginBottom: 2 }]}>
+                                                <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
+                                                    <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
+                                                </View>
+                                                <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: borderColor, shadowOpacity: 0, elevation: 0 }]}>
+                                                    <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
+                                                        <Text style={{fontSize: 16, marginRight: 6}}>{emoji}</Text>
+                                                        <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]}>Mood</Text>
+                                                    </View>
+                                                    <Text style={styles.symptomNotes} numberOfLines={2}>{mood.valence} mood, {mood.energy} energy</Text>
+                                                </View>
+                                            </View>
+                                        );
+                                    }
+                                }}
+                                keyExtractor={(item) => item.data.id}
+                            />
+                            
+                            <TouchableOpacity 
+                                style={styles.modalCloseButton} 
+                                onPress={() => setSelectedDayEvents(null)}
+                            >
+                                <Text style={styles.modalCloseText}>Done</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
             </View>
         </SafeAreaView>
     );
@@ -905,4 +997,90 @@ const styles = StyleSheet.create({
         elevation: 2,
         overflow: 'hidden',
     },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(17, 24, 39, 0.6)', // dark transparent
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        width: '100%',
+        maxWidth: 400,
+        maxHeight: '80%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+        elevation: 10,
+        overflow: 'hidden',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: '#6b7280',
+        marginTop: 2,
+    },
+    modalBody: {
+        padding: 20,
+    },
+    modalSymptomRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+    },
+    symptomTypeName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1f2937',
+        textTransform: 'capitalize',
+        marginBottom: 4,
+    },
+    symptomNotes: {
+        fontSize: 13,
+        color: '#6b7280',
+        fontStyle: 'italic',
+    },
+    symptomSeverityText: {
+        fontSize: 12,
+        fontWeight: '700',
+        marginBottom: 6,
+    },
+    severityBarContainer: {
+        flexDirection: 'row',
+        gap: 2,
+    },
+    severitySegment: {
+        width: 12,
+        height: 4,
+        borderRadius: 2,
+    },
+    modalCloseButton: {
+        backgroundColor: '#f3f4f6',
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalCloseText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#374151',
+    }
 });

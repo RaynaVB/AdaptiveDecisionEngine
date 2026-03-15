@@ -11,6 +11,11 @@ export interface Insight {
     confidence: 'low' | 'medium' | 'high';
     relatedPatternIds: string[];
     createdAt: string;
+    actionableInsight?: {
+        label: string;
+        experimentIdToStart: string;
+        actionType: 'start_experiment' | 'log_water' | 'review_sleep';
+    };
 }
 
 export const generateInsightsFromPatterns = (patterns: Pattern[]): Insight[] => {
@@ -26,6 +31,7 @@ export const generateInsightsFromPatterns = (patterns: Pattern[]): Insight[] => 
                 description: p.description,
                 confidence: p.confidence,
                 relatedPatternIds: [p.id],
+                actionableInsight: p.actionableInsight,
                 createdAt: new Date().toISOString()
             });
 
@@ -73,6 +79,7 @@ export const generateInsightsFromPatterns = (patterns: Pattern[]): Insight[] => 
                 description: p.description,
                 confidence: p.confidence,
                 relatedPatternIds: [p.id],
+                actionableInsight: p.actionableInsight,
                 createdAt: new Date().toISOString()
             });
         }

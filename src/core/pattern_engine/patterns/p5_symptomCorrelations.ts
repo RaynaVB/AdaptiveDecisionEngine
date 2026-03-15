@@ -64,6 +64,11 @@ export const analyzeSymptomCorrelations = (context: PatternContext): Pattern[] =
                             mealsCorrelatedCount: topTagEntry[1],
                             tag: topTagEntry[0]
                         },
+                        actionableInsight: {
+                            label: `Exclude ${topTagEntry[0]}`,
+                            experimentIdToStart: `exclude_${topTagEntry[0].replace(/\s+/g, '_').toLowerCase()}`,
+                            actionType: 'start_experiment'
+                        },
                         windowStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
                         windowEnd: new Date().toISOString(),
                         createdAt: new Date().toISOString()

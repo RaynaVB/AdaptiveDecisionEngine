@@ -25,6 +25,11 @@ export interface Pattern {
     windowStart: string; // ISO
     windowEnd: string; // ISO
     createdAt: string; // ISO
+    actionableInsight?: {
+        label: string;
+        experimentIdToStart: string;
+        actionType: 'start_experiment' | 'log_water' | 'review_sleep';
+    };
 }
 
 export interface PatternContext {

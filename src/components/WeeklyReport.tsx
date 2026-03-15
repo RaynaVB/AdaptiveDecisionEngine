@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Insight } from '../core/insight_engine/insightEngine';
 import { SymptomEvent } from '../models/Symptom';
 import { Sparkles, TrendingDown, Target } from 'lucide-react-native';
@@ -30,12 +30,13 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ symptoms, insights }
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Top Symptoms This Week</Text>
                 {topSymptoms.length > 0 ? (
-                    topSymptoms.map(([sym, count]) => (
-                        <View key={sym} style={styles.row}>
-                            <Text style={styles.rowText}>{sym}</Text>
-                            <Text style={styles.badge}>{count} occurrences</Text>
-                        </View>
-                    ))
+                    <View style={styles.tagsContainer}>
+                        {topSymptoms.map(([sym, count]) => (
+                            <View key={sym} style={styles.symptomTag}>
+                                <Text style={styles.symptomTagText}>{sym} ({count})</Text>
+                            </View>
+                        ))}
+                    </View>
                 ) : (
                     <Text style={styles.emptyText}>No symptoms logged this week.</Text>
                 )}
@@ -55,10 +56,28 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ symptoms, insights }
 
             <View style={[styles.section, { borderBottomWidth: 0 }]}>
                 <Text style={styles.sectionTitle}>Suggested Focus</Text>
-                <View style={styles.insightBoxBlue}>
-                    <TrendingDown color="#2563eb" size={16} />
-                    <Text style={styles.insightTextBlue}>Consider checking the HealthLab for an adaptive experiment to target your active symptoms.</Text>
-                </View>
+                {insights.filter(i => i.actionableInsight).length > 0 ? (
+                    insights.filter(i => i.actionableInsight).map((actionInsight, index, arr) => (
+                        <View key={actionInsight.id} style={[styles.insightBoxBlue, index < arr.length - 1 && { marginBottom: 12 }]}>
+                            <TrendingDown color="#2563eb" size={16} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.insightTextBlue}>{actionInsight.description}</Text>
+                                <TouchableOpacity 
+                                    style={{ marginTop: 12, backgroundColor: '#2563eb', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6, alignSelf: 'flex-start' }}
+                                    // In a real app we would navigate to HealthLab with params, but for now we just show an alert
+                                    onPress={() => alert(`Starting experiment: ${actionInsight.actionableInsight?.label}`)}
+                                >
+                                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{actionInsight.actionableInsight?.label}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ))
+                ) : (
+                    <View style={styles.insightBoxBlue}>
+                        <TrendingDown color="#2563eb" size={16} />
+                        <Text style={styles.insightTextBlue}>Consider checking the HealthLab for an adaptive experiment to target your active symptoms.</Text>
+                    </View>
+                )}
             </View>
         </View>
     );
@@ -68,8 +87,8 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: '#ffffff',
         borderRadius: 16,
-        padding: 20,
-        marginVertical: 16,
+        padding: 16,
+        marginVertical: 12,
         shadowColor: '#4f46e5',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
@@ -81,7 +100,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
         gap: 12,
     },
     title: {
@@ -91,10 +110,10 @@ const styles = StyleSheet.create({
         letterSpacing: -0.5,
     },
     section: {
-        marginBottom: 20,
+        marginBottom: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#f3f4f6',
-        paddingBottom: 16,
+        paddingBottom: 12,
     },
     sectionTitle: {
         fontSize: 14,
@@ -104,29 +123,22 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
-    row: {
+    tagsContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#f8fafc',
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 8,
+        flexWrap: 'wrap',
+        gap: 8,
     },
-    rowText: {
-        fontSize: 16,
+    symptomTag: {
+        backgroundColor: '#e2e8f0',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    symptomTagText: {
+        fontSize: 14,
         fontWeight: '600',
         color: '#1e293b',
         textTransform: 'capitalize',
-    },
-    badge: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#475569',
-        backgroundColor: '#e2e8f0',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
     },
     insightBox: {
         flexDirection: 'row',

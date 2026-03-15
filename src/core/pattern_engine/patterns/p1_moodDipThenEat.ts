@@ -49,6 +49,11 @@ export const analyzeMoodDipThenEat = (context: PatternContext): Pattern[] => {
                 window_minutes: 60,
                 triggers
             },
+            actionableInsight: {
+                label: 'Try 3-Meal Structure',
+                experimentIdToStart: '3_meal_structure',
+                actionType: 'start_experiment'
+            },
             segmentation: calculateSegmentation(triggeringMeals),
             windowStart: sortedMoods[0]?.occurredAt || new Date().toISOString(),
             windowEnd: sortedMoods[sortedMoods.length - 1]?.occurredAt || new Date().toISOString(),
