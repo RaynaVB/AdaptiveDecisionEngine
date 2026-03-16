@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, getDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 import { MealEvent, MoodEvent } from '../models/types';
 import { SymptomEvent } from '../models/Symptom';
@@ -24,6 +24,30 @@ export const StorageService = {
         return collection(this.getUserDocRef(), 'symptoms');
     },
 
+    getAuditLogsCollectionRef() {
+        return collection(this.getUserDocRef(), 'audit_logs');
+    },
+
+    /**
+     * HIPAA technical safeguard: Audit Logging.
+     * Records access and modifications to PHI.
+     */
+    async logAuditAction(action: string, metadata: any = {}) {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            await addDoc(this.getAuditLogsCollectionRef(), {
+                action,
+                userId: user.uid,
+                timestamp: Timestamp.now(),
+                metadata: this._sanitize(metadata)
+            });
+        } catch (e) {
+            console.error('Audit log failed', e);
+        }
+    },
+
     // MEALS
     // Internal helper to strip undefined values which Firebase rejects
     _sanitize(data: any) {
@@ -39,6 +63,7 @@ export const StorageService = {
     async getMealEvents(): Promise<MealEvent[]> {
         try {
             if (!auth.currentUser) return [];
+            await this.logAuditAction('VIEW_MEALS', { count_requested: 'all' });
             const q = query(this.getMealsCollectionRef(), orderBy('occurredAt', 'desc'));
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(doc => {
@@ -60,6 +85,7 @@ export const StorageService = {
     async addMealEvent(event: MealEvent): Promise<void> {
         if (!auth.currentUser) return;
         try {
+            await this.logAuditAction('ADD_MEAL', { mealId: event.id });
             const mealDocRef = doc(this.getMealsCollectionRef(), event.id);
             await setDoc(mealDocRef, this._sanitize(event));
         } catch (e) {
@@ -138,6 +164,7 @@ export const StorageService = {
     async addSymptomEvent(event: SymptomEvent): Promise<void> {
         if (!auth.currentUser) return;
         try {
+            await this.logAuditAction('ADD_SYMPTOM', { symptomId: event.id, type: event.symptomType });
             const docRef = doc(this.getSymptomsCollectionRef(), event.id);
             await setDoc(docRef, this._sanitize(event));
         } catch (e) {

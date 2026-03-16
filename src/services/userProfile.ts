@@ -1,11 +1,12 @@
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface UserProfile {
     uid: string;
     hasCompletedOnboarding: boolean;
     role?: 'admin' | 'internal' | 'user';
-    name?: string;
+    // PII like 'name' and 'email' are stored locally on device only
     dietaryRestrictions?: string;
     foodsDisliked?: string;
     primaryGoal?: string;
@@ -64,5 +65,36 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
     } catch (error) {
         console.error("Error updating user profile:", error);
         throw error;
+    }
+}
+
+/**
+ * HIPAA Technical Safeguard: Pseudonymization.
+ * Stores PII locally on the device so it never touches the DB.
+ */
+export async function saveLocalPII(uid: string, pii: { name?: string, email?: string }): Promise<void> {
+    try {
+        const key = `pii_${uid}`;
+        const existingRaw = await AsyncStorage.getItem(key);
+        const existing = existingRaw ? JSON.parse(existingRaw) : {};
+        
+        const updated = { ...existing, ...pii };
+        await AsyncStorage.setItem(key, JSON.stringify(updated));
+    } catch (error) {
+        console.error("Error saving local PII:", error);
+    }
+}
+
+/**
+ * Retrieves PII from local device storage.
+ */
+export async function getLocalPII(uid: string): Promise<{ name?: string, email?: string }> {
+    try {
+        const key = `pii_${uid}`;
+        const raw = await AsyncStorage.getItem(key);
+        return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+        console.error("Error fetching local PII:", error);
+        return {};
     }
 }

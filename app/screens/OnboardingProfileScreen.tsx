@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
-import { updateUserProfile } from '../../src/services/userProfile';
+import { updateUserProfile, saveLocalPII } from '../../src/services/userProfile';
 import { auth } from '../../src/services/firebaseConfig';
 
 type OnboardingProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OnboardingProfile'>;
@@ -53,9 +53,10 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
 
         setSaving(true);
         try {
-            const profileUpdates: Partial<{ name: string, dietaryRestrictions: string, foodsDisliked: string, primaryGoal: string }> = {
-                name: name.trim()
-            };
+            // Store name locally only (Pseudonymization)
+            await saveLocalPII(user.uid, { name: name.trim() });
+
+            const profileUpdates: Partial<any> = {};
 
             if (finalRestrictions) profileUpdates.dietaryRestrictions = finalRestrictions;
             if (foodsDisliked.trim()) profileUpdates.foodsDisliked = foodsDisliked.trim();
