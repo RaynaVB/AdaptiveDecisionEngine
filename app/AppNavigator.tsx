@@ -22,6 +22,7 @@ import ExperimentResultScreen from './screens/ExperimentResultScreen';
 import OnboardingWelcomeScreen from './screens/OnboardingWelcomeScreen';
 import OnboardingProfileScreen from './screens/OnboardingProfileScreen';
 import OnboardingCompleteScreen from './screens/OnboardingCompleteScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
 import { auth } from '../src/services/firebaseConfig';
@@ -188,6 +189,7 @@ export default function AppNavigator() {
                 <Stack.Group screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="Login" component={LoginScreen} />
                     <Stack.Screen name="SignUp" component={SignUpScreen} />
+                    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
                 </Stack.Group>
             )}
         </Stack.Navigator>
