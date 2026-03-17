@@ -1,0 +1,90 @@
+ingredient_id,canonical_name,display_name,category,subcategory,parent_id,hidden_common,packaged_additive,active,review_status
+ing_onion,onion,Onion,vegetables,alliums,,true,false,true,approved
+ing_garlic,garlic,Garlic,vegetables,alliums,,true,false,true,approved
+ing_green_onion,green onion,Green Onion,vegetables,alliums,,false,false,true,approved
+ing_tomato,tomato,Tomato,vegetables,nightshades,,true,false,true,approved
+ing_potato,potato,Potato,vegetables,starchy_vegetables,,false,false,true,approved
+ing_spinach,spinach,Spinach,vegetables,leafy_greens,,false,false,true,approved
+ing_bell_pepper,bell pepper,Bell Pepper,vegetables,nightshades,,false,false,true,approved
+ing_chili_pepper,chili pepper,Chili Pepper,vegetables,nightshades,,true,false,true,approved
+ing_broccoli,broccoli,Broccoli,vegetables,cruciferous,,false,false,true,approved
+ing_carrot,carrot,Carrot,vegetables,root_vegetables,,false,false,true,approved
+ing_cucumber,cucumber,Cucumber,vegetables,fresh_vegetables,,false,false,true,approved
+ing_mushroom,mushroom,Mushroom,vegetables,fungi,,false,false,true,approved
+ing_chicken,chicken,Chicken,proteins,poultry,,false,false,true,approved
+ing_turkey,turkey,Turkey,proteins,poultry,,false,false,true,approved
+ing_beef,beef,Beef,proteins,red_meat,,false,false,true,approved
+ing_pork,pork,Pork,proteins,red_meat,,false,false,true,approved
+ing_salmon,salmon,Salmon,proteins,fish,,false,false,true,approved
+ing_shrimp,shrimp,Shrimp,proteins,shellfish,,false,false,true,approved
+ing_egg,egg,Egg,proteins,eggs,,true,false,true,approved
+ing_tofu,tofu,Tofu,proteins,soy_proteins,,false,false,true,approved
+ing_milk,milk,Milk,dairy,milk_products,,true,false,true,approved
+ing_cream,cream,Cream,dairy,milk_products,,true,false,true,approved
+ing_yogurt,yogurt,Yogurt,dairy,cultured_dairy,,true,false,true,approved
+ing_butter,butter,Butter,dairy,milk_products,,true,false,true,approved
+ing_cheese,cheese,Cheese,dairy,cheese,,true,false,true,approved
+ing_paneer,paneer,Paneer,dairy,cheese,,false,false,true,approved
+ing_rice,rice,Rice,grains,rice,,false,false,true,approved
+ing_wheat,wheat,Wheat,grains,wheat,,true,false,true,approved
+ing_oats,oats,Oats,grains,oats,,false,false,true,approved
+ing_corn,corn,Corn,grains,corn,,false,false,true,approved
+ing_quinoa,quinoa,Quinoa,grains,pseudograins,,false,false,true,approved
+ing_wheat_flour,wheat flour,Wheat Flour,flours_and_starches,grain_flours,ing_wheat,true,false,true,approved
+ing_almond_flour,almond flour,Almond Flour,flours_and_starches,nut_flours,,false,false,true,approved
+ing_cornstarch,cornstarch,Cornstarch,flours_and_starches,starches,ing_corn,true,false,true,approved
+ing_chickpeas,chickpeas,Chickpeas,legumes,beans,,false,false,true,approved
+ing_lentils,lentils,Lentils,legumes,beans,,false,false,true,approved
+ing_black_beans,black beans,Black Beans,legumes,beans,,false,false,true,approved
+ing_kidney_beans,kidney beans,Kidney Beans,legumes,beans,,false,false,true,approved
+ing_soybeans,soybeans,Soybeans,legumes,soy,,false,false,true,approved
+ing_peanuts,peanuts,Peanuts,nuts_and_seeds,peanuts,,false,false,true,approved
+ing_almonds,almonds,Almonds,nuts_and_seeds,tree_nuts,,false,false,true,approved
+ing_cashews,cashews,Cashews,nuts_and_seeds,tree_nuts,,false,false,true,approved
+ing_sesame_seeds,sesame seeds,Sesame Seeds,nuts_and_seeds,seeds,,true,false,true,approved
+ing_cilantro,cilantro,Cilantro,herbs,fresh_herbs,,false,false,true,approved
+ing_basil,basil,Basil,herbs,fresh_herbs,,false,false,true,approved
+ing_mint,mint,Mint,herbs,fresh_herbs,,false,false,true,approved
+ing_cumin,cumin,Cumin,spices,ground_spices,,true,false,true,approved
+ing_turmeric,turmeric,Turmeric,spices,ground_spices,,true,false,true,approved
+ing_paprika,paprika,Paprika,spices,ground_spices,,true,false,true,approved
+ing_black_pepper,black pepper,Black Pepper,spices,ground_spices,,true,false,true,approved
+ing_ginger,ginger,Ginger,spices,root_spices,,true,false,true,approved
+ing_garam_masala,garam masala,Garam Masala,spices,spice_blends,,true,false,true,approved
+ing_chili_powder,chili powder,Chili Powder,spices,spice_blends,,true,false,true,approved
+ing_olive_oil,olive oil,Olive Oil,oils_and_fats,plant_oils,,true,false,true,approved
+ing_vegetable_oil,vegetable oil,Vegetable Oil,oils_and_fats,plant_oils,,true,false,true,approved
+ing_canola_oil,canola oil,Canola Oil,oils_and_fats,plant_oils,,true,false,true,approved
+ing_sesame_oil,sesame oil,Sesame Oil,oils_and_fats,plant_oils,,true,false,true,approved
+ing_soy_sauce,soy sauce,Soy Sauce,sauces_and_condiments,fermented_sauces,,true,false,true,approved
+ing_tomato_sauce,tomato sauce,Tomato Sauce,sauces_and_condiments,sauces,ing_tomato,true,false,true,approved
+ing_hot_sauce,hot sauce,Hot Sauce,sauces_and_condiments,sauces,,true,false,true,approved
+ing_mustard,mustard,Mustard,sauces_and_condiments,condiments,,true,false,true,approved
+ing_ketchup,ketchup,Ketchup,sauces_and_condiments,condiments,,true,false,true,approved
+ing_mayonnaise,mayonnaise,Mayonnaise,sauces_and_condiments,condiments,,true,false,true,approved
+ing_vinegar,vinegar,Vinegar,sauces_and_condiments,acidic_bases,,true,false,true,approved
+ing_miso,miso,Miso,sauces_and_condiments,fermented_sauces,,true,false,true,approved
+ing_sugar,sugar,Sugar,sweeteners,refined_sugars,,true,false,true,approved
+ing_honey,honey,Honey,sweeteners,natural_sweeteners,,true,false,true,approved
+ing_maple_syrup,maple syrup,Maple Syrup,sweeteners,natural_sweeteners,,true,false,true,approved
+ing_artificial_sweetener,artificial sweetener,Artificial Sweetener,sweeteners,non_nutritive,,true,true,true,approved
+ing_banana,banana,Banana,fruits,tropical_fruits,,false,false,true,approved
+ing_apple,apple,Apple,fruits,temperate_fruits,,false,false,true,approved
+ing_berries,berries,Berries,fruits,berries,,false,false,true,approved
+ing_mango,mango,Mango,fruits,tropical_fruits,,false,false,true,approved
+ing_avocado,avocado,Avocado,fruits,high_fat_fruits,,false,false,true,approved
+ing_lemon,lemon,Lemon,fruits,citrus,,true,false,true,approved
+ing_lime,lime,Lime,fruits,citrus,,true,false,true,approved
+ing_coconut,coconut,Coconut,fruits,tropical_fruits,,false,false,true,approved
+ing_coffee,coffee,Coffee,beverages_and_bases,caffeinated_bases,,true,false,true,approved
+ing_tea,tea,Tea,beverages_and_bases,caffeinated_bases,,true,false,true,approved
+ing_broth,broth,Broth,beverages_and_bases,stocks_broths,,true,false,true,approved
+ing_stock,stock,Stock,beverages_and_bases,stocks_broths,,true,false,true,approved
+ing_coconut_milk,coconut milk,Coconut Milk,beverages_and_bases,plant_bases,ing_coconut,true,false,true,approved
+ing_almond_milk,almond milk,Almond Milk,beverages_and_bases,plant_bases,ing_almonds,true,false,true,approved
+ing_msg,msg,MSG,additives_and_packaged,flavor_enhancers,,true,true,true,approved
+ing_citric_acid,citric acid,Citric Acid,additives_and_packaged,acids,,true,true,true,approved
+ing_lecithin,lecithin,Lecithin,additives_and_packaged,emulsifiers,,true,true,true,approved
+ing_xanthan_gum,xanthan gum,Xanthan Gum,additives_and_packaged,stabilizers,,true,true,true,approved
+ing_artificial_flavor,artificial flavor,Artificial Flavor,additives_and_packaged,flavoring_agents,,true,true,true,approved
+ing_sodium_benzoate,sodium benzoate,Sodium Benzoate,additives_and_packaged,preservatives,,true,true,true,approved

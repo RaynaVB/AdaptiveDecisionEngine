@@ -1,0 +1,28 @@
+{
+  "entityType": "ingredients",
+  "jobId": "job_ingredients_seed_v1",
+  "source": "manual_seed_json",
+  "rows": [
+    {
+      "ingredient_id": "ing_onion",
+      "canonical_name": "onion",
+      "display_name": "Onion",
+      "category": "vegetables",
+      "subcategory": "alliums",
+      "forms": ["raw", "cooked", "powder"],
+      "flags": {
+        "allergens": [],
+        "diet": ["vegan", "vegetarian"],
+        "symptom": ["fodmap_high"],
+        "traits": ["hidden_common"]
+      },
+      "source_summary": {
+        "from_usda": true,
+        "from_recipe": true,
+        "from_off": false
+      },
+      "search_terms": ["onion", "red onion", "yellow onion"],
+      "status": "active"
+    }
+  ]
+}

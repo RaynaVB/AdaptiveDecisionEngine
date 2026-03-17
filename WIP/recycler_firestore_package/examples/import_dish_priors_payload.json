@@ -1,0 +1,17 @@
+{
+  "entityType": "dish_priors",
+  "jobId": "job_dish_priors_seed_v1",
+  "source": "manual_seed_json",
+  "rows": [
+    {
+      "dish_id": "dish_butter_chicken",
+      "dish_name": "butter chicken",
+      "ingredient_id": "ing_cream",
+      "prevalence_score": 0.78,
+      "hidden_likelihood": 0.95,
+      "visibility_score": 0.15,
+      "cuisine": "indian",
+      "evidence_source": ["recipe_corpus", "manual_review"]
+    }
+  ]
+}

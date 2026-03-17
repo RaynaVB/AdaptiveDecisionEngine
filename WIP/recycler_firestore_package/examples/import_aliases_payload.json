@@ -1,0 +1,16 @@
+{
+  "entityType": "aliases",
+  "jobId": "job_aliases_seed_v1",
+  "source": "manual_seed_json",
+  "rows": [
+    {
+      "alias": "garbanzo beans",
+      "normalized_alias": "garbanzo beans",
+      "ingredient_id": "ing_chickpeas",
+      "alias_type": "exact",
+      "confidence": 0.99,
+      "source": "manual",
+      "status": "approved"
+    }
+  ]
+}

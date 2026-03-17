@@ -1,0 +1,33 @@
+alias,normalized_alias,ingredient_id,alias_type,source_system,confidence,active
+red onion,red onion,ing_onion,synonym,manual,0.98,true
+yellow onion,yellow onion,ing_onion,synonym,manual,0.98,true
+white onion,white onion,ing_onion,synonym,manual,0.98,true
+onion powder,onion powder,ing_onion,recipe_phrase,manual,0.85,true
+garlic cloves,garlic cloves,ing_garlic,recipe_phrase,manual,0.97,true
+minced garlic,minced garlic,ing_garlic,recipe_phrase,manual,0.96,true
+scallions,scallions,ing_green_onion,synonym,manual,0.98,true
+spring onions,spring onions,ing_green_onion,synonym,manual,0.96,true
+roma tomato,roma tomato,ing_tomato,synonym,manual,0.95,true
+vine tomato,vine tomato,ing_tomato,synonym,manual,0.95,true
+cherry tomatoes,cherry tomatoes,ing_tomato,synonym,manual,0.94,true
+diced tomatoes,diced tomatoes,ing_tomato,recipe_phrase,manual,0.90,true
+baby spinach,baby spinach,ing_spinach,synonym,manual,0.95,true
+capsicum,capsicum,ing_bell_pepper,synonym,manual,0.97,true
+jalapeno,jalapeno,ing_chili_pepper,synonym,manual,0.92,true
+boneless skinless chicken breast,boneless skinless chicken breast,ing_chicken,recipe_phrase,manual,0.97,true
+chicken thighs,chicken thighs,ing_chicken,recipe_phrase,manual,0.95,true
+ground beef,ground beef,ing_beef,recipe_phrase,manual,0.95,true
+whole milk,whole milk,ing_milk,synonym,manual,0.98,true
+heavy cream,heavy cream,ing_cream,synonym,manual,0.98,true
+greek yogurt,greek yogurt,ing_yogurt,synonym,manual,0.95,true
+clarified butter,clarified butter,ing_butter,synonym,manual,0.70,true
+mozzarella,mozzarella,ing_cheese,synonym,manual,0.87,true
+basmati rice,basmati rice,ing_rice,synonym,manual,0.97,true
+all purpose flour,all purpose flour,ing_wheat_flour,synonym,manual,0.98,true
+garbanzo beans,garbanzo beans,ing_chickpeas,synonym,manual,0.99,true
+coriander leaves,coriander leaves,ing_cilantro,synonym,manual,0.99,true
+extra virgin olive oil,extra virgin olive oil,ing_olive_oil,synonym,manual,0.98,true
+dark soy sauce,dark soy sauce,ing_soy_sauce,synonym,manual,0.95,true
+monosodium glutamate,monosodium glutamate,ing_msg,synonym,manual,0.99,true
+soy lecithin,soy lecithin,ing_lecithin,packaged_label,manual,0.96,true
+natural flavor,natural flavor,ing_artificial_flavor,packaged_label,manual,0.55,true
