@@ -72,6 +72,40 @@ export class IngredientService {
   }
 
   /**
+   * Resolve multiple raw terms to canonical ingredients
+   */
+  public resolveIngredients(terms: string[]): Ingredient[] {
+    const resolved: Ingredient[] = [];
+    const seen = new Set<string>();
+
+    terms.forEach(term => {
+      const ing = this.resolveIngredient(term);
+      if (ing && !seen.has(ing.ingredient_id)) {
+        resolved.push(ing);
+        seen.add(ing.ingredient_id);
+      }
+    });
+
+    return resolved;
+  }
+
+  /**
+   * Resolve a dish name to a canonical dish ID if possible
+   */
+  public resolveDish(dishName: string): { dishId: string; dishLabel: string } | null {
+    const normalized = this.normalize(dishName);
+    
+    // Check priors for matching dish names
+    const match = this.data.dishPriors.find(p => this.normalize(p.dish_name).includes(normalized) || normalized.includes(this.normalize(p.dish_name)));
+    
+    if (match) {
+      return { dishId: match.dish_id, dishLabel: match.dish_name };
+    }
+    
+    return null;
+  }
+
+  /**
    * Get all ingredients for a given dish ID
    */
   public getIngredientsForDish(dishId: string): Ingredient[] {
@@ -89,15 +123,27 @@ export class IngredientService {
   }
 
   /**
-   * Search ingredients by name
+   * Search ingredients by name with simple local caching
    */
+  private searchCache: Map<string, Ingredient[]> = new Map();
+
   public searchIngredients(query: string): Ingredient[] {
     const normalizedQuery = this.normalize(query);
-    return this.data.ingredients.filter((ing: Ingredient) => 
+    if (!normalizedQuery) return [];
+    
+    if (this.searchCache.has(normalizedQuery)) {
+      return this.searchCache.get(normalizedQuery)!;
+    }
+
+    const results = this.data.ingredients.filter((ing: Ingredient) => 
       this.normalize(ing.canonical_name).includes(normalizedQuery) ||
       this.normalize(ing.display_name).includes(normalizedQuery)
     );
+    
+    this.searchCache.set(normalizedQuery, results);
+    return results;
   }
 }
+
 
 export const ingredientService = IngredientService.getInstance();

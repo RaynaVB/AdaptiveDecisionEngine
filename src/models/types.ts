@@ -23,6 +23,23 @@ export type MealTypeTag =
 
 export type MealReason = 'hungry' | 'meal_time' | 'social' | 'late_night' | 'boredom' | 'craving';
 
+export type MealIngredientStatus = 'suggested' | 'confirmed' | 'removed' | 'added';
+export type MealIngredientSource = 'visible' | 'inferred_dish_prior' | 'alias_mapped' | 'user_added';
+
+export interface ConfirmedIngredient {
+  ingredientId: string;
+  canonicalName: string;
+  confirmedStatus: MealIngredientStatus;
+  source: MealIngredientSource;
+  confidence: number;
+}
+
+export interface MealQuestion {
+  questionId: string;
+  text: string;
+  answer: string;
+}
+
 export interface MealEvent {
   id: string; // uuid
   createdAt: string; // ISO
@@ -39,7 +56,14 @@ export interface MealEvent {
   textDescription?: string;
   portionSize?: 'small' | 'medium' | 'large';
   notes?: string;
+
+  // New fields for canonical capture
+  dishId?: string;
+  dishLabel?: string;
+  confirmedIngredients?: ConfirmedIngredient[];
+  questions?: MealQuestion[];
 }
+
 
 export type MoodValence = 'positive' | 'neutral' | 'negative';
 export type MoodEnergy = 'high' | 'ok' | 'low';

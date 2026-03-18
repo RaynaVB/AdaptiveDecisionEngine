@@ -11,9 +11,15 @@ const VALID_TAGS: MealTypeTag[] = [
 ];
 
 export interface VisionAnalysisResult {
+    isFood: boolean;
     description: string;
+    dishName: string;
+    visibleComponents: string[];
+    suggestedIngredients: string[];
     tags: MealTypeTag[];
+    potentialQuestions: Array<{ id: string; text: string }>;
 }
+
 
 /**
  * Uploads a local image file to Firebase Storage.
@@ -52,10 +58,20 @@ export async function analyzeFoodImage(base64Image: string, mimeType: string = '
         });
 
         const prompt = `
-            Analyze this food image. Provide a short, plain-text description (e.g., "Grilled salmon with asparagus") 
-            and select all relevant tags that roughly apply from this exact list: 
-            [${VALID_TAGS.join(', ')}]. 
-            Return a JSON object with two fields: "description" (string) and "tags" (array of strings).
+            Analyze this food image for a medical-grade symptom tracking app. It is critical to identify ALL possible ingredients that could trigger symptoms (e.g., dairy, gluten, specific spices, oils, legumes).
+            
+            Provide the following structured data:
+            1. isFood: boolean, true if the image is primarily of food.
+            2. description: A brief summary of the meal.
+            3. dishName: The specific name of the dish.
+            4. visibleComponents: A comprehensive list of individual ingredients clearly seen in the image. Be specific (e.g., "whole wheat bread", "cheddar cheese", "romaine lettuce").
+            5. suggestedIngredients: A list of ingredients that are almost certainly present in this dish but not explicitly visible (e.g., "butter", "cooking oil", "salt", "garlic", "onion", "wheat flour" in a breaded item). Be exhaustive.
+            6. tags: Select relevant tags from this exact list: [${VALID_TAGS.join(', ')}].
+            7. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
+               Format each question as an object: {"id": "unique_id", "text": "Question text?"}.
+               IMPORTANT: Each question MUST be a Yes/No question. Use specific ingredient checks like "Was there any butter?" or "Does this contain dairy?" NOT "Was this A or B?".
+
+            Return ONLY a strict JSON object. If isFood is false, the other fields can be empty/null, but still return the object.
         `;
 
         const imagePart: Part = {
@@ -74,10 +90,28 @@ export async function analyzeFoodImage(base64Image: string, mimeType: string = '
         // Filter out any tags that aren't in our valid list just to be safe
         const safeTags = (data.tags || []).filter((t: any) => VALID_TAGS.includes(t as MealTypeTag)) as MealTypeTag[];
 
+        // Fallback for questions if the LLM returns strings instead of objects
+        const rawQuestions = data.potentialQuestions || [];
+        const potentialQuestions = rawQuestions.map((q: any, index: number) => {
+            if (typeof q === 'string') {
+                return { id: `q_${index}`, text: q };
+            }
+            if (typeof q === 'object' && q.text) {
+                return { id: q.id || `q_${index}`, text: q.text };
+            }
+            return null;
+        }).filter(Boolean) as Array<{ id: string; text: string }>;
+
         return {
+            isFood: !!data.isFood,
             description: data.description || '',
-            tags: safeTags
+            dishName: data.dishName || '',
+            visibleComponents: data.visibleComponents || [],
+            suggestedIngredients: data.suggestedIngredients || [],
+            tags: safeTags,
+            potentialQuestions
         };
+
 
     } catch (error) {
         console.error("Error analyzing image with Vertex AI:", error);

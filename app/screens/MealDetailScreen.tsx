@@ -3,20 +3,18 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
-import { MealEvent, MealSlot, MealTypeTag, MealReason } from '../../src/models/types';
+import { MealEvent, MealSlot, MealReason, ConfirmedIngredient, MealQuestion, MealIngredientStatus } from '../../src/models/types';
 import { StorageService } from '../../src/services/storage';
-import { Trash2 } from 'lucide-react-native';
+import { Trash2, X, Check, Plus, Search, Camera } from 'lucide-react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Modal } from 'react-native';
+import { ingredientService } from '../../src/services/IngredientService';
+import { Ingredient } from '../../src/models/Ingredient';
 
 type MealDetailScreenRouteProp = RouteProp<RootStackParamList, 'MealDetail'>;
 type MealDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MealDetail'>;
 
 const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
-const BASE_LOAD_TAGS: MealTypeTag[] = ['light', 'regular', 'heavy'];
-const OTHER_TAGS: MealTypeTag[] = [
-    'sweet', 'savory', 'homemade', 'restaurant', 'packaged',
-    'high_sugar', 'fried_greasy', 'high_protein', 'high_fiber', 'caffeinated'
-];
 
 export default function MealDetailScreen() {
     const navigation = useNavigation<MealDetailScreenNavigationProp>();
@@ -30,11 +28,28 @@ export default function MealDetailScreen() {
     const [textDescription, setTextDescription] = useState('');
     const [selectedSlot, setSelectedSlot] = useState<MealSlot>('lunch');
     const [selectedReason, setSelectedReason] = useState<MealReason | undefined>(undefined);
-    const [selectedTags, setSelectedTags] = useState<MealTypeTag[]>([]);
+    
+    // Canonical data
+    const [confirmedDish, setConfirmedDish] = useState<{ id?: string; label: string } | null>(null);
+    const [ingredients, setIngredients] = useState<ConfirmedIngredient[]>([]);
+    const [analysisQuestions, setAnalysisQuestions] = useState<MealQuestion[]>([]);
 
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
+
+    const [showSearchModal, setShowSearchModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Ingredient[]>([]);
+
+    useEffect(() => {
+        if (searchQuery.length > 1) {
+            const results = ingredientService.searchIngredients(searchQuery);
+            setSearchResults(results);
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchQuery]);
 
     const toggleDatePicker = (show: boolean) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -72,8 +87,12 @@ export default function MealDetailScreen() {
             setTextDescription(found.textDescription || '');
             setSelectedSlot(found.mealSlot);
             setSelectedReason(found.mealReason);
-            setSelectedTags(found.mealTypeTags);
             setOccurredAt(new Date(found.occurredAt));
+            
+            // Populate canonical data
+            setConfirmedDish(found.dishId || found.dishLabel ? { id: found.dishId, label: found.dishLabel || '' } : null);
+            setIngredients(found.confirmedIngredients || []);
+            setAnalysisQuestions(found.questions || []);
         } else {
             Alert.alert('Error', 'Meal not found');
             navigation.goBack();
@@ -81,15 +100,35 @@ export default function MealDetailScreen() {
         setLoading(false);
     };
 
-    const toggleTag = (tag: MealTypeTag) => {
-        setSelectedTags(prev => {
-            if (prev.includes(tag)) {
-                return prev.filter(t => t !== tag);
-            } else {
-                return [...prev, tag];
+    const toggleIngredient = (id: string) => {
+        setIngredients(prev => prev.map(ing => {
+            if (ing.ingredientId === id) {
+                const newStatus: MealIngredientStatus = (ing.confirmedStatus === 'removed' || ing.confirmedStatus === 'suggested') ? 'confirmed' : 'removed';
+                return { ...ing, confirmedStatus: newStatus };
             }
-        });
+            return ing;
+        }));
     };
+
+    const addIngredient = (ing: Ingredient) => {
+        setIngredients(prev => {
+            if (prev.find(i => i.ingredientId === ing.ingredient_id)) return prev;
+            return [...prev, {
+                ingredientId: ing.ingredient_id,
+                canonicalName: ing.canonical_name,
+                confirmedStatus: 'added',
+                source: 'user_added',
+                confidence: 1.0
+            }];
+        });
+        setShowSearchModal(false);
+        setSearchQuery('');
+    };
+
+    const updateQuestionAnswer = (id: string, answer: string) => {
+        setAnalysisQuestions(prev => prev.map(q => q.questionId === id ? { ...q, answer } : q));
+    };
+
 
     const handleSave = async () => {
         if (!meal) return;
@@ -98,9 +137,13 @@ export default function MealDetailScreen() {
             ...meal,
             occurredAt: occurredAt.toISOString(),
             mealSlot: selectedSlot,
-            textDescription: textDescription || undefined,
+            textDescription: textDescription.trim(),
             mealReason: selectedReason,
-            mealTypeTags: selectedTags.length > 0 ? selectedTags : ['unknown'],
+            mealTypeTags: [], // Pruned
+            dishId: confirmedDish?.id,
+            dishLabel: confirmedDish?.label,
+            confirmedIngredients: ingredients,
+            questions: analysisQuestions,
         };
 
         await StorageService.updateMealEvent(updatedMeal);
@@ -134,15 +177,106 @@ export default function MealDetailScreen() {
                     <Image source={{ uri: meal.photoUri }} style={styles.heroImage} />
                 )}
 
-                <View style={styles.section}>
-                    <Text style={styles.label}>Description</Text>
-                    <TextInput
-                        style={styles.textInput}
-                        value={textDescription}
-                        onChangeText={setTextDescription}
-                        placeholder="Description..."
-                    />
+                <View style={styles.inputSection}>
+                    {!meal.photoUri ? (
+                        <View style={styles.section}>
+                            <Text style={styles.label}>Description</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                value={textDescription}
+                                onChangeText={setTextDescription}
+                                placeholder="Description..."
+                                multiline
+                            />
+                        </View>
+                    ) : (
+                        confirmedDish && (
+                            <View style={styles.dishNameContainer}>
+                                <Text style={styles.dishNameLabel}>Dish Name</Text>
+                                <TextInput
+                                    style={styles.dishNameInput}
+                                    value={confirmedDish.label}
+                                    onChangeText={(newLabel) => setConfirmedDish({ ...confirmedDish, label: newLabel })}
+                                />
+                            </View>
+                        )
+                    )}
                 </View>
+
+                {/* Ingredients Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Ingredients</Text>
+                    
+                    {ingredients.filter(i => i.confirmedStatus !== 'removed' && i.confirmedStatus !== 'suggested').length > 0 && (
+                        <>
+                            <Text style={styles.subTitle}>Confirmed</Text>
+                            <View style={styles.ingredientsRow}>
+                                {ingredients.filter(i => i.confirmedStatus !== 'removed' && i.confirmedStatus !== 'suggested').map(ing => (
+                                    <TouchableOpacity 
+                                        key={ing.ingredientId} 
+                                        style={styles.ingredientChipConfirmed}
+                                        onPress={() => toggleIngredient(ing.ingredientId)}
+                                    >
+                                        <Text style={styles.ingredientTextConfirmed}>{ing.canonicalName}</Text>
+                                        <X color="#fff" size={14} style={{ marginLeft: 4 }} />
+                                    </TouchableOpacity>
+                                ))}
+                                <TouchableOpacity style={styles.addChip} onPress={() => setShowSearchModal(true)}>
+                                    <Plus color="#2563eb" size={16} />
+                                    <Text style={styles.addChipText}>Add</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </>
+                    )}
+
+                    {ingredients.filter(i => i.confirmedStatus === 'suggested').length > 0 && (
+                        <>
+                            <Text style={[styles.subTitle, { marginTop: 12 }]}>Check these (likely present)</Text>
+                            <View style={styles.ingredientsRow}>
+                                {ingredients.filter(i => i.confirmedStatus === 'suggested').map(ing => (
+                                    <TouchableOpacity 
+                                        key={ing.ingredientId} 
+                                        style={styles.ingredientChipSuggested}
+                                        onPress={() => toggleIngredient(ing.ingredientId)}
+                                    >
+                                        <Check color="#2563eb" size={14} style={{ marginRight: 4 }} />
+                                        <Text style={styles.ingredientTextSuggested}>{ing.canonicalName}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </>
+                    )}
+
+                    {ingredients.length === 0 && (
+                        <TouchableOpacity style={styles.addChip} onPress={() => setShowSearchModal(true)}>
+                            <Plus color="#2563eb" size={16} />
+                            <Text style={styles.addChipText}>Add Ingredient</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Questions Section */}
+                {analysisQuestions.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Quick Questions</Text>
+                        {analysisQuestions.map((q, idx) => (
+                            <View key={idx} style={styles.questionCard}>
+                                <Text style={styles.questionText}>{q.text || "Unknown Question"}</Text>
+                                <View style={styles.questionOptions}>
+                                    {['Yes', 'No', 'Not sure'].map(opt => (
+                                        <TouchableOpacity 
+                                            key={opt}
+                                            style={[styles.optionChip, q.answer === opt && styles.optionChipSelected]}
+                                            onPress={() => updateQuestionAnswer(q.questionId, opt)}
+                                        >
+                                            <Text style={[styles.optionText, q.answer === opt && styles.optionTextSelected]}>{opt}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                )}
 
                 {/* Meal Date & Time */}
                 <View style={styles.section}>
@@ -223,23 +357,7 @@ export default function MealDetailScreen() {
                     </View>
                 </View>
 
-                {/* Tags */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Tags</Text>
-                    <View style={styles.tagsRow}>
-                        {[...BASE_LOAD_TAGS, ...OTHER_TAGS].map(tag => (
-                            <TouchableOpacity
-                                key={tag}
-                                style={[styles.tagChip, selectedTags.includes(tag) && styles.tagChipSelected]}
-                                onPress={() => toggleTag(tag)}
-                            >
-                                <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextSelected]}>
-                                    {tag.replace('_', ' ')}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
+                {/* Tags removal - redundant */}
 
                 <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
                     <Trash2 color="#ef4444" size={20} />
@@ -247,6 +365,46 @@ export default function MealDetailScreen() {
                 </TouchableOpacity>
 
             </ScrollView>
+
+            {/* Search Modal */}
+            <Modal visible={showSearchModal} animationType="slide" transparent={false}>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity onPress={() => setShowSearchModal(false)}>
+                            <X color="#000" size={24} />
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Add Ingredient</Text>
+                        <View style={{ width: 24 }} />
+                    </View>
+                    
+                    <View style={styles.searchBarContainer}>
+                        <Search color="#6b7280" size={20} style={{ marginLeft: 12 }} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search ingredients..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            autoFocus
+                        />
+                    </View>
+
+                    <ScrollView style={styles.resultsList}>
+                        {searchResults.map(ing => (
+                            <TouchableOpacity 
+                                key={ing.ingredient_id} 
+                                style={styles.resultItem}
+                                onPress={() => addIngredient(ing)}
+                            >
+                                <Text style={styles.resultText}>{ing.display_name}</Text>
+                                <Plus color="#2563eb" size={20} />
+                            </TouchableOpacity>
+                        ))}
+                        {searchQuery.length > 1 && searchResults.length === 0 && (
+                            <Text style={styles.noResultsText}>No matches found</Text>
+                        )}
+                    </ScrollView>
+                </View>
+            </Modal>
 
             <View style={styles.footer}>
                 <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -307,4 +465,51 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+    // New Styles for refinement
+    inputSection: { marginBottom: 24 },
+    dishNameContainer: { marginTop: 12, marginBottom: 12 },
+    dishNameLabel: { fontSize: 12, fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', marginBottom: 4 },
+    dishNameInput: { fontSize: 24, fontWeight: '700', color: '#111827', paddingVertical: 4 },
+    
+    subTitle: { fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#4b5563' },
+    ingredientsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    ingredientChipConfirmed: { 
+        flexDirection: 'row', alignItems: 'center', 
+        backgroundColor: '#2563eb', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+        marginRight: 6, marginBottom: 6
+    },
+    ingredientTextConfirmed: { color: '#fff', fontSize: 14, fontWeight: '500' },
+    ingredientChipSuggested: { 
+        flexDirection: 'row', alignItems: 'center', 
+        backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#2563eb',
+        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+        marginRight: 6, marginBottom: 6
+    },
+    ingredientTextSuggested: { color: '#2563eb', fontSize: 14, fontWeight: '500' },
+    addChip: { 
+        flexDirection: 'row', alignItems: 'center', 
+        backgroundColor: '#eff6ff', borderStyle: 'dashed', borderWidth: 1, borderColor: '#2563eb',
+        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+        marginBottom: 6
+    },
+    addChipText: { color: '#2563eb', fontSize: 14, fontWeight: '500', marginLeft: 4 },
+
+    questionCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 12 },
+    questionText: { fontSize: 15, fontWeight: '600', color: '#374151', marginBottom: 12 },
+    questionOptions: { flexDirection: 'row', gap: 8 },
+    optionChip: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 8 },
+    optionChipSelected: { backgroundColor: '#bfdbfe' },
+    optionText: { color: '#4b5563', fontWeight: '500' },
+    optionTextSelected: { color: '#1e40af', fontWeight: '700' },
+
+    modalContainer: { flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'ios' ? 40 : 0 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    modalTitle: { fontSize: 18, fontWeight: '600' },
+    searchBarContainer: { flexDirection: 'row', alignItems: 'center', margin: 16, backgroundColor: '#f3f4f6', borderRadius: 12, paddingRight: 12 },
+    searchInput: { flex: 1, padding: 12, fontSize: 16 },
+    resultsList: { flex: 1, paddingHorizontal: 16 },
+    resultItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+    resultText: { fontSize: 16, color: '#111827' },
+    noResultsText: { textAlign: 'center', marginTop: 20, color: '#6b7280' },
 });

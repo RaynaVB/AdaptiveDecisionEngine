@@ -1,27 +1,32 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform, LayoutAnimation } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform, LayoutAnimation, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { v4 as uuidv4 } from 'uuid';
-import { Camera, X } from 'lucide-react-native';
+import { Camera, X, Check, Plus, ChevronDown, Search } from 'lucide-react-native';
+import { Modal } from 'react-native';
+import { useEffect } from 'react';
+import { Ingredient } from '../../src/models/Ingredient';
+import { MealIngredientStatus } from '../../src/models/types';
+
 
 import { RootStackParamList } from '../../src/models/navigation';
-import { MealSlot, MealTypeTag, MealEvent, MealReason } from '../../src/models/types';
+import { MealSlot, MealEvent, MealReason, ConfirmedIngredient, MealQuestion } from '../../src/models/types';
+
 import { StorageService } from '../../src/services/storage';
 import { NotificationService } from '../../src/services/NotificationService';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { analyzeFoodImage, uploadImageToFirebase } from '../../src/services/visionService';
+import { analyzeFoodImage, uploadImageToFirebase, VisionAnalysisResult } from '../../src/services/visionService';
 import { auth } from '../../src/services/firebaseConfig';
+import { ingredientService } from '../../src/services/IngredientService';
 
 type LogMealScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMeal'>;
 
+type LoggingState = 'idle' | 'image_selected' | 'uploading' | 'analyzing' | 'review_ready' | 'saving' | 'saved' | 'failed';
+
+
 const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
-const BASE_LOAD_TAGS: MealTypeTag[] = ['light', 'regular', 'heavy'];
-const OTHER_TAGS: MealTypeTag[] = [
-    'sweet', 'savory', 'homemade', 'restaurant', 'packaged',
-    'high_sugar', 'fried_greasy', 'high_protein', 'high_fiber', 'caffeinated'
-];
 
 const determineMealSlot = (date: Date): MealSlot => {
     const hour = date.getHours();
@@ -37,20 +42,196 @@ export default function LogMealScreen() {
 
     const [textDescription, setTextDescription] = useState('');
     const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
-    const [selectedSlot, setSelectedSlot] = useState<MealSlot>(determineMealSlot(new Date())); // Dynamically estimate based on current time
+    const [selectedSlot, setSelectedSlot] = useState<MealSlot>(determineMealSlot(new Date())); 
     const [selectedReason, setSelectedReason] = useState<MealReason | undefined>(undefined);
-    const [selectedTags, setSelectedTags] = useState<MealTypeTag[]>([]);
 
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
-    const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+    const [loggingState, setLoggingState] = useState<LoggingState>('idle');
+    const [analysisResult, setAnalysisResult] = useState<VisionAnalysisResult | null>(null);
+    const [confirmedDish, setConfirmedDish] = useState<{ id?: string; label: string } | null>(null);
+    const [ingredients, setIngredients] = useState<ConfirmedIngredient[]>([]);
+    const [analysisQuestions, setAnalysisQuestions] = useState<MealQuestion[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [statusMessage, setStatusMessage] = useState('');
+
+    const isSaveDisabled = isSaving || 
+                           loggingState === 'analyzing' || 
+                           (photoUri && loggingState !== 'review_ready') || 
+                           (!photoUri && !textDescription.trim());
+
+
+    const [showSearchModal, setShowSearchModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Ingredient[]>([]);
+
+    useEffect(() => {
+        if (searchQuery.length > 1) {
+            const results = ingredientService.searchIngredients(searchQuery);
+            setSearchResults(results);
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchQuery]);
+
+    const toggleIngredient = (id: string) => {
+        setIngredients(prev => prev.map(ing => {
+            if (ing.ingredientId === id) {
+                const newStatus: MealIngredientStatus = (ing.confirmedStatus === 'removed' || ing.confirmedStatus === 'suggested') ? 'confirmed' : 'removed';
+                return { ...ing, confirmedStatus: newStatus };
+            }
+            return ing;
+        }));
+    };
+
+    const addIngredient = (ing: Ingredient) => {
+        setIngredients(prev => {
+            if (prev.find(i => i.ingredientId === ing.ingredient_id)) return prev;
+            return [...prev, {
+                ingredientId: ing.ingredient_id,
+                canonicalName: ing.canonical_name,
+                confirmedStatus: 'added',
+                source: 'user_added',
+                confidence: 1.0
+            }];
+        });
+        setShowSearchModal(false);
+        setSearchQuery('');
+    };
+
+    const updateQuestionAnswer = (id: string, answer: string) => {
+        setAnalysisQuestions(prev => prev.map(q => q.questionId === id ? { ...q, answer } : q));
+    };
+
+    const renderReviewSection = () => {
+        if (loggingState !== 'review_ready') return null;
+
+        const confirmedIngs = ingredients.filter(i => i.confirmedStatus !== 'removed' && i.confirmedStatus !== 'suggested');
+        const suggestedIngs = ingredients.filter(i => i.confirmedStatus === 'suggested');
+
+        return (
+            <View style={styles.reviewContainer}>
+                {/* Dish Section is now integrated with the main input view when photo exists */}
+
+                {/* Ingredients */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Ingredients</Text>
+                    
+                    {confirmedIngs.length > 0 && (
+                        <>
+                            <Text style={styles.subTitle}>Confirmed</Text>
+                            <View style={styles.ingredientsRow}>
+                                {confirmedIngs.map(ing => (
+                                    <TouchableOpacity 
+                                        key={ing.ingredientId} 
+                                        style={styles.ingredientChipConfirmed}
+                                        onPress={() => toggleIngredient(ing.ingredientId)}
+                                    >
+                                        <Text style={styles.ingredientTextConfirmed}>{ing.canonicalName}</Text>
+                                        <X color="#fff" size={14} style={{ marginLeft: 4 }} />
+                                    </TouchableOpacity>
+                                ))}
+                                <TouchableOpacity style={styles.addChip} onPress={() => setShowSearchModal(true)}>
+                                    <Plus color="#2563eb" size={16} />
+                                    <Text style={styles.addChipText}>Add</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </>
+                    )}
+
+                    {suggestedIngs.length > 0 && (
+                        <>
+                            <Text style={[styles.subTitle, { marginTop: 12 }]}>Check these (likely present)</Text>
+                            <View style={styles.ingredientsRow}>
+                                {suggestedIngs.map(ing => (
+                                    <TouchableOpacity 
+                                        key={ing.ingredientId} 
+                                        style={styles.ingredientChipSuggested}
+                                        onPress={() => toggleIngredient(ing.ingredientId)}
+                                    >
+                                        <Check color="#2563eb" size={14} style={{ marginRight: 4 }} />
+                                        <Text style={styles.ingredientTextSuggested}>{ing.canonicalName}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </>
+                    )}
+                </View>
+
+                {/* Questions */}
+                {analysisQuestions.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Quick Questions</Text>
+                        {analysisQuestions.map((q, idx) => (
+                            <View key={idx} style={styles.questionCard}>
+                                <Text style={styles.questionText}>{q.text || "Unknown Question"}</Text>
+                                <View style={styles.questionOptions}>
+                                    {['Yes', 'No', 'Not sure'].map(opt => (
+                                        <TouchableOpacity 
+                                            key={opt}
+                                            style={[styles.optionChip, q.answer === opt && styles.optionChipSelected]}
+                                            onPress={() => updateQuestionAnswer(q.questionId, opt)}
+                                        >
+                                            <Text style={[styles.optionText, q.answer === opt && styles.optionTextSelected]}>{opt}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                )}
+            </View>
+        );
+    };
+
+    const renderSearchModal = () => (
+        <Modal visible={showSearchModal} animationType="slide" transparent={false}>
+            <View style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={() => setShowSearchModal(false)}>
+                        <X color="#000" size={24} />
+                    </TouchableOpacity>
+                    <Text style={styles.modalTitle}>Add Ingredient</Text>
+                    <View style={{ width: 24 }} />
+                </View>
+                
+                <View style={styles.searchBarContainer}>
+                    <Search color="#6b7280" size={20} style={{ marginLeft: 12 }} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search ingredients..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        autoFocus
+                    />
+                </View>
+
+                <ScrollView style={styles.resultsList}>
+                    {searchResults.map(ing => (
+                        <TouchableOpacity 
+                            key={ing.ingredient_id} 
+                            style={styles.resultItem}
+                            onPress={() => addIngredient(ing)}
+                        >
+                            <Text style={styles.resultText}>{ing.display_name}</Text>
+                            <Plus color="#2563eb" size={20} />
+                        </TouchableOpacity>
+                    ))}
+                    {searchQuery.length > 1 && searchResults.length === 0 && (
+                        <Text style={styles.noResultsText}>No matches found</Text>
+                    )}
+                </ScrollView>
+            </View>
+        </Modal>
+    );
+
 
     const toggleDatePicker = (show: boolean) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setShowDatePicker(show);
     };
+
 
     const toggleTimePicker = (show: boolean) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -106,65 +287,84 @@ export default function LogMealScreen() {
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const selectedAsset = result.assets[0];
                 setPhotoUri(selectedAsset.uri);
+                setLoggingState('image_selected');
 
                 if (selectedAsset.base64) {
-                    setIsAnalyzingImage(true);
                     try {
-                        // Assuming JPEG format from Expo ImagePicker
-                        const analysis = await analyzeFoodImage(selectedAsset.base64, 'image/jpeg');
+                        setLoggingState('analyzing');
+                        setStatusMessage('Identifying dish...');
                         
-                        if (analysis.description) {
+                        const analysis = await analyzeFoodImage(selectedAsset.base64, 'image/jpeg');
+
+                        if (!analysis.isFood) {
+                            setLoggingState('idle');
+                            setStatusMessage('');
+                            Alert.alert("Non-food Image", "This doesn't look like food. Please try a different photo or enter a text description.");
+                            return;
+                        }
+
+                        setStatusMessage('Extracting ingredients...');
+                        setAnalysisResult(analysis);
+                        
+                        if (analysis.description && !selectedAsset.uri) {
                             setTextDescription(prev => prev ? `${prev}\n${analysis.description}` : analysis.description);
                         }
                         
-                        if (analysis.tags && analysis.tags.length > 0) {
-                            setSelectedTags(prevTags => {
-                                const newTags = new Set([...prevTags, ...analysis.tags]);
-                                return Array.from(newTags);
+                        // Map Dish
+                        const resolvedDish = ingredientService.resolveDish(analysis.dishName);
+                        setConfirmedDish(resolvedDish ? { id: resolvedDish.dishId, label: resolvedDish.dishLabel } : { label: analysis.dishName });
+
+                        setStatusMessage('Checking for allergens...');
+
+                        // Map Ingredients
+                        const visibleIngs = ingredientService.resolveIngredients(analysis.visibleComponents);
+                        const suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients);
+
+                        const initialIngredients: ConfirmedIngredient[] = [];
+                        
+                        visibleIngs.forEach(ing => {
+                            initialIngredients.push({
+                                ingredientId: ing.ingredient_id,
+                                canonicalName: ing.canonical_name,
+                                confirmedStatus: 'confirmed',
+                                source: 'visible',
+                                confidence: 0.95
                             });
-                        }
+                        });
+
+                        suggestedIngs.forEach(ing => {
+                            if (!initialIngredients.find(i => i.ingredientId === ing.ingredient_id)) {
+                                initialIngredients.push({
+                                    ingredientId: ing.ingredient_id,
+                                    canonicalName: ing.canonical_name,
+                                    confirmedStatus: 'suggested',
+                                    source: 'inferred_dish_prior',
+                                    confidence: 0.8
+                                });
+                            }
+                        });
+
+                        setIngredients(initialIngredients);
+
+                        // Map Questions
+                        setAnalysisQuestions(analysis.potentialQuestions.map(q => ({
+                            questionId: q.id,
+                            text: q.text,
+                            answer: ''
+                        })));
+
+                        setStatusMessage('');
+                        setLoggingState('review_ready');
                     } catch (error) {
                         console.error('Vision API Error:', error);
-                        // Fails smoothly, user can still manually enter details
-                        // Alert.alert('Notice', 'Could not auto-analyze image, please enter details manually.');
-                    } finally {
-                        setIsAnalyzingImage(false);
+                        setLoggingState('failed');
                     }
                 }
             }
+
         } catch (error) {
             console.error(error);
             Alert.alert('Error', 'Failed to pick image');
-        }
-    };
-
-    const toggleTag = (tag: MealTypeTag) => {
-        setSelectedTags(prev => {
-            if (prev.includes(tag)) {
-                return prev.filter(t => t !== tag);
-            } else {
-                return [...prev, tag];
-            }
-        });
-    };
-
-    const applyPreset = (preset: 'Quick Snack Sweet' | 'Heavy Dinner Out' | 'Light Breakfast') => {
-        const d = new Date();
-        if (preset === 'Quick Snack Sweet') {
-            setSelectedSlot('snack');
-            setSelectedTags(['regular', 'sweet', 'packaged']);
-            d.setHours(16, 0, 0, 0); // 4 PM
-            setOccurredAt(d);
-        } else if (preset === 'Heavy Dinner Out') {
-            setSelectedSlot('dinner');
-            setSelectedTags(['heavy', 'savory', 'restaurant']);
-            d.setHours(19, 0, 0, 0); // 7 PM
-            setOccurredAt(d);
-        } else if (preset === 'Light Breakfast') {
-            setSelectedSlot('breakfast');
-            setSelectedTags(['light', 'homemade']);
-            d.setHours(8, 0, 0, 0); // 8 AM
-            setOccurredAt(d);
         }
     };
 
@@ -175,7 +375,6 @@ export default function LogMealScreen() {
         }
 
         setIsSaving(true);
-        const tagsToSave = selectedTags.length > 0 ? selectedTags : ['unknown'];
         const mealId = uuidv4();
 
         const newMeal: MealEvent = {
@@ -185,9 +384,16 @@ export default function LogMealScreen() {
             mealSlot: selectedSlot,
             inputMode: photoUri ? 'photo' : 'text',
             mealReason: selectedReason,
-            mealTypeTags: tagsToSave as MealTypeTag[],
-            tags: tagsToSave, // The ML-expected array
+            mealTypeTags: [], 
+            tags: [], 
+            
+            // Canonical data
+            dishId: confirmedDish?.id,
+            dishLabel: confirmedDish?.label,
+            confirmedIngredients: ingredients,
+            questions: analysisQuestions,
         };
+
 
         if (textDescription) {
             newMeal.textDescription = textDescription;
@@ -253,27 +459,44 @@ export default function LogMealScreen() {
 
                     {photoUri && (
                         <View style={styles.photoPreviewContainer}>
-                            <Image source={{ uri: photoUri }} style={[styles.photoPreview, isAnalyzingImage && { opacity: 0.5 }]} />
+                            <Image source={{ uri: photoUri }} style={[styles.photoPreview, loggingState === 'analyzing' && { opacity: 0.5 }]} />
                             <TouchableOpacity style={styles.removePhoto} onPress={() => setPhotoUri(undefined)}>
                                 <X color="#fff" size={16} />
                             </TouchableOpacity>
-                            {isAnalyzingImage && (
+                            {loggingState === 'analyzing' && (
                                 <View style={styles.analyzingOverlay}>
-                                    <Text style={styles.analyzingText}>Analyzing...</Text>
+                                    <ActivityIndicator size="large" color="#2563eb" />
+                                    <Text style={styles.analyzingText}>{statusMessage || 'Analyzing...'}</Text>
                                 </View>
                             )}
                         </View>
                     )}
 
-                    <TextInput
-                        style={[styles.textInput, { minHeight: 80, textAlignVertical: 'top' }, isAnalyzingImage && { backgroundColor: '#f9fafb' }]}
-                        placeholder={isAnalyzingImage ? "AI is describing your food..." : "What did you eat?"}
-                        value={textDescription}
-                        onChangeText={setTextDescription}
-                        multiline={true}
-                        editable={!isAnalyzingImage}
-                    />
+                    {!photoUri ? (
+                        <TextInput
+                            style={[styles.textInput, { minHeight: 80, textAlignVertical: 'top' }, loggingState === 'analyzing' && { backgroundColor: '#f9fafb' }]}
+                            placeholder={loggingState === 'analyzing' ? "AI is describing your food..." : "What did you eat?"}
+                            value={textDescription}
+                            onChangeText={setTextDescription}
+                            multiline={true}
+                            editable={loggingState !== 'analyzing'}
+                        />
+                    ) : (
+                        loggingState === 'review_ready' && confirmedDish && (
+                            <View style={styles.dishNameContainer}>
+                                <Text style={styles.dishNameLabel}>Dish Name</Text>
+                                <TextInput
+                                    style={styles.dishNameInput}
+                                    value={confirmedDish.label}
+                                    onChangeText={(newLabel) => setConfirmedDish({ ...confirmedDish, label: newLabel })}
+                                />
+                            </View>
+                        )
+                    )}
                 </View>
+
+                {renderReviewSection()}
+
 
                 {/* Why are you eating? */}
                 <View style={styles.section}>
@@ -298,22 +521,6 @@ export default function LogMealScreen() {
                             </TouchableOpacity>
                         ))}
                     </View>
-                </View>
-
-                {/* Quick Presets */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Quick Presets</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetRow}>
-                        <TouchableOpacity style={styles.presetChip} onPress={() => applyPreset('Quick Snack Sweet')}>
-                            <Text style={styles.presetText}>Quick Snack Sweet</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.presetChip} onPress={() => applyPreset('Heavy Dinner Out')}>
-                            <Text style={styles.presetText}>Heavy Dinner Out</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.presetChip} onPress={() => applyPreset('Light Breakfast')}>
-                            <Text style={styles.presetText}>Light Breakfast</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
                 </View>
 
                 {/* Meal Date & Time */}
@@ -370,47 +577,17 @@ export default function LogMealScreen() {
                     )}
                 </View>
 
-                {/* Tags */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Tags</Text>
-                    <Text style={[styles.subTitle, { marginBottom: 12, fontStyle: 'italic', fontSize: 13 }]}>
-                        Pick 1–3 tags (optional). If unsure, leave blank.
-                    </Text>
-                    <Text style={styles.subTitle}>Base Load</Text>
-                    <View style={styles.tagsRow}>
-                        {BASE_LOAD_TAGS.map(tag => (
-                            <TouchableOpacity
-                                key={tag}
-                                style={[styles.tagChip, selectedTags.includes(tag) && styles.tagChipSelected]}
-                                onPress={() => toggleTag(tag)}
-                            >
-                                <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextSelected]}>
-                                    {tag}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    <Text style={[styles.subTitle, { marginTop: 12 }]}>Details</Text>
-                    <View style={styles.tagsRow}>
-                        {OTHER_TAGS.map(tag => (
-                            <TouchableOpacity
-                                key={tag}
-                                style={[styles.tagChip, selectedTags.includes(tag) && styles.tagChipSelected]}
-                                onPress={() => toggleTag(tag)}
-                            >
-                                <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextSelected]}>
-                                    {tag.replace('_', ' ')}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
             </ScrollView>
 
+            {renderSearchModal()}
+
             <View style={styles.footer}>
-                <TouchableOpacity style={[styles.saveButton, isSaving && { opacity: 0.7 }]} onPress={handleSave} disabled={isSaving || isAnalyzingImage}>
+
+                <TouchableOpacity 
+                    style={[styles.saveButton, isSaveDisabled && { backgroundColor: '#94a3b8' }]} 
+                    onPress={handleSave} 
+                    disabled={isSaveDisabled}
+                >
                     <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save Meal'}</Text>
                 </TouchableOpacity>
             </View>
@@ -436,27 +613,21 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8,
         padding: 12, fontSize: 16, minHeight: 48
     },
-    photoPreviewContainer: { marginBottom: 12, position: 'relative', alignSelf: 'flex-start' },
-    photoPreview: { width: 100, height: 100, borderRadius: 8 },
+    photoPreviewContainer: { marginBottom: 12, position: 'relative', width: '100%' },
+    photoPreview: { width: '100%', height: 200, borderRadius: 12 },
     analyzingOverlay: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
-        borderRadius: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        borderRadius: 12,
     },
-    analyzingText: { color: '#1e3a8a', fontWeight: 'bold', fontSize: 12 },
+    analyzingText: { color: '#1e3a8a', fontWeight: 'bold', fontSize: 16, marginTop: 12 },
     removePhoto: {
         position: 'absolute', top: -6, right: -6, backgroundColor: '#ef4444',
         borderRadius: 12, padding: 4
     },
 
-    presetRow: { flexDirection: 'row' },
-    presetChip: {
-        backgroundColor: '#f3f4f6', paddingHorizontal: 12, paddingVertical: 8,
-        borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: '#e5e7eb'
-    },
-    presetText: { fontSize: 13, color: '#374151' },
 
     dateTimeButton: {
         flex: 1,
@@ -490,4 +661,51 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+    dishNameContainer: { marginTop: 12 },
+    dishNameLabel: { fontSize: 12, fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', marginBottom: 4 },
+    dishNameInput: { fontSize: 24, fontWeight: '700', color: '#111827', paddingVertical: 4 },
+
+
+    reviewContainer: { marginTop: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 16 },
+    dishCard: { backgroundColor: '#f9fafb', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
+    dishLabel: { fontSize: 18, fontWeight: '700', color: '#111827' },
+    
+    ingredientsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    ingredientChipConfirmed: { 
+        flexDirection: 'row', alignItems: 'center', 
+        backgroundColor: '#2563eb', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 
+    },
+    ingredientTextConfirmed: { color: '#fff', fontSize: 14, fontWeight: '500' },
+    ingredientChipSuggested: { 
+        flexDirection: 'row', alignItems: 'center', 
+        backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#2563eb',
+        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 
+    },
+    ingredientTextSuggested: { color: '#2563eb', fontSize: 14, fontWeight: '500' },
+    addChip: { 
+        flexDirection: 'row', alignItems: 'center', 
+        backgroundColor: '#eff6ff', borderStyle: 'dashed', borderWidth: 1, borderColor: '#2563eb',
+        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 
+    },
+    addChipText: { color: '#2563eb', fontSize: 14, fontWeight: '500', marginLeft: 4 },
+
+    questionCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 12 },
+    questionText: { fontSize: 15, fontWeight: '600', color: '#374151', marginBottom: 12 },
+    questionOptions: { flexDirection: 'row', gap: 8 },
+    optionChip: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 8 },
+    optionChipSelected: { backgroundColor: '#bfdbfe' },
+    optionText: { color: '#4b5563', fontWeight: '500' },
+    optionTextSelected: { color: '#1e40af', fontWeight: '700' },
+
+    modalContainer: { flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'ios' ? 40 : 0 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    modalTitle: { fontSize: 18, fontWeight: '600' },
+    searchBarContainer: { flexDirection: 'row', alignItems: 'center', margin: 16, backgroundColor: '#f3f4f6', borderRadius: 12, paddingRight: 12 },
+    searchInput: { flex: 1, padding: 12, fontSize: 16 },
+    resultsList: { flex: 1, paddingHorizontal: 16 },
+    resultItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+    resultText: { fontSize: 16, color: '#111827' },
+    noResultsText: { textAlign: 'center', marginTop: 20, color: '#6b7280' },
 });
+

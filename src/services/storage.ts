@@ -97,7 +97,7 @@ export const StorageService = {
         if (!auth.currentUser) return;
         try {
             const mealDocRef = doc(this.getMealsCollectionRef(), updatedEvent.id);
-            await setDoc(mealDocRef, updatedEvent, { merge: true });
+            await setDoc(mealDocRef, this._sanitize(updatedEvent), { merge: true });
         } catch (e) {
             console.error('Failed to update meal', e);
         }

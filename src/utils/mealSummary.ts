@@ -4,14 +4,19 @@ export function formatMealSummary(meal: MealEvent): string {
     const slotValue = meal.mealSlot || 'unknown';
     const slot = slotValue.charAt(0).toUpperCase() + slotValue.slice(1);
 
+    // Prioritize Confirmed Dish Label from AI or manual entry
+    if (meal.dishLabel) {
+        return `${slot} • ${meal.dishLabel}`;
+    }
+
     // Filter out 'unknown' if there are other tags, or keep it if it's the only one
     let tagsToShow = meal.mealTypeTags.filter(t => t !== 'unknown');
 
     if (tagsToShow.length === 0) {
         if (meal.mealTypeTags.includes('unknown')) {
-            return `${slot} • Unknown`;
+            // If we have text description but no tags/dish, use that or fallback
+            return meal.textDescription ? `${slot} • ${meal.textDescription}` : `${slot} • Unknown`;
         }
-        // If data is somehow completely empty (should be caught by migration), fallback
         return `${slot} • Unknown`;
     }
 

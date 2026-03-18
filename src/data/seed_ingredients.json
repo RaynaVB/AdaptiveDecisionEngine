@@ -603,6 +603,49 @@
       "updated_at": "2026-03-17T15:32:45.596Z"
     },
     {
+      "ingredient_id": "ing_lettuce",
+      "canonical_name": "lettuce",
+      "display_name": "Lettuce",
+      "category": "vegetables",
+      "subcategory": "leafy_greens",
+      "parent_id": null,
+      "hidden_common": false,
+      "packaged_additive": false,
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_bread",
+      "canonical_name": "bread",
+      "display_name": "Bread",
+      "category": "grains",
+      "subcategory": "wheat",
+      "parent_id": null,
+      "hidden_common": false,
+      "packaged_additive": false,
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_bun",
+      "canonical_name": "bun",
+      "display_name": "Bun",
+      "category": "grains",
+      "subcategory": "wheat",
+      "parent_id": "ing_bread",
+      "hidden_common": false,
+      "packaged_additive": false,
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    }
+,
+    {
       "ingredient_id": "ing_cilantro",
       "canonical_name": "cilantro",
       "display_name": "Cilantro",
@@ -1631,7 +1674,44 @@
       "active": true,
       "created_at": "2026-03-17T15:32:45.596Z",
       "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "alias_id": "alias_lettuce_1",
+      "alias": "romaine",
+      "normalized_alias": "romaine",
+      "ingredient_id": "ing_lettuce",
+      "alias_type": "synonym",
+      "source_system": "manual",
+      "confidence": 0.9,
+      "active": true,
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "alias_id": "alias_bread_1",
+      "alias": "toast",
+      "normalized_alias": "toast",
+      "ingredient_id": "ing_bread",
+      "alias_type": "synonym",
+      "source_system": "manual",
+      "confidence": 0.9,
+      "active": true,
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "alias_id": "alias_bun_1",
+      "alias": "burger bun",
+      "normalized_alias": "burger bun",
+      "ingredient_id": "ing_bun",
+      "alias_type": "synonym",
+      "source_system": "manual",
+      "confidence": 0.95,
+      "active": true,
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
     }
+
   ],
   "relations": [],
   "flags": [],
