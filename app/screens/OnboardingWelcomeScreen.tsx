@@ -13,21 +13,22 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
     return (
         <View style={styles.container}>
             <View style={styles.content}>
-                <Text style={styles.title}>Welcome to Adaptive Decision Engine</Text>
+                <Text style={styles.title}>Understand your body, starting with food</Text>
+
                 <Text style={styles.subtitle}>
-                    Discover how your meals affect your mood, energy, and overall wellbeing.
+                    See how what you eat connects to your energy, mood, digestion, and daily symptoms.
                 </Text>
 
                 <View style={styles.features}>
-                    <FeatureItem icon="🍽️" text="Log your daily meals easily" />
-                    <FeatureItem icon="😊" text="Track mood shifts throughout the day" />
-                    <FeatureItem icon="🧠" text="Discover hidden patterns automatically" />
-                    <FeatureItem icon="💡" text="Get personalized actionable recommendations" />
+                    <FeatureItem icon="📸" text="Snap a photo of your meals — no manual logging" />
+                    <FeatureItem icon="🧠" text="We identify ingredients and detect patterns automatically" />
+                    <FeatureItem icon="🔍" text="Discover which foods may be causing your symptoms" />
+                    <FeatureItem icon="💡" text="Get simple, personalized insights to feel better" />
                 </View>
             </View>
 
-            <TouchableOpacity 
-                style={styles.button} 
+            <TouchableOpacity
+                style={styles.button}
                 onPress={() => navigation.navigate('OnboardingProfile')}
             >
                 <Text style={styles.buttonText}>Get Started</Text>

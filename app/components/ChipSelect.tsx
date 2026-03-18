@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { OnboardingOption } from '../constants/options';
 
 interface ChipSelectProps {
-    options: string[];
+    options: OnboardingOption[];
     selectedOptions: string[];
-    onToggle: (option: string) => void;
+    onToggle: (value: string) => void;
     maxSelections?: number;
     category?: string;
 }
@@ -21,25 +22,25 @@ export const ChipSelect: React.FC<ChipSelectProps> = ({
             {category && <Text style={styles.categoryTitle}>{category}</Text>}
             <View style={styles.chipsContainer}>
                 {options.map((option) => {
-                    const isSelected = selectedOptions.includes(option);
+                    const isSelected = selectedOptions.includes(option.value);
                     const isDisabled = maxSelections && !isSelected && selectedOptions.length >= maxSelections;
 
                     return (
                         <TouchableOpacity
-                            key={option}
+                            key={option.value}
                             style={[
                                 styles.chip,
                                 isSelected && styles.chipSelected,
                                 isDisabled ? styles.chipDisabled : null
                             ]}
-                            onPress={() => onToggle(option)}
+                            onPress={() => onToggle(option.value)}
                             disabled={!!isDisabled}
                         >
                             <Text style={[
                                 styles.chipText,
                                 isSelected && styles.chipTextSelected
                             ]}>
-                                {option}
+                                {option.label}
                             </Text>
                         </TouchableOpacity>
                     );

@@ -15,34 +15,12 @@ type Props = {
     navigation: OnboardingProfileScreenNavigationProp;
 };
 
-const GOAL_OPTIONS = [
-    "Understand how food affects my body",
-    "Identify foods causing symptoms",
-    "Improve digestion & gut health",
-    "Improve energy levels",
-    "Improve mood & mental clarity",
-    "Eat better for long-term health"
-];
-
-const SYMPTOM_CATEGORIES = {
-    "Digestive": ["Bloating", "Gas", "Stomach pain", "Acid reflux", "Constipation", "Diarrhea"],
-    "Energy": ["Fatigue", "Energy crashes"],
-    "Mental": ["Brain fog", "Mood swings", "Anxiety", "Irritability"],
-    "Physical": ["Headaches", "Skin issues", "Sleep problems"]
-};
-
-const DIET_CATEGORIES = {
-    "Allergies": ["Peanuts", "Tree Nuts", "Eggs", "Soy", "Fish/Shellfish"],
-    "Dietary Preferences": ["Vegan", "Vegetarian", "Gluten-Free", "Dairy-Free"],
-    "Sensitivities": ["Lactose Intolerance", "High FODMAP sensitivity", "Spicy foods", "Caffeine sensitivity", "Sugar sensitivity", "Fried/oily foods", "Artificial sweeteners", "Alcohol"]
-};
-
-const FREQUENCY_OPTIONS = [
-    "Rarely",
-    "A few times a week",
-    "Almost daily",
-    "After most meals"
-];
+import { 
+    GOAL_OPTIONS, 
+    SYMPTOM_GROUPS, 
+    DIET_GROUPS, 
+    FREQUENCY_OPTIONS 
+} from '../constants/options';
 
 export default function OnboardingProfileScreen({ navigation }: Props) {
     const [step, setStep] = useState(0);
@@ -183,11 +161,11 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                     <ScrollView style={styles.stepContainer}>
                         <Text style={styles.title}>What symptoms do you want to understand?</Text>
                         <Text style={styles.subtitle}>These will be our primary focus.</Text>
-                        {Object.entries(SYMPTOM_CATEGORIES).map(([cat, opts]) => (
+                        {SYMPTOM_GROUPS.map((group) => (
                             <ChipSelect
-                                key={cat}
-                                category={cat}
-                                options={opts}
+                                key={group.category}
+                                category={group.categoryLabel}
+                                options={group.options}
                                 selectedOptions={selectedSymptoms}
                                 onToggle={(item) => toggleItem(selectedSymptoms, setSelectedSymptoms, item)}
                             />
@@ -200,20 +178,20 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                         <Text style={styles.title}>Dietary restrictions & sensitivities?</Text>
                         <Text style={styles.subtitle}>Help us identify safe vs. risky foods.</Text>
                         <ChipSelect
-                            category="Allergies"
-                            options={DIET_CATEGORIES.Allergies}
+                            category={DIET_GROUPS[0].categoryLabel}
+                            options={DIET_GROUPS[0].options}
                             selectedOptions={selectedAllergies}
                             onToggle={(item) => toggleItem(selectedAllergies, setSelectedAllergies, item)}
                         />
                         <ChipSelect
-                            category="Dietary Preferences"
-                            options={DIET_CATEGORIES["Dietary Preferences"]}
+                            category={DIET_GROUPS[1].categoryLabel}
+                            options={DIET_GROUPS[1].options}
                             selectedOptions={selectedPreferences}
                             onToggle={(item) => toggleItem(selectedPreferences, setSelectedPreferences, item)}
                         />
                         <ChipSelect
-                            category="Sensitivities"
-                            options={DIET_CATEGORIES.Sensitivities}
+                            category={DIET_GROUPS[2].categoryLabel}
+                            options={DIET_GROUPS[2].options}
                             selectedOptions={selectedSensitivities}
                             onToggle={(item) => toggleItem(selectedSensitivities, setSelectedSensitivities, item)}
                         />
@@ -269,19 +247,19 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                         <View style={styles.frequencyList}>
                             {FREQUENCY_OPTIONS.map(opt => (
                                 <TouchableOpacity
-                                    key={opt}
+                                    key={opt.value}
                                     style={[
                                         styles.frequencyItem,
-                                        symptomFrequency === opt && styles.frequencyItemSelected
+                                        symptomFrequency === opt.value && styles.frequencyItemSelected
                                     ]}
-                                    onPress={() => setSymptomFrequency(opt)}
+                                    onPress={() => setSymptomFrequency(opt.value)}
                                 >
                                     <Text style={[
                                         styles.frequencyText,
-                                        symptomFrequency === opt && styles.frequencyTextSelected
-                                    ]}>{opt}</Text>
-                                    {symptomFrequency === opt && <View style={styles.radioFilled} />}
-                                    {symptomFrequency !== opt && <View style={styles.radioEmpty} />}
+                                        symptomFrequency === opt.value && styles.frequencyTextSelected
+                                    ]}>{opt.label}</Text>
+                                    {symptomFrequency === opt.value && <View style={styles.radioFilled} />}
+                                    {symptomFrequency !== opt.value && <View style={styles.radioEmpty} />}
                                 </TouchableOpacity>
                             ))}
                         </View>
