@@ -7,7 +7,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { SymptomEvent } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
-import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb } from 'lucide-react-native';
+import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb, Menu, Settings } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 import { WeeklyReport } from '../../src/components/WeeklyReport';
 import { generateInsightsFromPatterns, Insight } from '../../src/core/insight_engine/insightEngine';
@@ -121,6 +121,7 @@ export default function TimelineScreen() {
     const [selectedDayEvents, setSelectedDayEvents] = useState<{ dateStr: string; events: TimelineItem[] } | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     // Week at a Glance State
     const [weekAtGlanceData, setWeekAtGlanceData] = useState<{ label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[]>([]);
@@ -480,13 +481,8 @@ export default function TimelineScreen() {
                     <TouchableOpacity onPress={() => navigation.navigate('HealthLab')} style={styles.headerIconButton}>
                         <Beaker color="#2563eb" size={22} />
                     </TouchableOpacity>
-                    {isInternalUser(userProfile) && (
-                        <TouchableOpacity onPress={handleClear} style={styles.headerIconButton}>
-                            <Trash2 color="#ef4444" size={22} />
-                        </TouchableOpacity>
-                    )}
-                    <TouchableOpacity onPress={handleLogout} style={styles.headerIconButton}>
-                        <LogOut color="#ef4444" size={22} />
+                    <TouchableOpacity onPress={() => setIsMenuOpen(true)} style={styles.headerIconButton}>
+                        <Menu color="#4b5563" size={24} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -764,6 +760,59 @@ export default function TimelineScreen() {
                         </View>
                     </View>
                 </Modal>
+
+                {/* Hamburger Menu Modal */}
+                <Modal
+                    visible={isMenuOpen}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setIsMenuOpen(false)}
+                >
+                    <TouchableOpacity 
+                        style={styles.menuBackdrop} 
+                        activeOpacity={1} 
+                        onPress={() => setIsMenuOpen(false)}
+                    >
+                        <View style={styles.menuContent}>
+                            <TouchableOpacity 
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    setIsMenuOpen(false);
+                                    navigation.navigate('Settings');
+                                }}
+                            >
+                                <Settings color="#3b82f6" size={20} />
+                                <Text style={styles.menuItemText}>Preferences</Text>
+                            </TouchableOpacity>
+
+                            {isInternalUser(userProfile) && (
+                                <TouchableOpacity 
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                        setIsMenuOpen(false);
+                                        handleClear();
+                                    }}
+                                >
+                                    <Trash2 color="#ef4444" size={20} />
+                                    <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Clear All Logs</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            <View style={styles.menuDivider} />
+
+                            <TouchableOpacity 
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    setIsMenuOpen(false);
+                                    handleLogout();
+                                }}
+                            >
+                                <LogOut color="#6b7280" size={20} />
+                                <Text style={styles.menuItemText}>Sign Out</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
             </View>
         </SafeAreaView>
     );
@@ -780,6 +829,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'ios' ? 12 : 0,
         paddingBottom: 12,
         backgroundColor: '#fff',
         borderBottomWidth: 1,
@@ -791,8 +841,45 @@ const styles = StyleSheet.create({
         color: '#111827',
     },
     headerIconButton: {
-        marginLeft: 16,
+        marginLeft: 12,
         padding: 4,
+    },
+    menuBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.1)',
+    },
+    menuContent: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 100 : 60,
+        right: 16,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 8,
+        minWidth: 180,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 8,
+    },
+    menuItemText: {
+        marginLeft: 12,
+        fontSize: 16,
+        color: '#1e293b',
+        fontWeight: '500',
+    },
+    menuDivider: {
+        height: 1,
+        backgroundColor: '#f1f5f9',
+        marginVertical: 4,
     },
     deleteAction: {
         justifyContent: 'center',

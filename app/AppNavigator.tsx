@@ -23,6 +23,7 @@ import OnboardingWelcomeScreen from './screens/OnboardingWelcomeScreen';
 import OnboardingProfileScreen from './screens/OnboardingProfileScreen';
 import OnboardingCompleteScreen from './screens/OnboardingCompleteScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import SettingsScreen from './screens/SettingsScreen';
 
 import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
 import { auth } from '../src/services/firebaseConfig';
@@ -163,6 +164,11 @@ export default function AppNavigator() {
                         <Stack.Screen
                             name="ExperimentResult"
                             component={ExperimentResultScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="Settings"
+                            component={SettingsScreen}
                             options={{ headerShown: false }}
                         />
                     </Stack.Group>

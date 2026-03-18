@@ -7,9 +7,19 @@ export interface UserProfile {
     hasCompletedOnboarding: boolean;
     role?: 'admin' | 'internal' | 'user';
     // PII like 'name' and 'email' are stored locally on device only
-    dietaryRestrictions?: string;
-    foodsDisliked?: string;
-    primaryGoal?: string;
+    dietaryRestrictions?: string; // Legacy
+    foodsDisliked?: string; // Legacy
+    primaryGoal?: string; // Legacy
+    
+    // New Redesigned Profile Fields
+    goals?: string[];
+    symptoms?: string[];
+    symptomFrequency?: string;
+    allergies?: string[];
+    dietaryPreferences?: string[];
+    sensitivities?: string[];
+    avoidedFoods?: string[];
+
     createdAt?: number;
     updatedAt?: number;
 }

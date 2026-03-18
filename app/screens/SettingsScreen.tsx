@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, SafeAreaView, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
-import { updateUserProfile, saveLocalPII } from '../../src/services/userProfile';
+import { updateUserProfile, saveLocalPII, getLocalPII, getUserProfile, UserProfile } from '../../src/services/userProfile';
 import { auth } from '../../src/services/firebaseConfig';
+import { signOut } from 'firebase/auth';
+import { LogOut, ChevronLeft, Save, Search, X } from 'lucide-react-native';
 import { ChipSelect } from '../components/ChipSelect';
 import { ingredientService } from '../../src/services/IngredientService';
 import { Ingredient } from '../../src/models/Ingredient';
-import { ChevronRight, ChevronLeft, Search, X } from 'lucide-react-native';
 
-type OnboardingProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OnboardingProfile'>;
+type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
 
 type Props = {
-    navigation: OnboardingProfileScreenNavigationProp;
+    navigation: SettingsScreenNavigationProp;
 };
 
 const GOAL_OPTIONS = [
@@ -44,8 +45,7 @@ const FREQUENCY_OPTIONS = [
     "After most meals"
 ];
 
-export default function OnboardingProfileScreen({ navigation }: Props) {
-    const [step, setStep] = useState(0);
+export default function SettingsScreen({ navigation }: Props) {
     const [name, setName] = useState('');
     const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
     const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
@@ -54,43 +54,53 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
     const [selectedSensitivities, setSelectedSensitivities] = useState<string[]>([]);
     const [avoidedFoods, setAvoidedFoods] = useState<string[]>([]);
     const [symptomFrequency, setSymptomFrequency] = useState('');
-    
+
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Ingredient[]>([]);
-    
-    const [saving, setSaving] = useState(false);
 
-    const handleNext = () => {
-        if (step === 0 && !name.trim()) {
+    useEffect(() => {
+        loadProfile();
+    }, []);
+
+    const loadProfile = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        try {
+            const [localPII, profile] = await Promise.all([
+                getLocalPII(user.uid),
+                getUserProfile(user.uid)
+            ]);
+
+            if (localPII.name) setName(localPII.name);
+            
+            if (profile) {
+                if (profile.goals) setSelectedGoals(profile.goals);
+                if (profile.symptoms) setSelectedSymptoms(profile.symptoms);
+                if (profile.allergies) setSelectedAllergies(profile.allergies);
+                if (profile.dietaryPreferences) setSelectedPreferences(profile.dietaryPreferences);
+                if (profile.sensitivities) setSelectedSensitivities(profile.sensitivities);
+                if (profile.avoidedFoods) setAvoidedFoods(profile.avoidedFoods);
+                if (profile.symptomFrequency) setSymptomFrequency(profile.symptomFrequency);
+            }
+        } catch (error) {
+            console.error("Failed to load profile:", error);
+            Alert.alert("Error", "Could not load your profile.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!name.trim()) {
             Alert.alert("Required", "Please tell us your name.");
             return;
         }
-        if (step === 1 && selectedGoals.length === 0) {
-            Alert.alert("Required", "Please select at least one goal.");
-            return;
-        }
-        if (step === 2 && selectedSymptoms.length === 0) {
-            Alert.alert("Required", "Please select at least one symptom.");
-            return;
-        }
-        if (step === 5 && !symptomFrequency) {
-            Alert.alert("Required", "Please select how often you experience symptoms.");
-            return;
-        }
 
-        if (step < 5) {
-            setStep(step + 1);
-        } else {
-            handleComplete();
-        }
-    };
-
-    const handleBack = () => {
-        if (step > 0) setStep(step - 1);
-    };
-
-    const handleComplete = async () => {
         const user = auth.currentUser;
         if (!user) return;
 
@@ -98,7 +108,7 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
         try {
             await saveLocalPII(user.uid, { name: name.trim() });
 
-            await updateUserProfile(user.uid, {
+            const profileUpdates: Partial<UserProfile> = {
                 goals: selectedGoals,
                 symptoms: selectedSymptoms,
                 allergies: selectedAllergies,
@@ -106,17 +116,31 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                 sensitivities: selectedSensitivities,
                 avoidedFoods: avoidedFoods,
                 symptomFrequency: symptomFrequency,
-                hasCompletedOnboarding: true,
                 updatedAt: Date.now()
-            });
+            };
 
-            navigation.navigate('OnboardingComplete');
+            await updateUserProfile(user.uid, profileUpdates);
+            Alert.alert("Success", "Your preferences have been updated.");
+            navigation.goBack();
         } catch (error) {
             console.error("Failed to save profile:", error);
-            Alert.alert("Error", "Could not save your profile. Please try again.");
+            Alert.alert("Error", "Could not save your preferences.");
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleLogout = async () => {
+        Alert.alert('Sign Out', 'Are you sure you want to log out?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Log Out',
+                style: 'destructive',
+                onPress: async () => {
+                    await signOut(auth);
+                }
+            }
+        ]);
     };
 
     const toggleItem = (list: string[], setList: (l: string[]) => void, item: string, max?: number) => {
@@ -150,27 +174,47 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
         setAvoidedFoods(avoidedFoods.filter(f => f !== ingName));
     };
 
-    const renderStep = () => {
-        switch(step) {
-            case 0:
-                return (
-                    <View style={styles.stepContainer}>
-                        <Text style={styles.title}>Welcome!</Text>
-                        <Text style={styles.subtitle}>First, what should we call you?</Text>
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#3b82f6" />
+            </View>
+        );
+    }
+
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <ChevronLeft color="#1e293b" size={28} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Preferences</Text>
+                <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.saveButton}>
+                    {saving ? <ActivityIndicator size="small" color="#3b82f6" /> : <Save color="#3b82f6" size={24} />}
+                </TouchableOpacity>
+            </View>
+
+            <KeyboardAvoidingView 
+                style={styles.keyboardAvoidingView} 
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+                <ScrollView 
+                    style={styles.container} 
+                    contentContainerStyle={styles.contentContainer}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>What should we call you? *</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="Your Name"
                             value={name}
                             onChangeText={setName}
-                            autoFocus
                         />
                     </View>
-                );
-            case 1:
-                return (
-                    <View style={styles.stepContainer}>
-                        <Text style={styles.title}>What would you like to improve?</Text>
-                        <Text style={styles.subtitle}>Select up to 3 goals.</Text>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Primary Goals (up to 3)</Text>
                         <ChipSelect
                             options={GOAL_OPTIONS}
                             selectedOptions={selectedGoals}
@@ -178,12 +222,9 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                             maxSelections={3}
                         />
                     </View>
-                );
-            case 2:
-                return (
-                    <ScrollView style={styles.stepContainer}>
-                        <Text style={styles.title}>What symptoms do you want to understand?</Text>
-                        <Text style={styles.subtitle}>These will be our primary focus.</Text>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Symptoms to Understand</Text>
                         {Object.entries(SYMPTOM_CATEGORIES).map(([cat, opts]) => (
                             <ChipSelect
                                 key={cat}
@@ -193,13 +234,10 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                                 onToggle={(item) => toggleItem(selectedSymptoms, setSelectedSymptoms, item)}
                             />
                         ))}
-                    </ScrollView>
-                );
-            case 3:
-                return (
-                    <ScrollView style={styles.stepContainer}>
-                        <Text style={styles.title}>Dietary restrictions & sensitivities?</Text>
-                        <Text style={styles.subtitle}>Help us identify safe vs. risky foods.</Text>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Dietary Restrictions & Sensitivities</Text>
                         <ChipSelect
                             category="Allergies"
                             options={DIET_CATEGORIES.Allergies}
@@ -218,19 +256,15 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                             selectedOptions={selectedSensitivities}
                             onToggle={(item) => toggleItem(selectedSensitivities, setSelectedSensitivities, item)}
                         />
-                    </ScrollView>
-                );
-            case 4:
-                return (
-                    <View style={styles.stepContainer}>
-                        <Text style={styles.title}>Any foods you avoid?</Text>
-                        <Text style={styles.subtitle}>Search for specific ingredients icons you dislike or avoid.</Text>
-                        
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Foods Avoided</Text>
                         <View style={styles.searchContainer}>
                             <Search size={20} color="#64748b" style={styles.searchIcon} />
                             <TextInput
                                 style={styles.searchInput}
-                                placeholder="Search ingredients (e.g. Garlic, Cilantro)"
+                                placeholder="Search ingredients"
                                 value={searchQuery}
                                 onChangeText={searchIngs}
                             />
@@ -261,12 +295,9 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                             ))}
                         </View>
                     </View>
-                );
-            case 5:
-                return (
-                    <View style={styles.stepContainer}>
-                        <Text style={styles.title}>How often do you experience symptoms?</Text>
-                        <Text style={styles.subtitle}>This helps us calibrate your frequency baseline.</Text>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Symptom Frequency</Text>
                         <View style={styles.frequencyList}>
                             {FREQUENCY_OPTIONS.map(opt => (
                                 <TouchableOpacity
@@ -287,54 +318,17 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                             ))}
                         </View>
                     </View>
-                );
-            default:
-                return null;
-        }
-    };
 
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: `${((step + 1) / 6) * 100}%` }]} />
-                </View>
-                <Text style={styles.progressText}>Step {step + 1} of 6</Text>
-            </View>
-
-            <KeyboardAvoidingView 
-                style={{ flex: 1 }} 
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
-                <View style={styles.container}>
-                    {renderStep()}
-                </View>
-
-                <View style={styles.footer}>
-                    {step > 0 ? (
-                        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-                            <ChevronLeft size={24} color="#64748b" />
-                            <Text style={styles.backButtonText}>Back</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <View />
-                    )}
+                    <View style={styles.divider} />
 
                     <TouchableOpacity 
-                        style={[styles.nextButton, saving && styles.buttonDisabled]} 
-                        onPress={handleNext}
-                        disabled={saving}
+                        style={styles.logoutButton} 
+                        onPress={handleLogout}
                     >
-                        {saving ? (
-                            <ActivityIndicator color="#ffffff" />
-                        ) : (
-                            <>
-                                <Text style={styles.nextButtonText}>{step === 5 ? "Finish" : "Next"}</Text>
-                                <ChevronRight size={24} color="#ffffff" />
-                            </>
-                        )}
+                        <LogOut color="#ef4444" size={20} style={{ marginRight: 8 }} />
+                        <Text style={styles.logoutButtonText}>Sign Out</Text>
                     </TouchableOpacity>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -345,55 +339,62 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#ffffff',
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'ios' ? 8 : 0,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9',
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1e293b',
+    },
+    backButton: {
+        padding: 4,
+    },
+    saveButton: {
+        padding: 4,
+    },
+    keyboardAvoidingView: {
+        flex: 1,
+    },
     container: {
         flex: 1,
-        paddingHorizontal: 24,
+        backgroundColor: '#ffffff',
     },
-    progressContainer: {
-        paddingHorizontal: 24,
-        paddingTop: Platform.OS === 'ios' ? 20 : 16,
-        paddingBottom: 16,
+    contentContainer: {
+        padding: 24,
+        paddingBottom: 48,
     },
-    progressBar: {
-        height: 6,
-        backgroundColor: '#f1f5f9',
-        borderRadius: 3,
-        overflow: 'hidden',
-        marginBottom: 8,
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: '#3b82f6',
-    },
-    progressText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#94a3b8',
-        textAlign: 'right',
-    },
-    stepContainer: {
-        flex: 1,
-        paddingTop: 20,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginBottom: 12,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#64748b',
+    inputGroup: {
         marginBottom: 32,
-        lineHeight: 24,
+    },
+    label: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#334155',
+        marginBottom: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     input: {
         backgroundColor: '#f8fafc',
         borderWidth: 1,
         borderColor: '#e2e8f0',
         borderRadius: 12,
-        padding: 16,
-        fontSize: 18,
+        padding: 14,
+        fontSize: 16,
         color: '#1e293b',
     },
     searchContainer: {
@@ -403,16 +404,16 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#e2e8f0',
         borderRadius: 12,
-        paddingHorizontal: 16,
-        marginBottom: 16,
+        paddingHorizontal: 12,
+        marginBottom: 12,
     },
     searchIcon: {
-        marginRight: 12,
+        marginRight: 8,
     },
     searchInput: {
         flex: 1,
-        paddingVertical: 14,
-        fontSize: 16,
+        paddingVertical: 12,
+        fontSize: 15,
         color: '#1e293b',
     },
     resultsContainer: {
@@ -420,21 +421,15 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#e2e8f0',
         borderRadius: 12,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        marginBottom: 12,
     },
     resultItem: {
-        padding: 16,
+        padding: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#f1f5f9',
     },
     resultText: {
-        fontSize: 16,
-        color: '#334155',
+        fontSize: 15,
     },
     avoidedChips: {
         flexDirection: 'row',
@@ -445,35 +440,35 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#f1f5f9',
-        borderRadius: 20,
-        paddingVertical: 8,
+        borderRadius: 16,
+        paddingVertical: 6,
         paddingHorizontal: 12,
-        gap: 6,
+        gap: 4,
     },
     avoidedText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
         color: '#334155',
     },
     frequencyList: {
-        gap: 12,
+        gap: 10,
     },
     frequencyItem: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 18,
+        padding: 16,
         backgroundColor: '#f8fafc',
         borderWidth: 1,
         borderColor: '#e2e8f0',
-        borderRadius: 16,
+        borderRadius: 12,
     },
     frequencyItemSelected: {
         borderColor: '#3b82f6',
         backgroundColor: '#eff6ff',
     },
     frequencyText: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '500',
         color: '#334155',
     },
@@ -482,55 +477,37 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     radioEmpty: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
         borderWidth: 2,
         borderColor: '#cbd5e1',
     },
     radioFilled: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        borderWidth: 6,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        borderWidth: 5,
         borderColor: '#3b82f6',
     },
-    footer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 24,
-        borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
-        backgroundColor: '#ffffff',
+    divider: {
+        height: 1,
+        backgroundColor: '#f1f5f9',
+        marginVertical: 24,
     },
-    backButton: {
+    logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        justifyContent: 'center',
+        backgroundColor: '#fef2f2',
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#fee2e2',
     },
-    backButtonText: {
+    logoutButtonText: {
+        color: '#ef4444',
         fontSize: 16,
         fontWeight: '600',
-        color: '#64748b',
-    },
-    nextButton: {
-        backgroundColor: '#3b82f6',
-        borderRadius: 12,
-        paddingVertical: 14,
-        paddingHorizontal: 24,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        minWidth: 120,
-        justifyContent: 'center',
-    },
-    buttonDisabled: {
-        backgroundColor: '#93c5fd',
-    },
-    nextButtonText: {
-        color: '#ffffff',
-        fontSize: 18,
-        fontWeight: 'bold',
     },
 });
