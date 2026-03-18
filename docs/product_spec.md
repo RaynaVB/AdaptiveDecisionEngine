@@ -20,12 +20,14 @@ The system is a modular React Native application (Expo) with a clear separation 
 
 ### 2. Multi-Modal Data Ingestion
 
-#### A. Interactive Meal Logging
-- **Visual Capture**: Integrated camera and image library support via Expo APIs.
-- **ML-Powered Inference**: Automated image analysis via `visionService.ts` using Gemini 2.0 Flash to suggest descriptions and structured tags.
-- **Structured Tagging**: Three-tier tagging (Load: `light`/`regular`/`heavy`; Type: `sweet`/`savory`; Context: `homemade`/`restaurant`/`packaged`).
-- **Temporal Slotting**: Automatic assignment to `breakfast`, `lunch`, `dinner`, or `snack` slots based on time of entry.
-- **Meal Detail View**: Dedicated screen (`MealDetailScreen`) showing the full structured record, linked mood context, and photo.
+#### A. AI-Powered Ingredient Capture
+- **Visual & Text Dual-Mode**: Supports both camera/gallery uploads and manual text descriptions.
+- **Multi-Step AI Analysis**: Large Language Model (Gemini 2.0 Flash) provides real-time feedback during processing (e.g., "Identifying dish...", "Extracting ingredients...").
+- **Non-Food Detection**: Automated safety check to prevent non-food images from being processed.
+- **Canonical Ingredient Database**: Matches food items against a structured 2,500+ item ingredient library with support for manual additions/removals.
+- **Binary Follow-up Questions**: AI-generated clarifying questions (e.g., "Is this dairy-free?") use a simplified Yes/No/Not Sure format for rapid confirmation.
+- **Dish Name Attribution**: Automatically identifies and uses a primary "Dish Name" (e.g., "Street Tacos") over generic descriptions.
+- **Unified Interface**: `MealDetailScreen` provides visual parity with `LogMealScreen`, allowing effortless post-log editing of ingredients and dish details.
 
 #### B. Integrated Symptom & Mood Tracking
 - **Unified Logging Interface**: A single, dynamic `SymptomLoggerScreen` handles both physical symptoms (e.g., Nausea, Headache) and emotional check-ins (e.g., Anxiety, Low Energy).
@@ -38,6 +40,7 @@ The system is a modular React Native application (Expo) with a clear separation 
 - **7-Day Sliding Feed**: Displays all meals, moods, and symptoms in a `SectionList` grouped by day.
 - **Week at a Glance**: A summarized top row showing 7 distinct visual dot indicators, with each dot corresponding to total logged daily events. Color coding reflects symptom severities.
 - **Daily Timeline Modal**: Tapping a day's dot in the Week at a Glance opens a custom, interactive `Modal` presenting the day's timeline for meals, moods, and symptoms mirroring the chronological UI aesthetic.
+- **Intelligent Summaries**: Meal cards prioritize the AI-identified **Dish Name** (e.g., "Snack • Apple") over generic tags, ensuring a highly readable, descriptive feed.
 - **Swipe-to-Delete**: Native-feel gesture-based deletion (`PanResponder`) for both meal and mood cards with animated red delete indicator.
 - **Animated Removal**: Uses `LayoutAnimation` for smooth card collapse on deletion.
 - **Chart Summaries**: Embedded weekly bar/line charts showing mood and meal trends.
