@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
-import { updateUserProfile, saveLocalPII, getLocalPII, getUserProfile, UserProfile } from '../../src/services/userProfile';
-import { auth } from '../../src/services/firebaseConfig';
+import { updateUserProfile, saveLocalPII, getLocalPII, getUserProfile, UserProfile, isInternalUser } from '../../src/services/userProfile';
+import { auth, db } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { LogOut, ChevronLeft, Save, Search, X } from 'lucide-react-native';
 import { ChipSelect } from '../components/ChipSelect';
 import { ingredientService } from '../../src/services/IngredientService';
+import { StorageService } from '../../src/services/storage';
 import { Ingredient } from '../../src/models/Ingredient';
 
 type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
@@ -129,7 +130,7 @@ export default function SettingsScreen({ navigation }: Props) {
             setSaving(false);
         }
     };
-
+    
     const handleLogout = async () => {
         Alert.alert('Sign Out', 'Are you sure you want to log out?', [
             { text: 'Cancel', style: 'cancel' },

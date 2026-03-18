@@ -228,5 +228,43 @@ export const StorageService = {
         } catch (e) {
             console.error('Failed to clear logs', e);
         }
+    },
+
+    /**
+     * Admin only: Clears logs for ALL users in the system.
+     */
+    async clearSystemLogsForAllUsers(): Promise<void> {
+        if (!auth.currentUser) return;
+        
+        try {
+            // 1. Get all users
+            const usersSnapshot = await getDocs(collection(db, 'users'));
+            
+            // 2. For each user, clear their logs
+            const promises = usersSnapshot.docs.map(async (userDoc) => {
+                const userId = userDoc.id;
+                const userRef = doc(db, 'users', userId);
+                
+                // Clear meals
+                const mealsSnapshot = await getDocs(collection(userRef, 'meals'));
+                const mealDeletes = mealsSnapshot.docs.map(d => deleteDoc(d.ref));
+                
+                // Clear moods
+                const moodsSnapshot = await getDocs(collection(userRef, 'moods'));
+                const moodDeletes = moodsSnapshot.docs.map(d => deleteDoc(d.ref));
+                
+                // Clear symptoms
+                const symptomsSnapshot = await getDocs(collection(userRef, 'symptoms'));
+                const symptomDeletes = symptomsSnapshot.docs.map(d => deleteDoc(d.ref));
+                
+                return Promise.all([...mealDeletes, ...moodDeletes, ...symptomDeletes]);
+            });
+            
+            await Promise.all(promises);
+            await this.logAuditAction('ADMIN_CLEAR_ALL_LOGS', { systemWide: true });
+        } catch (e) {
+            console.error('Failed to clear all system logs', e);
+            throw e;
+        }
     }
 };

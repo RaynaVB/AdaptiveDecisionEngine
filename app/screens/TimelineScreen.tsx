@@ -7,7 +7,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { SymptomEvent } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
-import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb, Menu, Settings } from 'lucide-react-native';
+import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb, Menu, Settings, ShieldCheck } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 import { WeeklyReport } from '../../src/components/WeeklyReport';
 import { generateInsightsFromPatterns, Insight } from '../../src/core/insight_engine/insightEngine';
@@ -273,20 +273,6 @@ export default function TimelineScreen() {
         ]);
     }, []);
 
-    const handleClear = useCallback(async () => {
-        Alert.alert('Confirm', 'Delete all logs?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                    await StorageService.clearAllLogs();
-                    await loadData();
-                }
-            }
-        ]);
-    }, []);
-
     const deleteWithAnimation = useCallback(async (deleteOp: () => Promise<void>) => {
         LayoutAnimation.configureNext({
             duration: 300,
@@ -301,14 +287,7 @@ export default function TimelineScreen() {
         navigation.setOptions({
             headerShown: false, // Turn off native header to fix the cutoff bug
         });
-    }, [navigation, handleClear, handleLogout]);
-
-    const handleSeed = async () => {
-        setLoading(true);
-        await StorageService.seedDemoLogs();
-        await loadData();
-        Alert.alert('Success', 'Demo logs seeded!');
-    };
+    }, [navigation, handleLogout]);
 
     const getMoodForMeal = (meal: MealEvent) => {
         // 1. Check for directly linked mood
@@ -491,11 +470,6 @@ export default function TimelineScreen() {
                 {timelineData.length === 0 && !loading ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyText}>No logs found.</Text>
-                        {isInternalUser(userProfile) && (
-                            <TouchableOpacity style={styles.seedButton} onPress={handleSeed}>
-                                <Text style={styles.seedButtonText}>Seed Demo Logs</Text>
-                            </TouchableOpacity>
-                        )}
                     </View>
                 ) : (
                     <SectionList
@@ -790,11 +764,11 @@ export default function TimelineScreen() {
                                     style={styles.menuItem}
                                     onPress={() => {
                                         setIsMenuOpen(false);
-                                        handleClear();
+                                        navigation.navigate('Admin');
                                     }}
                                 >
-                                    <Trash2 color="#ef4444" size={20} />
-                                    <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Clear All Logs</Text>
+                                    <ShieldCheck color="#10b981" size={20} />
+                                    <Text style={[styles.menuItemText, { color: '#10b981' }]}>Admin System</Text>
                                 </TouchableOpacity>
                             )}
 

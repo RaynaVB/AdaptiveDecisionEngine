@@ -106,7 +106,6 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                 sensitivities: selectedSensitivities,
                 avoidedFoods: avoidedFoods,
                 symptomFrequency: symptomFrequency,
-                hasCompletedOnboarding: true,
                 updatedAt: Date.now()
             });
 

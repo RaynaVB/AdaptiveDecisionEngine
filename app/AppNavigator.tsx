@@ -24,6 +24,7 @@ import OnboardingProfileScreen from './screens/OnboardingProfileScreen';
 import OnboardingCompleteScreen from './screens/OnboardingCompleteScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import AdminScreen from './screens/AdminScreen';
 
 import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
 import { auth } from '../src/services/firebaseConfig';
@@ -169,6 +170,11 @@ export default function AppNavigator() {
                         <Stack.Screen
                             name="Settings"
                             component={SettingsScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="Admin"
+                            component={AdminScreen}
                             options={{ headerShown: false }}
                         />
                     </Stack.Group>
