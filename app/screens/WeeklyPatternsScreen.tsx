@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { StorageService } from '../../src/services/storage';
 import { MealEvent, MoodEvent } from '../../src/models/types';
+import { SymptomEvent } from '../../src/models/Symptom';
 import { runPatternEngine, Pattern } from '../../src/core/pattern_engine';
 import { ArrowLeft } from 'lucide-react-native';
 
@@ -18,6 +19,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
     const [patterns, setPatterns] = useState<Pattern[]>([]);
     const [message, setMessage] = useState('');
     const [chartData, setChartData] = useState<{ labels: string[], datasets: [{ data: number[] }] } | null>(null);
+    const [symptomChartData, setSymptomChartData] = useState<{ labels: string[], datasets: [{ data: number[] }] } | null>(null);
 
     useEffect(() => {
         loadPatterns();
@@ -28,70 +30,97 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
             setLoading(true);
             const meals = await StorageService.getMealEvents();
             const moods = await StorageService.getMoodEvents();
+            const symptoms = await StorageService.getSymptomEvents();
 
-            // Uncertainty Policy: Global Thresholds
-            // Min 5 meals, Min 3 moods (Last 7 Days) to even run the engine
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
             const recentMeals = meals.filter(m => new Date(m.occurredAt) >= sevenDaysAgo);
             const recentMoods = moods.filter(m => new Date(m.occurredAt) >= sevenDaysAgo);
+            const recentSymptoms = symptoms.filter(s => new Date(s.occurredAt) >= sevenDaysAgo);
 
-            if (recentMeals.length < 5) {
-                setMessage("Not enough meal data yet. Log at least 5 meals this week to see patterns.");
+            // Allow screens to show with symptom data even if mood data is sparse
+            const hasEnoughMeals = recentMeals.length >= 5;
+            const hasEnoughMoods = recentMoods.length >= 3;
+            const hasEnoughSymptoms = recentSymptoms.length >= 2;
+
+            if (!hasEnoughMeals && !hasEnoughSymptoms) {
+                setMessage("Not enough data yet. Log at least 5 meals or 2 symptoms this week to see patterns.");
                 setPatterns([]);
                 setLoading(false);
                 return;
             }
 
-            // Note: P2 (Late Night) and P3 (Shift) might not strict moods, but let's stick to policy
-            // If strictly P2/P3 don't need moods, we could allow them.
-            // Policy says: "Minimum Moods: 3". Strict adherence.
-            if (recentMoods.length < 3) {
-                setMessage("Not enough mood data yet. Log at least 3 moods this week to see patterns.");
-                setPatterns([]);
-                setChartData(null);
-                setLoading(false);
-                return;
-            }
-
-            // Compute Chart Data (Average mood valence per day)
-            const moodByDay: Record<string, { sum: number, count: number }> = {};
-            // initialize past 7 days (including today)
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const dayStr = d.toLocaleDateString([], { weekday: 'short' });
-                moodByDay[dayStr] = { sum: 0, count: 0 };
-            }
-
-            recentMoods.forEach(m => {
-                const d = new Date(m.occurredAt);
-                const dayStr = d.toLocaleDateString([], { weekday: 'short' });
-                if (moodByDay[dayStr]) {
-                    // normalize valence (can be string or number, default to 3 if unknown)
-                    const val = typeof m.valence === 'number' ? m.valence : 3;
-                    moodByDay[dayStr].sum += val;
-                    moodByDay[dayStr].count += 1;
+            // Compute Mood Chart Data (Average mood valence per day)
+            if (hasEnoughMoods) {
+                const moodByDay: Record<string, { sum: number, count: number }> = {};
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const dayStr = d.toLocaleDateString([], { weekday: 'short' });
+                    moodByDay[dayStr] = { sum: 0, count: 0 };
                 }
-            });
 
-            const labels: string[] = [];
-            const data: number[] = [];
+                recentMoods.forEach(m => {
+                    const d = new Date(m.occurredAt);
+                    const dayStr = d.toLocaleDateString([], { weekday: 'short' });
+                    if (moodByDay[dayStr]) {
+                        const val = typeof m.valence === 'number' ? m.valence : 3;
+                        moodByDay[dayStr].sum += val;
+                        moodByDay[dayStr].count += 1;
+                    }
+                });
 
-            Object.entries(moodByDay).forEach(([day, stats]) => {
-                labels.push(day);
-                // Default to 3 (Neutral) if no data for the day, to keep the chart contiguous
-                data.push(stats.count > 0 ? stats.sum / stats.count : 3);
-            });
+                const labels: string[] = [];
+                const data: number[] = [];
+                Object.entries(moodByDay).forEach(([day, stats]) => {
+                    labels.push(day);
+                    data.push(stats.count > 0 ? stats.sum / stats.count : 3);
+                });
 
-            // We show chart if there is data, and we don't care if it's perfectly flat
-            setChartData({
-                labels,
-                datasets: [{ data }]
-            });
+                setChartData({ labels, datasets: [{ data }] });
+            } else {
+                setChartData(null);
+            }
 
-            const results = runPatternEngine(meals, moods);
+            // Compute Symptom Trend Chart (daily symptom load = sum of severities)
+            if (hasEnoughSymptoms) {
+                const symptomByDay: Record<string, number> = {};
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const dayStr = d.toLocaleDateString([], { weekday: 'short' });
+                    symptomByDay[dayStr] = 0;
+                }
+
+                recentSymptoms.forEach(s => {
+                    const d = new Date(s.occurredAt);
+                    const dayStr = d.toLocaleDateString([], { weekday: 'short' });
+                    if (symptomByDay[dayStr] !== undefined) {
+                        symptomByDay[dayStr] += s.severity;
+                    }
+                });
+
+                const sLabels: string[] = [];
+                const sData: number[] = [];
+                Object.entries(symptomByDay).forEach(([day, total]) => {
+                    sLabels.push(day);
+                    sData.push(total);
+                });
+
+                // Only show chart if there's at least some non-zero data
+                const hasData = sData.some(v => v > 0);
+                if (hasData) {
+                    setSymptomChartData({ labels: sLabels, datasets: [{ data: sData }] });
+                } else {
+                    setSymptomChartData(null);
+                }
+            } else {
+                setSymptomChartData(null);
+            }
+
+            // Run pattern engine WITH symptoms
+            const results = runPatternEngine(meals, moods, symptoms);
 
             // Sort: Severity (high->low) -> Confidence (high->low)
             const severityScore = (p: Pattern) => p.severity === 'high' ? 3 : p.severity === 'medium' ? 2 : 1;
@@ -103,8 +132,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                 return confidenceScore(b) - confidenceScore(a);
             });
 
-            // Take top 3
-            setPatterns(results.slice(0, 3));
+            setPatterns(results);
             setMessage(results.length === 0 ? "No patterns detected yet. Keep logging!" : "");
 
         } catch (e) {
@@ -117,9 +145,9 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
 
     const getConfidenceColor = (c: string) => {
         switch (c) {
-            case 'high': return '#059669'; // Emerald 600
-            case 'medium': return '#d97706'; // Amber 600
-            default: return '#6b7280'; // Gray 500
+            case 'high': return '#059669';
+            case 'medium': return '#d97706';
+            default: return '#6b7280';
         }
     };
 
@@ -146,6 +174,47 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
         return `Mostly: ${parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}`;
     };
 
+    // Categorize patterns into sections
+    const symptomDrivers = patterns.filter(p => p.patternType === 'symptom_correlation');
+    const bestBehaviors = patterns.filter(p => 
+        p.patternType === 'meal_type_mood_association' && 
+        p.description.toLowerCase().includes('positive')
+    );
+    const regressions = patterns.filter(p => 
+        p.severity === 'high' || p.severity === 'medium'
+    ).filter(p => p.patternType !== 'symptom_correlation');
+
+    // Fallback: if no categorized patterns, show top 3 as before
+    const hasCategorizedSections = symptomDrivers.length > 0 || bestBehaviors.length > 0 || regressions.length > 0;
+    const fallbackPatterns = !hasCategorizedSections ? patterns.slice(0, 3) : [];
+
+    const renderPatternCard = (pattern: Pattern) => (
+        <View key={pattern.id} style={styles.card}>
+            <View style={styles.cardHeader}>
+                {getConfidenceBadge(pattern.confidence)}
+            </View>
+            <Text style={styles.cardTitle}>{pattern.title}</Text>
+            <Text style={styles.cardDesc}>{pattern.description}</Text>
+
+            {getSegmentationText(pattern.segmentation) && (
+                <Text style={styles.segmentation}>
+                    {getSegmentationText(pattern.segmentation)}
+                </Text>
+            )}
+
+            {pattern.actionableInsight && pattern.actionableInsight.actionType === 'start_experiment' && (
+                <TouchableOpacity 
+                    style={styles.actionButton}
+                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: pattern.actionableInsight!.experimentIdToStart })}
+                >
+                    <Text style={styles.actionButtonText}>{pattern.actionableInsight.label}</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+
+    const chartWidth = Dimensions.get("window").width - 64;
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
@@ -161,14 +230,15 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.content}>
-                    {patterns.length > 0 || chartData ? (
+                    {(patterns.length > 0 || chartData || symptomChartData) ? (
                         <>
+                            {/* Mood Trend Chart */}
                             {chartData && (
                                 <View style={styles.chartCard}>
                                     <Text style={styles.chartTitle}>Mood Trend (7 Days)</Text>
                                     <LineChart
                                         data={chartData}
-                                        width={Dimensions.get("window").width - 64} // padding
+                                        width={chartWidth}
                                         height={180}
                                         yAxisLabel=""
                                         yAxisSuffix=""
@@ -188,33 +258,62 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                                 </View>
                             )}
 
-                            {patterns.length > 0 && (
+                            {/* Symptom Trend Chart */}
+                            {symptomChartData && (
+                                <View style={styles.chartCard}>
+                                    <Text style={styles.chartTitle}>Symptom Load (7 Days)</Text>
+                                    <Text style={styles.chartSubtitle}>Daily total severity score</Text>
+                                    <LineChart
+                                        data={symptomChartData}
+                                        width={chartWidth}
+                                        height={180}
+                                        yAxisLabel=""
+                                        yAxisSuffix=""
+                                        chartConfig={{
+                                            backgroundColor: "#ffffff",
+                                            backgroundGradientFrom: "#ffffff",
+                                            backgroundGradientTo: "#ffffff",
+                                            decimalPlaces: 0,
+                                            color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`,
+                                            labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                                            style: { borderRadius: 16 },
+                                            propsForDots: { r: "4", strokeWidth: "2", stroke: "#ef4444" }
+                                        }}
+                                        bezier
+                                        style={{ marginVertical: 8, borderRadius: 16 }}
+                                    />
+                                </View>
+                            )}
+
+                            {/* Section: Top Symptom Drivers */}
+                            {symptomDrivers.length > 0 && (
+                                <>
+                                    <Text style={[styles.subtitle, styles.symptomDriverLabel]}>🔥 Top Symptom Drivers This Week</Text>
+                                    {symptomDrivers.slice(0, 3).map(renderPatternCard)}
+                                </>
+                            )}
+
+                            {/* Section: Best-Performing Behaviors */}
+                            {bestBehaviors.length > 0 && (
+                                <>
+                                    <Text style={[styles.subtitle, styles.bestBehaviorLabel]}>✅ Best-Performing Behaviors</Text>
+                                    {bestBehaviors.slice(0, 3).map(renderPatternCard)}
+                                </>
+                            )}
+
+                            {/* Section: Biggest Regressions */}
+                            {regressions.length > 0 && (
+                                <>
+                                    <Text style={[styles.subtitle, styles.regressionLabel]}>📉 Biggest Regressions</Text>
+                                    {regressions.slice(0, 3).map(renderPatternCard)}
+                                </>
+                            )}
+
+                            {/* Fallback: generic top patterns if no categorization available */}
+                            {fallbackPatterns.length > 0 && (
                                 <>
                                     <Text style={styles.subtitle}>Top patterns from the last 7 days</Text>
-                                    {patterns.map(pattern => (
-                                        <View key={pattern.id} style={styles.card}>
-                                            <View style={styles.cardHeader}>
-                                                {getConfidenceBadge(pattern.confidence)}
-                                            </View>
-                                            <Text style={styles.cardTitle}>{pattern.title}</Text>
-                                            <Text style={styles.cardDesc}>{pattern.description}</Text>
-
-                                            {getSegmentationText(pattern.segmentation) && (
-                                                <Text style={styles.segmentation}>
-                                                    {getSegmentationText(pattern.segmentation)}
-                                                </Text>
-                                            )}
-
-                                            {pattern.actionableInsight && pattern.actionableInsight.actionType === 'start_experiment' && (
-                                                <TouchableOpacity 
-                                                    style={styles.actionButton}
-                                                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: pattern.actionableInsight!.experimentIdToStart })}
-                                                >
-                                                    <Text style={styles.actionButtonText}>{pattern.actionableInsight.label}</Text>
-                                                </TouchableOpacity>
-                                            )}
-                                        </View>
-                                    ))}
+                                    {fallbackPatterns.map(renderPatternCard)}
                                 </>
                             )}
                         </>
@@ -264,6 +363,24 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         fontWeight: '500',
     },
+    symptomDriverLabel: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#dc2626',
+        marginTop: 8,
+    },
+    bestBehaviorLabel: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#059669',
+        marginTop: 8,
+    },
+    regressionLabel: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#d97706',
+        marginTop: 8,
+    },
     chartCard: {
         backgroundColor: '#fff',
         borderRadius: 12,
@@ -280,7 +397,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#111827',
-        marginBottom: 12,
+        marginBottom: 4,
+        alignSelf: 'flex-start',
+    },
+    chartSubtitle: {
+        fontSize: 13,
+        color: '#9ca3af',
+        marginBottom: 8,
         alignSelf: 'flex-start',
     },
     card: {
@@ -328,8 +451,8 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         marginTop: 16,
-        backgroundColor: '#f0fdf4', // Light green 50
-        borderColor: '#22c55e', // Green 500
+        backgroundColor: '#f0fdf4',
+        borderColor: '#22c55e',
         borderWidth: 1,
         paddingVertical: 10,
         paddingHorizontal: 16,
@@ -337,7 +460,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     actionButtonText: {
-        color: '#15803d', // Green 700
+        color: '#15803d',
         fontWeight: '600',
         fontSize: 14,
     },

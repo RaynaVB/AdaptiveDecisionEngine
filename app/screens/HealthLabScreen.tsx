@@ -1,11 +1,11 @@
 // app/screens/HealthLabScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
-import { ArrowLeft, Beaker, Play, ChevronRight, History } from 'lucide-react-native';
+import { ArrowLeft, Beaker, Play, ChevronRight, History, Sparkles } from 'lucide-react-native';
 import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
 import { ExperimentRun, ExperimentDefinition } from '../../src/models/healthlab';
@@ -17,10 +17,106 @@ type HealthLabScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'HealthLab'>;
 };
 
+// Relevance scoring: maps user profile data to experiment relevance
+interface ScoredExperiment {
+    experiment: ExperimentDefinition;
+    score: number;
+    reason: string;
+}
+
+const scoreExperiment = (exp: ExperimentDefinition, profile: UserProfile | null): ScoredExperiment => {
+    let score = 0;
+    const reasons: string[] = [];
+
+    if (!profile) return { experiment: exp, score: 0, reason: '' };
+
+    // Match by user symptoms
+    const userSymptoms = profile.symptoms || [];
+    const symptomKeywords: Record<string, string[]> = {
+        'bloating': ['dairy', 'digestion', 'bloating'],
+        'gas': ['dairy', 'digestion', 'fodmap'],
+        'stomach_pain': ['dairy', 'digestion'],
+        'acid_reflux': ['late', 'snack'],
+        'fatigue': ['energy', 'protein', 'afternoon', 'hydration'],
+        'energy_crashes': ['energy', 'protein', 'snack', 'afternoon'],
+        'brain_fog': ['brain fog', 'hydration', 'caffeine'],
+        'mood_swings': ['mood', 'stress'],
+        'anxiety': ['stress', 'mood'],
+        'headaches': ['hydration', 'caffeine'],
+        'sleep_problems': ['late', 'snack', 'caffeine'],
+    };
+
+    for (const symptom of userSymptoms) {
+        const keywords = symptomKeywords[symptom] || [];
+        for (const kw of keywords) {
+            if (
+                exp.hypothesis.toLowerCase().includes(kw) ||
+                exp.name.toLowerCase().includes(kw) ||
+                exp.targetMetric.toLowerCase().includes(kw)
+            ) {
+                score += 3;
+                reasons.push(symptom.replace(/_/g, ' '));
+                break; // count each symptom once
+            }
+        }
+    }
+
+    // Match by user sensitivities
+    const userSensitivities = profile.sensitivities || [];
+    const sensitivityKeywords: Record<string, string[]> = {
+        'lactose_sensitive': ['dairy'],
+        'caffeine_sensitive': ['caffeine'],
+        'sugar_sensitive': ['sugar', 'blood sugar'],
+        'spicy_food_sensitive': ['spicy'],
+        'high_fodmap_sensitive': ['fodmap', 'digestion'],
+        'fried_oily_food_sensitive': ['fried'],
+    };
+
+    for (const sens of userSensitivities) {
+        const keywords = sensitivityKeywords[sens] || [];
+        for (const kw of keywords) {
+            if (exp.hypothesis.toLowerCase().includes(kw) || exp.name.toLowerCase().includes(kw)) {
+                score += 2;
+                reasons.push(sens.replace(/_/g, ' ').replace('sensitive', '').trim());
+                break;
+            }
+        }
+    }
+
+    // Match by goals
+    const userGoals = profile.goals || [];
+    const goalKeywords: Record<string, string[]> = {
+        'improve_energy': ['energy', 'afternoon', 'protein'],
+        'improve_digestion': ['digestion', 'bloating', 'dairy'],
+        'improve_mood_clarity': ['mood', 'brain fog', 'stress'],
+        'identify_food_triggers': ['symptom', 'dairy', 'elimination'],
+        'build_healthier_habits': ['hydration', 'routine'],
+    };
+
+    for (const goal of userGoals) {
+        const keywords = goalKeywords[goal] || [];
+        for (const kw of keywords) {
+            if (exp.hypothesis.toLowerCase().includes(kw) || exp.targetMetric.toLowerCase().includes(kw)) {
+                score += 1;
+                break;
+            }
+        }
+    }
+
+    // Build reason string
+    const uniqueReasons = [...new Set(reasons)];
+    const reason = uniqueReasons.length > 0 
+        ? `Based on your ${uniqueReasons.slice(0, 2).join(' + ')}`
+        : '';
+
+    return { experiment: exp, score, reason };
+};
+
 export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     const [loading, setLoading] = useState(true);
     const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
     const [availableExperiments, setAvailableExperiments] = useState<ExperimentDefinition[]>(EXPERIMENT_LIBRARY);
+    const [recommendedExperiments, setRecommendedExperiments] = useState<ScoredExperiment[]>([]);
     const [hasRecentSymptoms, setHasRecentSymptoms] = useState(false);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
@@ -39,8 +135,9 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                 StorageService.getSymptomEvents()
             ]);
             
+            let profile: UserProfile | null = null;
             if (auth.currentUser) {
-                const profile = await getUserProfile(auth.currentUser.uid);
+                profile = await getUserProfile(auth.currentUser.uid);
                 setUserProfile(profile);
             }
 
@@ -52,13 +149,62 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                 .filter(run => run.status === 'completed' && (run.confidenceScore === 'high' || run.confidenceScore === 'medium'))
                 .map(run => run.experimentId);
 
-            const filtered = EXPERIMENT_LIBRARY.filter(def => !excludedIds.includes(def.id));
-            setAvailableExperiments(filtered);
+            // Also exclude currently active experiments from the available list
+            const activeIds = actives.map(run => run.experimentId);
+
+            const filtered = EXPERIMENT_LIBRARY.filter(def => 
+                !excludedIds.includes(def.id) && !activeIds.includes(def.id)
+            );
+
+            // Score all experiments for personalization
+            const scored = filtered.map(exp => scoreExperiment(exp, profile));
+            
+            // Split into recommended (score > 0) and rest
+            const recommended = scored
+                .filter(s => s.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 3);
+            
+            const recommendedIds = new Set(recommended.map(r => r.experiment.id));
+            const remaining = filtered.filter(exp => !recommendedIds.has(exp.id));
+
+            setRecommendedExperiments(recommended);
+            setAvailableExperiments(remaining);
         } catch (e) {
             console.error(e);
         } finally {
             setLoading(false);
         }
+    };
+
+    const renderRecommendedCard = (scored: ScoredExperiment) => {
+        const { experiment: item, reason } = scored;
+        const isActive = activeExperiments.some(run => run.experimentId === item.id);
+
+        return (
+            <TouchableOpacity 
+                key={item.id}
+                style={styles.recommendedCard}
+                onPress={() => navigation.navigate('ExperimentDetail', { experimentId: item.id })}
+            >
+                <View style={styles.recommendedContent}>
+                    <View style={styles.recommendedIconContainer}>
+                        <Sparkles size={22} color="#f59e0b" />
+                    </View>
+                    <View style={styles.recommendedTextContainer}>
+                        <Text style={styles.recommendedTitle}>{item.name}</Text>
+                        <Text style={styles.recommendedHypothesis} numberOfLines={2}>{item.hypothesis}</Text>
+                        <View style={styles.recommendedFooter}>
+                            <Text style={styles.durationTag}>{item.durationDays} Days</Text>
+                            {reason ? (
+                                <Text style={styles.reasonTag}>{reason}</Text>
+                            ) : null}
+                        </View>
+                    </View>
+                    <ChevronRight size={20} color="#f59e0b" />
+                </View>
+            </TouchableOpacity>
+        );
     };
 
     const renderExperimentItem = ({ item }: { item: ExperimentDefinition }) => {
@@ -78,11 +224,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                         <Text style={styles.cardHypothesis} numberOfLines={2}>{item.hypothesis}</Text>
                         <View style={styles.cardFooter}>
                             <Text style={styles.durationTag}>{item.durationDays} Days</Text>
-                            {hasRecentSymptoms && item.category === 'symptom' ? (
-                                <Text style={[styles.categoryTag, { backgroundColor: '#fef2f2', color: '#991b1b' }]}>✨ Recommended</Text>
-                            ) : (
-                                <Text style={styles.categoryTag}>{item.category}</Text>
-                            )}
+                            <Text style={styles.categoryTag}>{item.category}</Text>
                         </View>
                     </View>
                     {isActive ? (
@@ -151,7 +293,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.activeTitle}>
-                                                {availableExperiments.find(e => e.id === activeRun.experimentId)?.name || 'Unknown Experiment'}
+                                                {EXPERIMENT_LIBRARY.find(e => e.id === activeRun.experimentId)?.name || 'Unknown Experiment'}
                                             </Text>
                                             <Text style={styles.activeSub}>Track your progress daily</Text>
                                         </View>
@@ -159,6 +301,15 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                                     </View>
                                 </TouchableOpacity>
                             ))}
+                        </View>
+                    )}
+
+                    {/* Recommended For You section */}
+                    {recommendedExperiments.length > 0 && (
+                        <View style={styles.recommendedSection}>
+                            <Text style={styles.sectionTitle}>✨ Recommended For You</Text>
+                            <Text style={styles.recommendedSubtitle}>Based on your symptoms, sensitivities, and goals</Text>
+                            {recommendedExperiments.map(renderRecommendedCard)}
                         </View>
                     )}
 
@@ -268,6 +419,76 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         marginTop: 4,
     },
+
+    // Recommended For You section
+    recommendedSection: {
+        marginBottom: 24,
+    },
+    recommendedSubtitle: {
+        fontSize: 14,
+        color: '#64748b',
+        marginTop: -8,
+        marginBottom: 16,
+    },
+    recommendedCard: {
+        backgroundColor: '#fffbeb',
+        borderRadius: 18,
+        marginBottom: 16,
+        padding: 20,
+        borderWidth: 2,
+        borderColor: '#fcd34d',
+        shadowColor: '#f59e0b',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    recommendedContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    recommendedIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        backgroundColor: '#fef3c7',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    recommendedTextContainer: {
+        flex: 1,
+    },
+    recommendedTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#92400e',
+        marginBottom: 6,
+        letterSpacing: -0.2,
+    },
+    recommendedHypothesis: {
+        fontSize: 14,
+        color: '#78716c',
+        lineHeight: 20,
+        fontWeight: '400',
+    },
+    recommendedFooter: {
+        flexDirection: 'row',
+        marginTop: 12,
+        gap: 8,
+    },
+    reasonTag: {
+        fontSize: 12,
+        color: '#92400e',
+        backgroundColor: '#fef3c7',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        fontWeight: '600',
+        fontStyle: 'italic',
+    },
+
+    // Regular experiment cards
     card: {
         backgroundColor: '#fff',
         borderRadius: 18,

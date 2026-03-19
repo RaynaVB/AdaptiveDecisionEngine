@@ -12,15 +12,29 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { ExperimentRun } from '../../src/models/healthlab';
-import { Play, CheckCircle } from 'lucide-react-native';
+import { Play, CheckCircle, AlertTriangle, Zap, Beaker } from 'lucide-react-native';
+import { auth } from '../../src/services/firebaseConfig';
+import { getUserProfile, UserProfile } from '../../src/services/userProfile';
 
 type RecsScreenProp = StackNavigationProp<RootStackParamList, 'Recommendations'>;
+
+// Tier classification for recommendations
+type RecTier = 'preventive' | 'optimization' | 'experiment';
+
+const classifyTier = (rec: Recommendation): RecTier => {
+    if (rec.associatedExperimentId) return 'experiment';
+    // Symptom-linked patterns are preventive (highest urgency)
+    if (rec.recommendationType === 'symptom_correlation' || rec.recommendationType === 'symptom_avoidance') return 'preventive';
+    // Everything else is optimization
+    return 'optimization';
+};
 
 export default function RecommendationFeedScreen() {
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [feedbacks, setFeedbacks] = useState<Record<string, FeedbackOutcome | null>>({});
     const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
     const loadRecommendations = async () => {
         setLoading(true);
@@ -28,15 +42,22 @@ export default function RecommendationFeedScreen() {
             const actives = await ExperimentEngine.getActiveExperiments();
             setActiveExperiments(actives);
 
-            // 1. fetch recent meals and moods from Firestore
+            // Fetch user profile for goal-based sorting
+            if (auth.currentUser) {
+                const profile = await getUserProfile(auth.currentUser.uid);
+                setUserProfile(profile);
+            }
+
+            // 1. fetch recent meals, moods, AND symptoms from Firestore
             const meals = await StorageService.getMealEvents();
             const moods = await StorageService.getMoodEvents();
+            const symptoms = await StorageService.getSymptomEvents();
             
-            // 2. run Pattern Engine
-            const patterns = runPatternEngine(meals, moods);
+            // 2. run Pattern Engine WITH symptoms (was previously missing)
+            const patterns = runPatternEngine(meals, moods, symptoms);
             
             // 3. run Recommendation Engine
-            const recs = await runRecommendationEngine(patterns, { meals, moods });
+            const recs = await runRecommendationEngine(patterns, { meals, moods, symptoms });
             
             // Part 7 - Debug Logging
             console.log("--- DEBUG: Recommendation Engine ---");
@@ -164,8 +185,16 @@ export default function RecommendationFeedScreen() {
         return 'None';
     };
 
-    const renderCard = (rec: Recommendation, isBest: boolean) => (
-        <View key={rec.id} style={[styles.card, isBest ? styles.bestCard : styles.altCard]}>
+    const getTierStyle = (tier: RecTier) => {
+        switch (tier) {
+            case 'preventive': return styles.preventiveCard;
+            case 'experiment': return styles.experimentCard;
+            default: return styles.optimizationCard;
+        }
+    };
+
+    const renderCard = (rec: Recommendation, tier: RecTier) => (
+        <View key={rec.id} style={[styles.card, getTierStyle(tier)]}>
             <Text style={styles.cardTitle}>{rec.title}</Text>
             <Text style={styles.cardAction}>{rec.action}</Text>
             <View style={styles.whyContainer}>
@@ -201,23 +230,47 @@ export default function RecommendationFeedScreen() {
         </View>
     );
 
-    const bestAction = recommendations[0];
-    const alternates = recommendations.slice(1, 3);
+    // Classify recommendations into tiers
+    const preventive = recommendations.filter(r => classifyTier(r) === 'preventive');
+    const optimization = recommendations.filter(r => classifyTier(r) === 'optimization');
+    const experiments = recommendations.filter(r => classifyTier(r) === 'experiment');
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentParams} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadRecommendations}/>}>
             
-            {bestAction && (
+            {/* Tier 1: Preventive (highest urgency) */}
+            {preventive.length > 0 && (
                 <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>BEST NEXT ACTION</Text>
-                    {renderCard(bestAction, true)}
+                    <View style={styles.tierHeader}>
+                        <AlertTriangle size={16} color="#dc2626" />
+                        <Text style={[styles.sectionHeader, styles.preventiveHeader]}>🚨 PREVENTIVE</Text>
+                    </View>
+                    <Text style={styles.tierSubtext}>Based on your symptom patterns</Text>
+                    {preventive.map(rec => renderCard(rec, 'preventive'))}
                 </View>
             )}
 
-            {alternates.length > 0 && (
+            {/* Tier 2: Optimization */}
+            {optimization.length > 0 && (
                 <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>ALTERNATIVE OPTIONS</Text>
-                    {alternates.map(rec => renderCard(rec, false))}
+                    <View style={styles.tierHeader}>
+                        <Zap size={16} color="#f59e0b" />
+                        <Text style={[styles.sectionHeader, styles.optimizationHeader]}>⚡ OPTIMIZATION</Text>
+                    </View>
+                    <Text style={styles.tierSubtext}>Improve your daily performance</Text>
+                    {optimization.map(rec => renderCard(rec, 'optimization'))}
+                </View>
+            )}
+
+            {/* Tier 3: Experiments */}
+            {experiments.length > 0 && (
+                <View style={styles.section}>
+                    <View style={styles.tierHeader}>
+                        <Beaker size={16} color="#6366f1" />
+                        <Text style={[styles.sectionHeader, styles.experimentHeader]}>🧪 EXPERIMENTS</Text>
+                    </View>
+                    <Text style={styles.tierSubtext}>Test and confirm your patterns</Text>
+                    {experiments.map(rec => renderCard(rec, 'experiment'))}
                 </View>
             )}
 
@@ -243,12 +296,31 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 24,
     },
+    tierHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+    },
+    tierSubtext: {
+        fontSize: 13,
+        color: '#9ca3af',
+        marginBottom: 12,
+        marginLeft: 24,
+    },
     sectionHeader: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#6b7280',
-        marginBottom: 12,
         letterSpacing: 0.5,
+    },
+    preventiveHeader: {
+        color: '#dc2626',
+    },
+    optimizationHeader: {
+        color: '#d97706',
+    },
+    experimentHeader: {
+        color: '#6366f1',
     },
     card: {
         backgroundColor: '#ffffff',
@@ -263,14 +335,23 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
         elevation: 2,
     },
-    bestCard: {
-        borderColor: '#bfdbfe',
+    preventiveCard: {
+        borderColor: '#fca5a5',
         borderWidth: 2,
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        borderLeftWidth: 4,
+        borderLeftColor: '#dc2626',
     },
-    altCard: {
-        opacity: 0.95,
+    optimizationCard: {
+        borderColor: '#fcd34d',
+        borderWidth: 1,
+        borderLeftWidth: 4,
+        borderLeftColor: '#f59e0b',
+    },
+    experimentCard: {
+        borderColor: '#c4b5fd',
+        borderWidth: 1,
+        borderLeftWidth: 4,
+        borderLeftColor: '#6366f1',
     },
     cardTitle: {
         fontSize: 18,
