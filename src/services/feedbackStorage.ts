@@ -1,7 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FeedbackEvent, FeedbackOutcome, MoodEvent } from '../models/types';
-import { banditModel } from '../core/recommender_engine/ml/banditModel';
-import { buildContextVector } from '../core/recommender_engine/ml/contextBuilder';
 import { StorageService } from './storage';
 
 const FEEDBACK_STORAGE_KEY = '@feedbacks';
@@ -13,12 +11,7 @@ export const FeedbackStorageService = {
             history.push(event);
             await AsyncStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(history));
 
-            // Trigger ML Bandit update
-            const reward = this.getRewardForOutcome(event.outcome);
-            const targetTimeMs = new Date(event.timestamp).getTime();
-            const allMoods = await StorageService.getMoodEvents();
-            const context = buildContextVector(targetTimeMs, allMoods);
-            await banditModel.update(event.recommendationId, context, reward);
+            // ML Update is now handled server-side via RecommendationService.submitFeedback
 
         } catch (e) {
             console.error('Failed to save feedback and update bandit', e);

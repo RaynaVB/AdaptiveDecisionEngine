@@ -1,11 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { StorageService } from '../../src/services/storage';
-import { runPatternEngine } from '../../src/core/pattern_engine/patternEngine';
-import { runRecommendationEngine } from '../../src/core/recommender_engine/recommenderEngine';
-import { Recommendation } from '../../src/core/recommender_engine/types';
+import { Recommendation, FeedbackOutcome, FeedbackEvent } from '../../src/models/types';
 import { FeedbackStorageService } from '../../src/services/feedbackStorage';
-import { FeedbackOutcome, FeedbackEvent } from '../../src/models/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -15,6 +12,7 @@ import { ExperimentRun } from '../../src/models/healthlab';
 import { Play, CheckCircle, AlertTriangle, Zap, Beaker } from 'lucide-react-native';
 import { auth } from '../../src/services/firebaseConfig';
 import { getUserProfile, UserProfile } from '../../src/services/userProfile';
+import { RecommendationService } from '../../src/services/recommendationService';
 
 type RecsScreenProp = StackNavigationProp<RootStackParamList, 'Recommendations'>;
 
@@ -53,18 +51,15 @@ export default function RecommendationFeedScreen() {
             const moods = await StorageService.getMoodEvents();
             const symptoms = await StorageService.getSymptomEvents();
             
-            // 2. run Pattern Engine WITH symptoms (was previously missing)
-            const patterns = runPatternEngine(meals, moods, symptoms);
+            // 3. run Recommendation Engine (Remote)
+            console.log("[Recommendations] Fetching from Cloud Function...");
+            const recs = await RecommendationService.getRecommendations();
+            console.log("[Recommendations] Success! Result count:", recs.length);
             
-            // 3. run Recommendation Engine
-            const recs = await runRecommendationEngine(patterns, { meals, moods, symptoms });
-            
-            // Part 7 - Debug Logging
-            console.log("--- DEBUG: Recommendation Engine ---");
-            console.log("Patterns detected:", patterns.length, patterns.map(p => p.title));
-            console.log("Top 3 recommendations:", recs.map(r => ({
+            // Debug Logging (Optional)
+            console.log("Top recommendations:", recs.map(r => ({
                 title: r.title,
-                totalScore: r.scores.total.toFixed(2)
+                totalScore: r.scores?.total?.toFixed(2)
             })));
             
             // 4. render recommendations
@@ -128,6 +123,13 @@ export default function RecommendationFeedScreen() {
             timestamp: new Date().toISOString()
         };
         await FeedbackStorageService.saveFeedback(event);
+        
+        // Sync with backend
+        try {
+            await RecommendationService.submitFeedback(rec.templateId, rec.recommendationType, outcome);
+        } catch (e) {
+            console.error("Failed to sync feedback with backend", e);
+        }
         
         setFeedbacks((prev: Record<string, FeedbackOutcome | null>) => ({
             ...prev,

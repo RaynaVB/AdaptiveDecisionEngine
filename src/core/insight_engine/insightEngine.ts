@@ -1,22 +1,5 @@
-import { Pattern } from '../pattern_engine/types';
+import { Pattern, Insight } from '../../models/types';
 import { v4 as uuidv4 } from 'uuid';
-
-export type InsightType = 'correlation' | 'timing' | 'compound' | 'protective' | 'prediction';
-
-export interface Insight {
-    id: string;
-    type: InsightType;
-    title: string;
-    description: string;
-    confidence: 'low' | 'medium' | 'high';
-    relatedPatternIds: string[];
-    createdAt: string;
-    actionableInsight?: {
-        label: string;
-        experimentIdToStart: string;
-        actionType: 'start_experiment' | 'log_water' | 'review_sleep';
-    };
-}
 
 export const generateInsightsFromPatterns = (patterns: Pattern[]): Insight[] => {
     const insights: Insight[] = [];
@@ -40,7 +23,7 @@ export const generateInsightsFromPatterns = (patterns: Pattern[]): Insight[] => 
                 id: uuidv4(),
                 type: 'prediction',
                 title: `Risk Notification`,
-                description: `Based on past correlations, be mindful when consuming meals tagged with '${p.evidence.tag}' today as it is associated with symptoms.`,
+                description: `Based on past correlations, be mindful when consuming meals with similar characteristics today as they are associated with symptoms.`,
                 confidence: p.confidence,
                 relatedPatternIds: [p.id],
                 createdAt: new Date().toISOString()

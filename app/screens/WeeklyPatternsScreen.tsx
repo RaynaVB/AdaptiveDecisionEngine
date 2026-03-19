@@ -5,9 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { StorageService } from '../../src/services/storage';
-import { MealEvent, MoodEvent } from '../../src/models/types';
+import { MealEvent, MoodEvent, Pattern } from '../../src/models/types';
 import { SymptomEvent } from '../../src/models/Symptom';
-import { runPatternEngine, Pattern } from '../../src/core/pattern_engine';
 import { ArrowLeft } from 'lucide-react-native';
 
 type WeeklyPatternsScreenProps = {
@@ -51,7 +50,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                 return;
             }
 
-            // Compute Mood Chart Data (Average mood valence per day)
+            // Compute Mood Chart Data
             if (hasEnoughMoods) {
                 const moodByDay: Record<string, { sum: number, count: number }> = {};
                 for (let i = 6; i >= 0; i--) {
@@ -83,7 +82,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                 setChartData(null);
             }
 
-            // Compute Symptom Trend Chart (daily symptom load = sum of severities)
+            // Compute Symptom Trend Chart
             if (hasEnoughSymptoms) {
                 const symptomByDay: Record<string, number> = {};
                 for (let i = 6; i >= 0; i--) {
@@ -108,7 +107,6 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                     sData.push(total);
                 });
 
-                // Only show chart if there's at least some non-zero data
                 const hasData = sData.some(v => v > 0);
                 if (hasData) {
                     setSymptomChartData({ labels: sLabels, datasets: [{ data: sData }] });
@@ -119,18 +117,8 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                 setSymptomChartData(null);
             }
 
-            // Run pattern engine WITH symptoms
-            const results = runPatternEngine(meals, moods, symptoms);
-
-            // Sort: Severity (high->low) -> Confidence (high->low)
-            const severityScore = (p: Pattern) => p.severity === 'high' ? 3 : p.severity === 'medium' ? 2 : 1;
-            const confidenceScore = (p: Pattern) => p.confidence === 'high' ? 3 : p.confidence === 'medium' ? 2 : 1;
-
-            results.sort((a, b) => {
-                const sDiff = severityScore(b) - severityScore(a);
-                if (sDiff !== 0) return sDiff;
-                return confidenceScore(b) - confidenceScore(a);
-            });
+            // Patterns are now server-side (using placeholder for now)
+            const results: Pattern[] = [];
 
             setPatterns(results);
             setMessage(results.length === 0 ? "No patterns detected yet. Keep logging!" : "");
@@ -174,20 +162,6 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
         return `Mostly: ${parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}`;
     };
 
-    // Categorize patterns into sections
-    const symptomDrivers = patterns.filter(p => p.patternType === 'symptom_correlation');
-    const bestBehaviors = patterns.filter(p => 
-        p.patternType === 'meal_type_mood_association' && 
-        p.description.toLowerCase().includes('positive')
-    );
-    const regressions = patterns.filter(p => 
-        p.severity === 'high' || p.severity === 'medium'
-    ).filter(p => p.patternType !== 'symptom_correlation');
-
-    // Fallback: if no categorized patterns, show top 3 as before
-    const hasCategorizedSections = symptomDrivers.length > 0 || bestBehaviors.length > 0 || regressions.length > 0;
-    const fallbackPatterns = !hasCategorizedSections ? patterns.slice(0, 3) : [];
-
     const renderPatternCard = (pattern: Pattern) => (
         <View key={pattern.id} style={styles.card}>
             <View style={styles.cardHeader}>
@@ -205,7 +179,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
             {pattern.actionableInsight && pattern.actionableInsight.actionType === 'start_experiment' && (
                 <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: pattern.actionableInsight!.experimentIdToStart })}
+                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: pattern.actionableInsight?.experimentIdToStart || '' })}
                 >
                     <Text style={styles.actionButtonText}>{pattern.actionableInsight.label}</Text>
                 </TouchableOpacity>
@@ -232,7 +206,6 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                 <ScrollView contentContainerStyle={styles.content}>
                     {(patterns.length > 0 || chartData || symptomChartData) ? (
                         <>
-                            {/* Mood Trend Chart */}
                             {chartData && (
                                 <View style={styles.chartCard}>
                                     <Text style={styles.chartTitle}>Mood Trend (7 Days)</Text>
@@ -258,7 +231,6 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                                 </View>
                             )}
 
-                            {/* Symptom Trend Chart */}
                             {symptomChartData && (
                                 <View style={styles.chartCard}>
                                     <Text style={styles.chartTitle}>Symptom Load (7 Days)</Text>
@@ -285,37 +257,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                                 </View>
                             )}
 
-                            {/* Section: Top Symptom Drivers */}
-                            {symptomDrivers.length > 0 && (
-                                <>
-                                    <Text style={[styles.subtitle, styles.symptomDriverLabel]}>🔥 Top Symptom Drivers This Week</Text>
-                                    {symptomDrivers.slice(0, 3).map(renderPatternCard)}
-                                </>
-                            )}
-
-                            {/* Section: Best-Performing Behaviors */}
-                            {bestBehaviors.length > 0 && (
-                                <>
-                                    <Text style={[styles.subtitle, styles.bestBehaviorLabel]}>✅ Best-Performing Behaviors</Text>
-                                    {bestBehaviors.slice(0, 3).map(renderPatternCard)}
-                                </>
-                            )}
-
-                            {/* Section: Biggest Regressions */}
-                            {regressions.length > 0 && (
-                                <>
-                                    <Text style={[styles.subtitle, styles.regressionLabel]}>📉 Biggest Regressions</Text>
-                                    {regressions.slice(0, 3).map(renderPatternCard)}
-                                </>
-                            )}
-
-                            {/* Fallback: generic top patterns if no categorization available */}
-                            {fallbackPatterns.length > 0 && (
-                                <>
-                                    <Text style={styles.subtitle}>Top patterns from the last 7 days</Text>
-                                    {fallbackPatterns.map(renderPatternCard)}
-                                </>
-                            )}
+                            {patterns.map(renderPatternCard)}
                         </>
                     ) : (
                         <View style={styles.emptyState}>
@@ -329,149 +271,24 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f3f4f6',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
-    },
-    backButton: {
-        marginRight: 16,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#111827',
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    content: {
-        padding: 16,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#6b7280',
-        marginBottom: 16,
-        fontWeight: '500',
-    },
-    symptomDriverLabel: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#dc2626',
-        marginTop: 8,
-    },
-    bestBehaviorLabel: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#059669',
-        marginTop: 8,
-    },
-    regressionLabel: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#d97706',
-        marginTop: 8,
-    },
-    chartCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-        alignItems: 'center',
-    },
-    chartTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: 4,
-        alignSelf: 'flex-start',
-    },
-    chartSubtitle: {
-        fontSize: 13,
-        color: '#9ca3af',
-        marginBottom: 8,
-        alignSelf: 'flex-start',
-    },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        marginBottom: 8,
-    },
-    badge: {
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    badgeText: {
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: 4,
-    },
-    cardDesc: {
-        fontSize: 14,
-        color: '#374151',
-        lineHeight: 20,
-        marginBottom: 8,
-    },
-    segmentation: {
-        fontSize: 13,
-        color: '#4b5563',
-        fontWeight: '500',
-        marginTop: 8,
-        fontStyle: 'italic',
-    },
-    actionButton: {
-        marginTop: 16,
-        backgroundColor: '#f0fdf4',
-        borderColor: '#22c55e',
-        borderWidth: 1,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    actionButtonText: {
-        color: '#15803d',
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    emptyState: {
-        padding: 32,
-        alignItems: 'center',
-    },
-    emptyText: {
-        fontSize: 16,
-        color: '#6b7280',
-        textAlign: 'center',
-        lineHeight: 24,
-    },
+    container: { flex: 1, backgroundColor: '#f3f4f6' },
+    header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    backButton: { marginRight: 16 },
+    title: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    content: { padding: 16 },
+    chartCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 24, alignItems: 'center', elevation: 2 },
+    chartTitle: { fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 4, alignSelf: 'flex-start' },
+    chartSubtitle: { fontSize: 13, color: '#9ca3af', marginBottom: 8, alignSelf: 'flex-start' },
+    card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, elevation: 2 },
+    cardHeader: { flexDirection: 'row', marginBottom: 8 },
+    badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+    badgeText: { fontSize: 10, fontWeight: '700' },
+    cardTitle: { fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 4 },
+    cardDesc: { fontSize: 14, color: '#374151', lineHeight: 20, marginBottom: 8 },
+    segmentation: { fontSize: 13, color: '#4b5563', fontWeight: '500', marginTop: 8, fontStyle: 'italic' },
+    actionButton: { marginTop: 16, backgroundColor: '#f0fdf4', borderColor: '#22c55e', borderWidth: 1, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center' },
+    actionButtonText: { color: '#15803d', fontWeight: '600', fontSize: 14 },
+    emptyState: { padding: 32, alignItems: 'center' },
+    emptyText: { fontSize: 16, color: '#6b7280', textAlign: 'center', lineHeight: 24 },
 });

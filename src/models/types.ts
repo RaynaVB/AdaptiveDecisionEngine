@@ -96,3 +96,55 @@ export interface FeedbackEvent {
   outcome: FeedbackOutcome;
   timestamp: string; // ISO
 }
+export interface Recommendation {
+  id: string; // Instance UUID
+  templateId: string; // The underlying template ID
+  recommendationType: string;
+  title: string;
+  action: string;
+  whyThis: string;
+  linkedPatternIds: string[];
+  scores: {
+    impact: number;
+    feasibility: number;
+    mlScore: number;
+    confidence: number;
+    total: number;
+  };
+  associatedExperimentId?: string;
+  createdAt: string;
+}
+
+export interface Pattern {
+  id: string;
+  templateId: string;
+  patternType: string;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  confidence: 'low' | 'medium' | 'high';
+  segmentation?: {
+    timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'morning_afternoon' | 'afternoon_evening' | 'mixed';
+    dayType?: 'weekday' | 'weekend' | 'mixed';
+  };
+  actionableInsight?: {
+    label: string;
+    actionType: 'start_experiment' | 'log_more' | 'lifestyle_change';
+    experimentIdToStart?: string;
+  };
+}
+
+export interface Insight {
+  id: string;
+  title: string;
+  description: string;
+  type: 'correlation' | 'protective' | 'timing' | 'compound' | 'prediction';
+  confidence: 'low' | 'medium' | 'high';
+  relatedPatternIds: string[];
+  createdAt: string;
+  actionableInsight?: {
+    label: string;
+    actionType: 'start_experiment' | 'log_more' | 'lifestyle_change' | 'log_water' | 'review_sleep';
+    experimentIdToStart?: string;
+  };
+}

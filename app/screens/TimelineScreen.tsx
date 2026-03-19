@@ -10,8 +10,9 @@ import { StorageService } from '../../src/services/storage';
 import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb, Menu, Settings, ShieldCheck } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 import { WeeklyReport } from '../../src/components/WeeklyReport';
-import { generateInsightsFromPatterns, Insight } from '../../src/core/insight_engine/insightEngine';
-import { runPatternEngine } from '../../src/core/pattern_engine/patternEngine';
+import { generateInsightsFromPatterns } from '../../src/core/insight_engine/insightEngine';
+import { Insight, Pattern } from '../../src/models/types';
+// Pattern Engine is now server-side. Local imports removed.
 import { auth } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
@@ -206,8 +207,8 @@ export default function TimelineScreen() {
             data: grouped[key]
         }));
 
-        // Generate insights for weekly report
-        const patterns = runPatternEngine(filteredMeals, filteredMoods, filteredSymptoms);
+        // Generate insights for weekly report (Now server-side, using placeholder for now)
+        const patterns: any[] = []; // Patterns should be fetched from the RecommendationService
         const insights = generateInsightsFromPatterns(patterns);
         setWeeklyInsights(insights);
 

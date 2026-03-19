@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { StorageService } from '../../src/services/storage';
-import { runPatternEngine } from '../../src/core/pattern_engine/patternEngine';
-import { generateInsightsFromPatterns, Insight } from '../../src/core/insight_engine/insightEngine';
+import { Pattern, Insight } from '../../src/models/types';
+import { generateInsightsFromPatterns } from '../../src/core/insight_engine/insightEngine';
 import { useFocusEffect } from '@react-navigation/native';
 import { Sparkles, Shield, TrendingUp, AlertTriangle, Activity } from 'lucide-react-native';
 import { auth } from '../../src/services/firebaseConfig';
@@ -26,7 +26,8 @@ export default function InsightFeedScreen() {
             const moods = await StorageService.getMoodEvents();
             const symptoms = await StorageService.getSymptomEvents();
             
-            const patterns = runPatternEngine(meals, moods, symptoms);
+            // Patterns are now server-side (using placeholder for now)
+            const patterns: Pattern[] = []; 
             const generatedInsights = generateInsightsFromPatterns(patterns);
             
             // Sort insights by user goals relevance
