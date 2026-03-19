@@ -446,7 +446,12 @@ export default function TimelineScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.customHeader}>
-                <Text style={styles.headerTitleText}>Timeline</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.headerTitleText}>Timeline</Text>
+                    <View style={styles.miniBadge}>
+                        <Text style={styles.miniBadgeText}>BETA</Text>
+                    </View>
+                </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <TouchableOpacity onPress={() => navigation.navigate('InsightFeed')} style={styles.headerIconButton}>
                         <Lightbulb color="#f59e0b" size={22} />
@@ -813,6 +818,18 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
+    },
+    miniBadge: {
+        backgroundColor: '#dbeafe',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginLeft: 8,
+    },
+    miniBadgeText: {
+        color: '#2563eb',
+        fontSize: 10,
+        fontWeight: '800',
     },
     headerIconButton: {
         marginLeft: 12,

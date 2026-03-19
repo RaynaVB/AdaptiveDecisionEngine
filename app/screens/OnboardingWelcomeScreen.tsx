@@ -13,6 +13,9 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
     return (
         <View style={styles.container}>
             <View style={styles.content}>
+                <View style={styles.badge}>
+                    <Text style={styles.badgeText}>BETA</Text>
+                </View>
                 <Text style={styles.title}>Understand your body, starting with food</Text>
 
                 <Text style={styles.subtitle}>
@@ -61,6 +64,20 @@ const styles = StyleSheet.create({
         color: '#1e293b',
         textAlign: 'center',
         marginBottom: 16,
+    },
+    badge: {
+        backgroundColor: '#dbeafe',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 16,
+        alignSelf: 'center',
+        marginBottom: 8,
+    },
+    badgeText: {
+        color: '#2563eb',
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 1,
     },
     subtitle: {
         fontSize: 16,

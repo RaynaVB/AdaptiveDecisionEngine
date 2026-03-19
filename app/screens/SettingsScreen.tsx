@@ -307,6 +307,10 @@ export default function SettingsScreen({ navigation }: Props) {
                         <LogOut color="#ef4444" size={20} style={{ marginRight: 8 }} />
                         <Text style={styles.logoutButtonText}>Sign Out</Text>
                     </TouchableOpacity>
+
+                    <View style={styles.versionFooter}>
+                        <Text style={styles.versionText}>Version 1.0.0 (Beta)</Text>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -488,5 +492,14 @@ const styles = StyleSheet.create({
         color: '#ef4444',
         fontSize: 16,
         fontWeight: '600',
+    },
+    versionFooter: {
+        marginTop: 32,
+        alignItems: 'center',
+    },
+    versionText: {
+        fontSize: 13,
+        color: '#94a3b8',
+        fontWeight: '500',
     },
 });
