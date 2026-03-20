@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Sparkles, Shield, TrendingUp, AlertTriangle, Activity } from 'lucide-react-native';
 import { auth } from '../../src/services/firebaseConfig';
 import { getUserProfile, UserProfile } from '../../src/services/userProfile';
+import { MICRO_DISCLAIMER_INSIGHTS } from '../constants/legal';
 
 export default function InsightFeedScreen() {
     const [insights, setInsights] = useState<Insight[]>([]);
@@ -191,6 +192,7 @@ export default function InsightFeedScreen() {
                 </View>
             )}
 
+            <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_INSIGHTS}</Text>
         </ScrollView>
     );
 }
@@ -268,5 +270,13 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#6366f1',
         fontStyle: 'italic',
+    },
+    disclaimerText: {
+        fontSize: 12,
+        color: '#9ca3af',
+        textAlign: 'center',
+        marginTop: 24,
+        paddingHorizontal: 16,
+        lineHeight: 18,
     },
 });

@@ -8,7 +8,8 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { ArrowLeft, Beaker, Play, Info } from 'lucide-react-native';
 import { HealthLabService } from '../../src/services/healthLabService';
 import { ExperimentDefinition, ExperimentRun } from '../../src/models/healthlab';
-import { CheckCircle } from 'lucide-react-native';
+import { CheckCircle, AlertTriangle } from 'lucide-react-native';
+import { MICRO_DISCLAIMER_EXPERIMENTS } from '../constants/legal';
 
 type ExperimentDetailScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'ExperimentDetail'>;
@@ -188,6 +189,14 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                         <Text style={styles.detailLabel}>Required Data</Text>
                         <Text style={styles.detailValue}>{definition?.requiredEvents?.join(', ')}</Text>
                     </View>
+                </View>
+
+                <View style={[styles.infoCard, { backgroundColor: '#fef2f2', borderColor: '#fee2e2' }]}>
+                    <View style={styles.infoRow}>
+                        <AlertTriangle size={18} color="#ef4444" />
+                        <Text style={[styles.infoLabel, { color: '#ef4444' }]}>Medical Disclaimer</Text>
+                    </View>
+                    <Text style={[styles.hypothesisText, { color: '#991b1b', fontSize: 13 }]}>{MICRO_DISCLAIMER_EXPERIMENTS}</Text>
                 </View>
 
                 <View style={styles.actionContainer}>

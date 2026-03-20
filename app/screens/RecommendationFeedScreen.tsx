@@ -13,6 +13,7 @@ import { Play, CheckCircle, AlertTriangle, Zap, Beaker } from 'lucide-react-nati
 import { auth } from '../../src/services/firebaseConfig';
 import { getUserProfile, UserProfile } from '../../src/services/userProfile';
 import { RecommendationService } from '../../src/services/recommendationService';
+import { MICRO_DISCLAIMER_RECOMMENDATIONS } from '../constants/legal';
 
 type RecsScreenProp = StackNavigationProp<RootStackParamList, 'Recommendations'>;
 
@@ -300,6 +301,7 @@ export default function RecommendationFeedScreen() {
                 </View>
             )}
 
+            <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_RECOMMENDATIONS}</Text>
         </ScrollView>
     );
 }
@@ -471,8 +473,15 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
     },
     activeExperimentText: {
-        color: '#166534',
         fontSize: 13,
         fontWeight: '600',
-    }
+    },
+    disclaimerText: {
+        fontSize: 12,
+        color: '#9ca3af',
+        textAlign: 'center',
+        marginTop: 24,
+        paddingHorizontal: 16,
+        lineHeight: 18,
+    },
 });

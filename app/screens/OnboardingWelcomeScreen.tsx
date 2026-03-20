@@ -1,7 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
+import { MEDICAL_DISCLAIMER_FULL } from '../constants/legal';
+import { CheckCircle2, Circle } from 'lucide-react-native';
 
 type OnboardingWelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OnboardingWelcome'>;
 
@@ -10,9 +12,11 @@ type Props = {
 };
 
 export default function OnboardingWelcomeScreen({ navigation }: Props) {
+    const [accepted, setAccepted] = useState(false);
+
     return (
         <View style={styles.container}>
-            <View style={styles.content}>
+            <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
                 <View style={styles.badge}>
                     <Text style={styles.badgeText}>BETA</Text>
                 </View>
@@ -28,14 +32,37 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
                     <FeatureItem icon="🔍" text="Discover which foods may be causing your symptoms" />
                     <FeatureItem icon="💡" text="Get simple, personalized insights to feel better" />
                 </View>
-            </View>
 
-            <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('OnboardingProfile')}
-            >
-                <Text style={styles.buttonText}>Get Started</Text>
-            </TouchableOpacity>
+                <View style={styles.disclaimerContainer}>
+                    <Text style={styles.disclaimerTitle}>Medical Disclaimer</Text>
+                    <Text style={styles.disclaimerText}>{MEDICAL_DISCLAIMER_FULL}</Text>
+                </View>
+            </ScrollView>
+
+            <View style={styles.footer}>
+                <TouchableOpacity 
+                    style={styles.checkboxContainer} 
+                    onPress={() => setAccepted(!accepted)}
+                    activeOpacity={0.7}
+                >
+                    {accepted ? (
+                        <CheckCircle2 size={24} color="#3b82f6" />
+                    ) : (
+                        <Circle size={24} color="#64748b" />
+                    )}
+                    <Text style={styles.checkboxText}>
+                        I have read and agree to the medical disclaimer
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.button, !accepted && styles.buttonDisabled]}
+                    onPress={() => accepted && navigation.navigate('OnboardingProfile')}
+                    disabled={!accepted}
+                >
+                    <Text style={styles.buttonText}>Get Started</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
@@ -51,12 +78,14 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f8fafc',
-        padding: 24,
-        justifyContent: 'space-between',
+    },
+    scrollContainer: {
+        flex: 1,
     },
     content: {
-        flex: 1,
-        justifyContent: 'center',
+        padding: 24,
+        paddingTop: 64,
+        paddingBottom: 24,
     },
     title: {
         fontSize: 32,
@@ -112,12 +141,53 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         flex: 1,
     },
+    disclaimerContainer: {
+        backgroundColor: '#f1f5f9',
+        padding: 16,
+        borderRadius: 12,
+        marginTop: 24,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    disclaimerTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#475569',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    disclaimerText: {
+        fontSize: 13,
+        color: '#64748b',
+        lineHeight: 18,
+    },
+    footer: {
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 44 : 24,
+        backgroundColor: '#ffffff',
+        borderTopWidth: 1,
+        borderTopColor: '#f1f5f9',
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        gap: 12,
+    },
+    checkboxText: {
+        fontSize: 14,
+        color: '#475569',
+        flex: 1,
+    },
     button: {
         backgroundColor: '#3b82f6',
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
-        marginBottom: 24,
+    },
+    buttonDisabled: {
+        backgroundColor: '#94a3b8',
     },
     buttonText: {
         color: '#ffffff',

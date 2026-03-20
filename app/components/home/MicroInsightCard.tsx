@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Insight } from '../../../src/models/types';
 import { Lightbulb } from 'lucide-react-native';
+import { MICRO_DISCLAIMER_INSIGHTS } from '../../constants/legal';
 
 interface MicroInsightCardProps {
   insight: Insight;
@@ -26,6 +27,8 @@ export const MicroInsightCard: React.FC<MicroInsightCardProps> = ({ insight }) =
           {insight.confidenceLevel.charAt(0).toUpperCase() + insight.confidenceLevel.slice(1)}
         </Text>
       </View>
+
+      <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_INSIGHTS}</Text>
     </View>
   );
 };
@@ -63,5 +66,11 @@ const styles = StyleSheet.create({
   confidenceValue: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  disclaimerText: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginTop: 12,
+    fontStyle: 'italic',
   },
 });

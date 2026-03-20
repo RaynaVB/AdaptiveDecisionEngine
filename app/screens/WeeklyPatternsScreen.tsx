@@ -8,6 +8,7 @@ import { StorageService } from '../../src/services/storage';
 import { WeeklyPatternsService } from '../../src/services/weeklyPatternsService';
 import { WeeklyItem, WeeklyGeneration } from '../../src/models/types';
 import { ArrowLeft, TrendingUp, Trophy, AlertTriangle, FlaskConical, Info } from 'lucide-react-native';
+import { MICRO_DISCLAIMER_WEEKLY } from '../constants/legal';
 
 type WeeklyPatternsScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'WeeklyPatterns'>;
@@ -227,6 +228,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                             <Text style={styles.emptyText}>{message || "Not enough data for this week yet. Keep logging!"}</Text>
                         </View>
                     )}
+                    <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_WEEKLY}</Text>
                 </ScrollView>
             )}
         </SafeAreaView>
@@ -258,4 +260,12 @@ const styles = StyleSheet.create({
     actionButtonText: { color: '#6d28d9', fontWeight: '700', fontSize: 14 },
     emptyState: { padding: 48, alignItems: 'center' },
     emptyText: { fontSize: 16, color: '#9ca3af', textAlign: 'center', lineHeight: 24 },
+    disclaimerText: {
+        fontSize: 12,
+        color: '#9ca3af',
+        textAlign: 'center',
+        marginTop: 24,
+        paddingHorizontal: 16,
+        lineHeight: 18,
+    },
 });

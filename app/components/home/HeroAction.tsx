@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Recommendation } from '../../../src/models/types';
 import { Target } from 'lucide-react-native';
+import { MICRO_DISCLAIMER_RECOMMENDATIONS } from '../../constants/legal';
 
 interface HeroActionProps {
   recommendation: Recommendation;
@@ -57,6 +58,8 @@ export const HeroAction: React.FC<HeroActionProps> = ({ recommendation, onStart,
           <Text style={styles.dismissButtonText}>Dismiss</Text>
         </TouchableOpacity>
       </View>
+
+      <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_RECOMMENDATIONS}</Text>
     </View>
   );
 };
@@ -167,5 +170,11 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontWeight: '600',
     fontSize: 14,
+  },
+  disclaimerText: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
 });

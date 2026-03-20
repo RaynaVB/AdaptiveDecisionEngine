@@ -5,7 +5,8 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { updateUserProfile, saveLocalPII, getLocalPII, getUserProfile, UserProfile, isInternalUser } from '../../src/services/userProfile';
 import { auth, db } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
-import { LogOut, ChevronLeft, Save, Search, X } from 'lucide-react-native';
+import { LogOut, ChevronLeft, Save, Search, X, ShieldCheck, ChevronRight } from 'lucide-react-native';
+import { MEDICAL_DISCLAIMER_FULL } from '../constants/legal';
 import { ChipSelect } from '../components/ChipSelect';
 import { ingredientService } from '../../src/services/IngredientService';
 import { StorageService } from '../../src/services/storage';
@@ -298,6 +299,20 @@ export default function SettingsScreen({ navigation }: Props) {
                         </View>
                     </View>
 
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Legal</Text>
+                        <TouchableOpacity 
+                            style={styles.legalItem}
+                            onPress={() => Alert.alert("Medical Disclaimer", MEDICAL_DISCLAIMER_FULL)}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <ShieldCheck color="#64748b" size={20} style={{ marginRight: 12 }} />
+                                <Text style={styles.legalItemText}>Medical Disclaimer</Text>
+                            </View>
+                            <ChevronRight color="#cbd5e1" size={20} />
+                        </TouchableOpacity>
+                    </View>
+
                     <View style={styles.divider} />
 
                     <TouchableOpacity 
@@ -501,5 +516,20 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#94a3b8',
         fontWeight: '500',
+    },
+    legalItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#f8fafc',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderRadius: 12,
+        padding: 16,
+    },
+    legalItemText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#334155',
     },
 });
