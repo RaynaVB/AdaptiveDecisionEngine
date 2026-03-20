@@ -28,10 +28,13 @@ export interface ExperimentDefinition {
 }
 
 export interface ExperimentRun {
-    id: string;
+    id: string; // This is the template ID
+    runId: string; // This is the Firestore document ID
     userId: string;
-    experimentId: string;
-    startDate: string; // ISO string
+    experimentId?: string; // Legacy
+    template?: ExperimentDefinition;
+    startDate?: string; // ISO string
+    startedAt?: string; // Backend uses startedAt
     endDate?: string;  // ISO string
     status: ExperimentStatus;
     

@@ -6,8 +6,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
 import { ArrowLeft, Beaker, Play, Info } from 'lucide-react-native';
-import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
-import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
+import { HealthLabService } from '../../src/services/healthLabService';
 import { ExperimentDefinition, ExperimentRun } from '../../src/models/healthlab';
 import { CheckCircle } from 'lucide-react-native';
 
@@ -17,34 +16,80 @@ type ExperimentDetailScreenProps = {
 };
 
 export default function ExperimentDetailScreen({ navigation, route }: ExperimentDetailScreenProps) {
-    const { experimentId } = route.params;
+    const { experimentId, experiment: initialExperiment } = route.params as any;
     const [loading, setLoading] = useState(true);
-    const [definition, setDefinition] = useState<ExperimentDefinition | null>(null);
+    const [definition, setDefinition] = useState<ExperimentDefinition | null>(initialExperiment || null);
     const [activeRun, setActiveRun] = useState<ExperimentRun | null>(null);
 
     useEffect(() => {
-        const def = EXPERIMENT_LIBRARY.find(e => e.id === experimentId);
-        setDefinition(def || null);
-        loadRun();
+        if (!definition && experimentId) {
+            // Fetch definition if not passed (though we prefer passing it)
+            loadData();
+        } else {
+            loadRun();
+        }
     }, [experimentId]);
 
     const loadRun = async () => {
         try {
-            const activeList = await ExperimentEngine.getActiveExperiments();
-            const active = activeList.find(run => run.experimentId === experimentId);
+            console.log(`[HealthLab] Loading run info for ${experimentId}`);
+            const activeList = await HealthLabService.getActiveExperiments();
+            const active = activeList.find(run => run.id === experimentId || (run as any).templateId === experimentId);
             setActiveRun(active || null);
+            if (active) {
+                console.log(`[HealthLab] Found active run: ${active.runId}`);
+            }
         } catch (e) {
-            console.error(e);
+            console.error('[HealthLab] loadRun error:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            console.log(`[HealthLab] Loading data for experimentId: ${experimentId}`);
+            
+            // Check recommended first
+            const recommended = await HealthLabService.getRecommendedExperiments();
+            let found = recommended.find(r => r.template.id === experimentId)?.template;
+            
+            if (found) {
+                console.log(`[HealthLab] Found definition in recommended: ${found.name}`);
+            }
+
+            // If not found, check active runs
+            if (!found) {
+                const actives = await HealthLabService.getActiveExperiments();
+                console.log(`[HealthLab] Checking ${actives.length} active experiments...`);
+                const activeMatch = actives.find(a => a.id === experimentId || (a as any).templateId === experimentId);
+                if (activeMatch?.template) {
+                    found = activeMatch.template;
+                    console.log(`[HealthLab] Found definition in active: ${found.name}`);
+                }
+            }
+
+            if (found) {
+                setDefinition(found);
+            } else {
+                console.warn(`[HealthLab] Could not find definition for ${experimentId}`);
+            }
+            await loadRun();
+        } catch (e) {
+            console.error('[HealthLab] loadData error:', e);
         } finally {
             setLoading(false);
         }
     };
 
     const handleStart = async () => {
-        if (!definition) return;
+        const tid = definition?.id || (definition as any)?.templateId;
+        if (!tid) return;
         try {
             setLoading(true);
-            await ExperimentEngine.startExperiment(definition.id);
+            await HealthLabService.startExperiment(tid);
+            Alert.alert("Success", "Experiment started! Track your progress daily.");
             await loadRun();
         } catch (e) {
             Alert.alert("Error", e instanceof Error ? e.message : "Failed to start experiment");
@@ -55,24 +100,38 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
 
     const handleAbandon = async () => {
         if (!activeRun) return;
-        try {
-            setLoading(true);
-            await ExperimentEngine.abandonExperiment(activeRun.id);
-            await loadRun();
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
+        
+        Alert.alert(
+            "Abandon Experiment",
+            "Are you sure you want to stop this experiment? Your progress will be lost.",
+            [
+                { text: "Keep Going", style: "cancel" },
+                { 
+                    text: "Abandon", 
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await HealthLabService.abandonExperiment(activeRun.runId || activeRun.id);
+                            Alert.alert("Abandoned", "Experiment has been stopped.");
+                            navigation.goBack();
+                        } catch (e) {
+                            Alert.alert("Error", e instanceof Error ? e.message : "Failed to abandon experiment");
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const handleComplete = async () => {
         if (!activeRun) return;
         try {
             setLoading(true);
-            await ExperimentEngine.completeExperiment(activeRun.id);
-            // Use replace so the user can't go back to the "Detail" screen of a completed experiment
-            navigation.replace('ExperimentResult', { runId: activeRun.id });
+            await HealthLabService.completeExperiment((activeRun as any).runId || activeRun.id);
+            navigation.replace('ExperimentResult', { runId: (activeRun as any).runId || activeRun.id });
         } catch (e) {
             alert(e instanceof Error ? e.message : "Failed to complete experiment");
         } finally {
@@ -80,7 +139,13 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
         }
     };
 
-    if (!definition) return null;
+    if (!definition && !loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text>Experiment not found</Text>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -96,13 +161,13 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                     <Beaker size={40} color="#2563eb" />
                 </View>
 
-                <Text style={styles.experimentName}>{definition.name}</Text>
+                <Text style={styles.experimentName}>{definition?.name}</Text>
                 <View style={styles.badgeRow}>
                     <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{definition.durationDays} DAYS</Text>
+                        <Text style={styles.badgeText}>{definition?.durationDays} DAYS</Text>
                     </View>
                     <View style={[styles.badge, { backgroundColor: '#f1f5f9' }]}>
-                        <Text style={[styles.badgeText, { color: '#475569' }]}>{definition.category.toUpperCase()}</Text>
+                        <Text style={[styles.badgeText, { color: '#475569' }]}>{definition?.category.toUpperCase()}</Text>
                     </View>
                 </View>
 
@@ -111,17 +176,17 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                         <Info size={18} color="#2563eb" />
                         <Text style={styles.infoLabel}>Hypothesis</Text>
                     </View>
-                    <Text style={styles.hypothesisText}>{definition.hypothesis}</Text>
+                    <Text style={styles.hypothesisText}>{definition?.hypothesis}</Text>
                 </View>
 
                 <View style={styles.detailsList}>
                     <View style={styles.detailItem}>
                         <Text style={styles.detailLabel}>Target Metric</Text>
-                        <Text style={styles.detailValue}>{definition.targetMetric.replace(/_/g, ' ')}</Text>
+                        <Text style={styles.detailValue}>{definition?.targetMetric?.replace(/_/g, ' ') || 'General'}</Text>
                     </View>
                     <View style={styles.detailItem}>
                         <Text style={styles.detailLabel}>Required Data</Text>
-                        <Text style={styles.detailValue}>{definition.requiredEvents.join(', ')}</Text>
+                        <Text style={styles.detailValue}>{definition?.requiredEvents?.join(', ')}</Text>
                     </View>
                 </View>
 

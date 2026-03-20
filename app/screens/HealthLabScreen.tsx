@@ -6,8 +6,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
 import { ArrowLeft, Beaker, Play, ChevronRight, History, Sparkles } from 'lucide-react-native';
-import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
-import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
+import { HealthLabService, RecommendedExperiment } from '../../src/services/healthLabService';
 import { ExperimentRun, ExperimentDefinition } from '../../src/models/healthlab';
 import { StorageService } from '../../src/services/storage';
 import { auth } from '../../src/services/firebaseConfig';
@@ -17,107 +16,10 @@ type HealthLabScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'HealthLab'>;
 };
 
-// Relevance scoring: maps user profile data to experiment relevance
-interface ScoredExperiment {
-    experiment: ExperimentDefinition;
-    score: number;
-    reason: string;
-}
-
-const scoreExperiment = (exp: ExperimentDefinition, profile: UserProfile | null): ScoredExperiment => {
-    let score = 0;
-    const reasons: string[] = [];
-
-    if (!profile) return { experiment: exp, score: 0, reason: '' };
-
-    // Match by user symptoms
-    const userSymptoms = profile.symptoms || [];
-    const symptomKeywords: Record<string, string[]> = {
-        'bloating': ['dairy', 'digestion', 'bloating'],
-        'gas': ['dairy', 'digestion', 'fodmap'],
-        'stomach_pain': ['dairy', 'digestion'],
-        'acid_reflux': ['late', 'snack'],
-        'fatigue': ['energy', 'protein', 'afternoon', 'hydration'],
-        'energy_crashes': ['energy', 'protein', 'snack', 'afternoon'],
-        'brain_fog': ['brain fog', 'hydration', 'caffeine'],
-        'mood_swings': ['mood', 'stress'],
-        'anxiety': ['stress', 'mood'],
-        'headaches': ['hydration', 'caffeine'],
-        'sleep_problems': ['late', 'snack', 'caffeine'],
-    };
-
-    for (const symptom of userSymptoms) {
-        const keywords = symptomKeywords[symptom] || [];
-        for (const kw of keywords) {
-            if (
-                exp.hypothesis.toLowerCase().includes(kw) ||
-                exp.name.toLowerCase().includes(kw) ||
-                exp.targetMetric.toLowerCase().includes(kw)
-            ) {
-                score += 3;
-                reasons.push(symptom.replace(/_/g, ' '));
-                break; // count each symptom once
-            }
-        }
-    }
-
-    // Match by user sensitivities
-    const userSensitivities = profile.sensitivities || [];
-    const sensitivityKeywords: Record<string, string[]> = {
-        'lactose_sensitive': ['dairy'],
-        'caffeine_sensitive': ['caffeine'],
-        'sugar_sensitive': ['sugar', 'blood sugar'],
-        'spicy_food_sensitive': ['spicy'],
-        'high_fodmap_sensitive': ['fodmap', 'digestion'],
-        'fried_oily_food_sensitive': ['fried'],
-    };
-
-    for (const sens of userSensitivities) {
-        const keywords = sensitivityKeywords[sens] || [];
-        for (const kw of keywords) {
-            if (exp.hypothesis.toLowerCase().includes(kw) || exp.name.toLowerCase().includes(kw)) {
-                score += 2;
-                reasons.push(sens.replace(/_/g, ' ').replace('sensitive', '').trim());
-                break;
-            }
-        }
-    }
-
-    // Match by goals
-    const userGoals = profile.goals || [];
-    const goalKeywords: Record<string, string[]> = {
-        'improve_energy': ['energy', 'afternoon', 'protein'],
-        'improve_digestion': ['digestion', 'bloating', 'dairy'],
-        'improve_mood_clarity': ['mood', 'brain fog', 'stress'],
-        'identify_food_triggers': ['symptom', 'dairy', 'elimination'],
-        'build_healthier_habits': ['hydration', 'routine'],
-    };
-
-    for (const goal of userGoals) {
-        const keywords = goalKeywords[goal] || [];
-        for (const kw of keywords) {
-            if (exp.hypothesis.toLowerCase().includes(kw) || exp.targetMetric.toLowerCase().includes(kw)) {
-                score += 1;
-                break;
-            }
-        }
-    }
-
-    // Build reason string
-    const uniqueReasons = [...new Set(reasons)];
-    const reason = uniqueReasons.length > 0 
-        ? `Based on your ${uniqueReasons.slice(0, 2).join(' + ')}`
-        : '';
-
-    return { experiment: exp, score, reason };
-};
-
 export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     const [loading, setLoading] = useState(true);
     const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
-    const [availableExperiments, setAvailableExperiments] = useState<ExperimentDefinition[]>(EXPERIMENT_LIBRARY);
-    const [recommendedExperiments, setRecommendedExperiments] = useState<ScoredExperiment[]>([]);
-    const [hasRecentSymptoms, setHasRecentSymptoms] = useState(false);
+    const [recommendedExperiments, setRecommendedExperiments] = useState<RecommendedExperiment[]>([]);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
     useFocusEffect(
@@ -129,47 +31,18 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [actives, history, recentSymptoms] = await Promise.all([
-                ExperimentEngine.getActiveExperiments(),
-                ExperimentEngine.getExperimentRuns(),
-                StorageService.getSymptomEvents()
+            const [actives, recommended] = await Promise.all([
+                HealthLabService.getActiveExperiments(),
+                HealthLabService.getRecommendedExperiments(),
             ]);
             
-            let profile: UserProfile | null = null;
             if (auth.currentUser) {
-                profile = await getUserProfile(auth.currentUser.uid);
+                const profile = await getUserProfile(auth.currentUser.uid);
                 setUserProfile(profile);
             }
 
             setActiveExperiments(actives);
-            setHasRecentSymptoms(recentSymptoms.length > 0);
-
-            // Filter out experiments that have been completed with High/Medium confidence
-            const excludedIds = history
-                .filter(run => run.status === 'completed' && (run.confidenceScore === 'high' || run.confidenceScore === 'medium'))
-                .map(run => run.experimentId);
-
-            // Also exclude currently active experiments from the available list
-            const activeIds = actives.map(run => run.experimentId);
-
-            const filtered = EXPERIMENT_LIBRARY.filter(def => 
-                !excludedIds.includes(def.id) && !activeIds.includes(def.id)
-            );
-
-            // Score all experiments for personalization
-            const scored = filtered.map(exp => scoreExperiment(exp, profile));
-            
-            // Split into recommended (score > 0) and rest
-            const recommended = scored
-                .filter(s => s.score > 0)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 3);
-            
-            const recommendedIds = new Set(recommended.map(r => r.experiment.id));
-            const remaining = filtered.filter(exp => !recommendedIds.has(exp.id));
-
             setRecommendedExperiments(recommended);
-            setAvailableExperiments(remaining);
         } catch (e) {
             console.error(e);
         } finally {
@@ -177,8 +50,8 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
         }
     };
 
-    const renderRecommendedCard = (scored: ScoredExperiment) => {
-        const { experiment: item, reason } = scored;
+    const renderRecommendedCard = (scored: RecommendedExperiment) => {
+        const { template: item, reason } = scored;
         const isActive = activeExperiments.some(run => run.experimentId === item.id);
 
         return (
@@ -208,16 +81,14 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
     };
 
     const renderExperimentItem = ({ item }: { item: ExperimentDefinition }) => {
-        const isActive = activeExperiments.some(run => run.experimentId === item.id);
-
         return (
             <TouchableOpacity 
-                style={[styles.card, isActive && styles.activeCard]}
+                style={styles.card}
                 onPress={() => navigation.navigate('ExperimentDetail', { experimentId: item.id })}
             >
                 <View style={styles.cardContent}>
-                    <View style={[styles.iconContainer, { backgroundColor: isActive ? '#dbeafe' : '#f3f4f6' }]}>
-                        <Beaker size={20} color={isActive ? '#2563eb' : '#6b7280'} />
+                    <View style={[styles.iconContainer, { backgroundColor: '#f3f4f6' }]}>
+                        <Beaker size={20} color={'#6b7280'} />
                     </View>
                     <View style={styles.textContainer}>
                         <Text style={styles.cardTitle}>{item.name}</Text>
@@ -227,25 +98,19 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                             <Text style={styles.categoryTag}>{item.category}</Text>
                         </View>
                     </View>
-                    {isActive ? (
-                        <View style={styles.activeBadge}>
-                            <Text style={styles.activeBadgeText}>ACTIVE</Text>
-                        </View>
-                    ) : (
-                        <ChevronRight size={20} color="#9ca3af" />
-                    )}
+                    <ChevronRight size={20} color="#9ca3af" />
                 </View>
             </TouchableOpacity>
         );
     };
 
     const handleSimulateTest = async () => {
+        // This was for local testing, can be removed or updated to use backend
         setLoading(true);
         try {
-            const runId = await ExperimentEngine.seedManualTestExperiment();
-            navigation.navigate('ExperimentResult', { runId });
+            // navigation.navigate('ExperimentHistory');
         } catch (e) {
-            alert("Simulation failed");
+            console.error(e);
         } finally {
             setLoading(false);
         }
@@ -273,7 +138,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                         <View style={styles.debugSection}>
                             <TouchableOpacity style={styles.debugButton} onPress={handleSimulateTest}>
                                 <Beaker size={18} color="#2563eb" style={{ marginRight: 8 }} />
-                                <Text style={styles.debugButtonText}>Simulate Full 7-Day Study Result</Text>
+                                <Text style={styles.debugButtonText}>Admin Simulation Mode</Text>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -285,7 +150,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                                 <TouchableOpacity 
                                     key={activeRun.id}
                                     style={[styles.activeHighlightCard, { marginBottom: 16 }]}
-                                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: activeRun.experimentId })}
+                                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: activeRun.id })}
                                 >
                                     <View style={styles.activeHeader}>
                                         <View style={styles.activeIconContainer}>
@@ -293,7 +158,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.activeTitle}>
-                                                {EXPERIMENT_LIBRARY.find(e => e.id === activeRun.experimentId)?.name || 'Unknown Experiment'}
+                                                {activeRun.template?.name || 'Active Experiment'}
                                             </Text>
                                             <Text style={styles.activeSub}>Track your progress daily</Text>
                                         </View>
@@ -312,14 +177,6 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                             {recommendedExperiments.map(renderRecommendedCard)}
                         </View>
                     )}
-
-                    <Text style={styles.sectionTitle}>Available Experiments</Text>
-                    <FlatList
-                        data={availableExperiments}
-                        renderItem={renderExperimentItem}
-                        keyExtractor={item => item.id}
-                        scrollEnabled={false}
-                    />
                 </ScrollView>
             )}
         </SafeAreaView>
