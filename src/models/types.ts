@@ -218,3 +218,43 @@ export interface InsightFeedResponse {
   generation: InsightGeneration;
   insights: Insight[];
 }
+
+export interface WeeklyItem {
+  id: string;
+  type: 'trend' | 'pattern' | 'win' | 'regression' | 'experiment_update' | 'segment' | 'guardrail';
+  category: string;
+  title: string;
+  summary: string;
+  confidenceScore: number;
+  rank: number;
+  metadata?: Record<string, any>;
+}
+
+export interface WeeklyGeneration {
+  id: string;
+  userId: string;
+  weekStart: string;
+  weekEnd: string;
+  generatedAt: string;
+  status: 'completed' | 'failed';
+  summary: {
+    title: string;
+    subtitle: string;
+  };
+  stats: {
+    mealCount: number;
+    moodCount: number;
+    symptomCount: number;
+    experimentCount?: number;
+  };
+  dataSufficiency: {
+    isSufficientOverall: boolean;
+    [key: string]: any;
+  };
+  engineVersion: string;
+}
+
+export interface WeeklyPatternsResponse {
+  generation: WeeklyGeneration;
+  items: WeeklyItem[];
+}

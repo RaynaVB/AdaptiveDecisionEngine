@@ -20,6 +20,11 @@
       "codebase": "healthlab",
       "source": "functions/health_lab_service",
       "runtime": "python312"
+    },
+    {
+      "codebase": "weeklypatterns",
+      "source": "functions/weekly_patterns_service",
+      "runtime": "python312"
     }
   ],
   "emulators": {
