@@ -9,7 +9,6 @@ import { SymptomEvent } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
 import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb, Menu, Settings, ShieldCheck } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
-import { WeeklyReport } from '../../src/components/WeeklyReport';
 import { Insight } from '../../src/models/types';
 import { InsightService } from '../../src/services/insightService';
 // Pattern Engine is now server-side. Local imports removed.
@@ -19,7 +18,19 @@ import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/
 import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { ExperimentRun } from '../../src/models/healthlab';
 import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
-import { Play, ChevronRight, Beaker as BeakerIcon } from 'lucide-react-native';
+import { Play, ChevronRight, Beaker as BeakerIcon, Bell } from 'lucide-react-native';
+import { RecommendationService } from '../../src/services/recommendationService';
+import { WeeklyPatternsService } from '../../src/services/weeklyPatternsService';
+import { Recommendation, WeeklyItem } from '../../src/models/types';
+
+// New Homepage Components
+import { HeroAction } from '../components/home/HeroAction';
+import { HeadsUp } from '../components/home/HeadsUp';
+import { ActiveExperimentCard } from '../components/home/ActiveExperimentCard';
+import { WeeklyIntelligence } from '../components/home/WeeklyIntelligence';
+import { WeekAtAGlance, WeekAtGlanceData } from '../components/home/WeekAtAGlance';
+import { MicroInsightCard } from '../components/home/MicroInsightCard';
+import { SmartFAB } from '../components/home/SmartFAB';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -124,6 +135,13 @@ export default function TimelineScreen() {
     const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+    // AI Intelligence State
+    const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+    const [weeklyItems, setWeeklyItems] = useState<WeeklyItem[]>([]);
+    const [headsUpItems, setHeadsUpItems] = useState<string[]>([]);
+    const [microInsights, setMicroInsights] = useState<Insight[]>([]);
+    const [dismissedRecIds, setDismissedRecIds] = useState<Set<string>>(new Set());
+
     // Week at a Glance State
     const [weekAtGlanceData, setWeekAtGlanceData] = useState<{ label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[]>([]);
 
@@ -141,29 +159,108 @@ export default function TimelineScreen() {
         }
     };
 
+    const handleStartHero = async (rec: Recommendation) => {
+        if (rec.associatedExperimentId) {
+            await handleStartExperimentFocus(rec.associatedExperimentId);
+        } else {
+            // Mark as accepted
+            await RecommendationService.submitAction(rec.generationId, rec.id, 'accepted');
+            
+            if (rec.cta?.type === 'log' || rec.title.toLowerCase().includes('pairing')) {
+                navigation.navigate('LogMeal');
+            } else if (rec.type === 'experiment' || rec.associatedExperimentId) {
+                await handleStartExperimentFocus(rec.associatedExperimentId || rec.id);
+            } else if (rec.type === 'lifestyle') {
+                Alert.alert("Action Started", `Great choice! We'll track your ${rec.title} over the next few days.`);
+                await loadData();
+            } else {
+                Alert.alert("Recommendation", `Starting: ${rec.title}`);
+                await loadData();
+            }
+        }
+    };
+
+    const handleDismissRecommendation = async (rec: Recommendation) => {
+        try {
+            await RecommendationService.submitAction(rec.generationId, rec.id, 'dismissed');
+            setDismissedRecIds(prev => new Set(prev).add(rec.id));
+            await loadData();
+        } catch (e) {
+            console.error("Failed to dismiss recommendation:", e);
+        }
+    };
+
+    const handleMaybeRecommendation = async (rec: Recommendation) => {
+        try {
+            await RecommendationService.submitAction(rec.generationId, rec.id, 'maybe');
+            setDismissedRecIds(prev => new Set(prev).add(rec.id)); // Treat as 'acted' for homepage
+            await loadData();
+        } catch (e) {
+            console.error("Failed to submit maybe feedback:", e);
+        }
+    };
+
+    const handleStartTest = async (item: WeeklyItem) => {
+        // Find best experiment or action for this weekly pattern
+        if (item.metadata?.experimentIdToStart) {
+            await handleStartExperimentFocus(item.metadata.experimentIdToStart);
+        } else {
+            navigation.navigate('HealthLab');
+        }
+    };
+
     const loadData = async () => {
         setLoading(true);
-        const [loadedMeals, loadedMoods, loadedSymptoms, activeExps] = await Promise.all([
+        const [loadedMeals, loadedMoods, loadedSymptoms, activeExps, recsResponse, weeklyResponse, insightsResponse] = await Promise.all([
             StorageService.getMealEvents(),
             StorageService.getMoodEvents(),
             StorageService.getSymptomEvents(),
-            ExperimentEngine.getActiveExperiments()
+            ExperimentEngine.getActiveExperiments(),
+            RecommendationService.getRecommendations().catch(() => ({ recommendations: [] })),
+            WeeklyPatternsService.getWeeklySummary().catch(() => ({ items: [] })),
+            InsightService.getInsights().catch(() => ({ insights: [] }))
         ]);
         
-        setActiveExperiments(activeExps);
+        // Filter out recommendations that have been acted upon (local or backend state)
+        // action.state is set to 'none' if unacted. 
+        const allRecs = (recsResponse.recommendations || []).filter(r => 
+            !dismissedRecIds.has(r.id) && 
+            (r.action?.state === 'none' || !r.action?.state)
+        );
+        
+        // 1. Hero is the top recommendation
+        const heroRec = allRecs[0];
+        setRecommendations(allRecs);
+        
+        // 2. Heads Up: High priority items, excluding the hero to avoid duplication
+        const headsUp = allRecs
+            .slice(1) // Skip the hero
+            .filter((r: Recommendation) => r.priorityScore > 0.7)
+            .map((r: Recommendation) => r.summary);
+            
+        // Final uniqueness check
+        const uniqueHeadsUp = Array.from(new Set(headsUp)).slice(0, 2);
+        setHeadsUpItems(uniqueHeadsUp);
+
+        // Micro Insights: Medium confidence insights
+        const micro = (insightsResponse.insights || [])
+            .filter((i: Insight) => i.confidenceLevel === 'medium')
+            .slice(0, 3);
+        setMicroInsights(micro);
+        setWeeklyInsights(insightsResponse.insights || []);
         
         if (auth.currentUser) {
             const profile = await getUserProfile(auth.currentUser.uid);
             setUserProfile(profile);
         }
 
-        // Strict requirement: Timeline shows last 5 days of items
-        const fiveDaysAgo = new Date();
-        fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+        // Strict requirement: Timeline shows last 3 days of items
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-        const filteredMeals = loadedMeals.filter(m => new Date(m.occurredAt) >= fiveDaysAgo);
-        const filteredMoods = loadedMoods.filter(m => new Date(m.occurredAt) >= fiveDaysAgo);
-        const filteredSymptoms = loadedSymptoms.filter(s => new Date(s.occurredAt) >= fiveDaysAgo);
+        const filteredMeals = loadedMeals.filter(m => new Date(m.occurredAt) >= threeDaysAgo);
+        const filteredMoods = loadedMoods.filter(m => new Date(m.occurredAt) >= threeDaysAgo);
+        const filteredSymptoms = loadedSymptoms.filter(s => new Date(s.occurredAt) >= threeDaysAgo);
 
         setMeals(filteredMeals);
         setMoods(loadedMoods); // Keep full mood list for context lookup
@@ -206,10 +303,6 @@ export default function TimelineScreen() {
             title: key,
             data: grouped[key]
         }));
-
-        // Generate insights for weekly report
-        const insightsResponse = await InsightService.getInsights();
-        setWeeklyInsights(insightsResponse.insights);
 
         // Compute Week at a Glance (7 Days)
         const weekAtGlance: { label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[] = [];
@@ -489,143 +582,80 @@ export default function TimelineScreen() {
                         contentContainerStyle={styles.listContent}
                         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
                         ListHeaderComponent={
-                            <View style={{ paddingBottom: 16 }}>
-                                {activeExperiments.length > 0 && (
-                                    <View style={styles.activeExperimentsSection}>
-                                        <Text style={[styles.chartTitle, { marginBottom: 12 }]}>Active Experiments</Text>
-                                        {activeExperiments.map(run => (
-                                            <TouchableOpacity 
-                                                key={run.id}
-                                                style={styles.activeExpCard}
-                                                onPress={() => navigation.navigate('HealthLab')}
-                                            >
-                                                <View style={styles.activeExpIcon}>
-                                                    <Play size={20} color="#fff" fill="#fff" />
-                                                </View>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.activeExpTitle}>
-                                                        {EXPERIMENT_LIBRARY.find(e => e.id === run.experimentId)?.name || 'Unknown'}
-                                                    </Text>
-                                                    <Text style={styles.activeExpSub}>Day {Math.floor((Date.now() - new Date(run.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1} of {EXPERIMENT_LIBRARY.find(e => e.id === run.experimentId)?.durationDays}</Text>
-                                                </View>
-                                                <ChevronRight size={20} color="#94a3b8" />
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
+                            <View style={{ paddingBottom: 24, paddingTop: 16 }}>
+                                {/* 1. Hero — Best Next Action */}
+                                {recommendations.length > 0 && (
+                                    <HeroAction 
+                                        recommendation={recommendations[0]} 
+                                        onStart={handleStartHero}
+                                        onMaybe={handleMaybeRecommendation}
+                                        onDismiss={handleDismissRecommendation}
+                                    />
                                 )}
-                                <WeeklyReport 
-                                    symptoms={symptoms} 
-                                    insights={weeklyInsights} 
-                                    activeExperiments={activeExperiments} 
-                                    onStartExperiment={handleStartExperimentFocus}
-                                />
+
+                                {/* 2. Heads Up (Predictive Intelligence) */}
+                                {headsUpItems.length > 0 && <HeadsUp items={headsUpItems} />}
+
+                                {/* 3. Active Experiment */}
+                                {activeExperiments.map(run => (
+                                    <ActiveExperimentCard 
+                                        key={run.runId || run.id}
+                                        experiment={run}
+                                        onPress={() => navigation.navigate('HealthLab')}
+                                        onLogProgress={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
+                                    />
+                                ))}
+
+                                {/* 4. Weekly Intelligence */}
+                                {weeklyItems.length > 0 && (
+                                    <WeeklyIntelligence 
+                                        items={weeklyItems} 
+                                        onStartTest={handleStartTest}
+                                    />
+                                )}
+
+                                {/* 5. Week at a Glance */}
                                 {weekAtGlanceData.length > 0 && (
-                                    <View style={[styles.chartCard, { paddingVertical: 20 }]}>
-                                        <Text style={styles.chartTitle}>Week at a Glance</Text>
-                                        <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 16, marginTop: 4, alignSelf: 'flex-start' }}>
-                                            Symptom Burden (7 Days)
-                                        </Text>
-                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignSelf: 'stretch', paddingHorizontal: 4 }}>
-                                            {weekAtGlanceData.map((day, idx) => {
-                                                let bgColor = '#f3f4f6'; // Minimal Grey
-                                                if (day.score === 0) bgColor = '#f3f4f6';
-                                                else if (day.score <= 3) bgColor = '#fde047'; // Yellow
-                                                else if (day.score <= 6) bgColor = '#fb923c'; // Orange
-                                                else bgColor = '#ef4444'; // Red
-                                                
-                                                return (
-                                                    <TouchableOpacity 
-                                                        key={idx} 
-                                                        style={{ alignItems: 'center' }}
-                                                        onPress={() => {
-                                                            if (day.events.length > 0) {
-                                                                setSelectedDayEvents({ dateStr: day.displayDate, events: day.events });
-                                                            } else {
-                                                                Alert.alert('No Logs', 'You had no activity logged on this day.');
-                                                            }
-                                                        }}
-                                                    >
-                                                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: bgColor, marginBottom: 8 }}>
-                                                            {day.events.length > 0 && (
-                                                                <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#3b82f6', borderRadius: 8, width: 16, height: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#fff' }}>
-                                                                    <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold' }}>{day.events.length}</Text>
-                                                                </View>
-                                                            )}
-                                                        </View>
-                                                        <Text style={{ fontSize: 13, color: '#4b5563', fontWeight: '500' }}>{day.label}</Text>
-                                                    </TouchableOpacity>
-                                                );
-                                            })}
-                                        </View>
-                                    </View>
+                                    <WeekAtAGlance 
+                                        data={weekAtGlanceData.map(d => ({
+                                            label: d.label,
+                                            score: d.score,
+                                            dateStr: d.dateStr,
+                                            displayDate: d.displayDate,
+                                            hasEvents: d.events.length > 0,
+                                            eventCount: d.events.length
+                                        }))}
+                                        onPressDay={(d) => {
+                                            const day = weekAtGlanceData.find(w => w.dateStr === d.dateStr);
+                                            if (day && day.events.length > 0) {
+                                                setSelectedDayEvents({ dateStr: d.displayDate, events: day.events });
+                                            } else {
+                                                Alert.alert('No Logs', 'You had no activity logged on this day.');
+                                            }
+                                        }}
+                                    />
                                 )}
-                                <Text style={styles.subtitle}>Showing last 5 days</Text>
+
+                                {/* 6. Micro Insight */}
+                                {microInsights.map(insight => (
+                                    <MicroInsightCard key={insight.id} insight={insight} />
+                                ))}
+
+                                <View style={styles.sectionDivider} />
+                                <Text style={styles.recentActivityTitle}>Recent Activity</Text>
+                                <Text style={styles.subtitle}>Showing last 3 days</Text>
                             </View>
                         }
                     />
                 )}
 
-                {/* Speed Dial FAB */}
-                {isFabOpen && (
-                    <>
-                        {/* Backdrop to close */}
-                        <TouchableOpacity
-                            style={styles.backdrop}
-                            activeOpacity={1}
-                            onPress={() => setIsFabOpen(false)}
-                        />
-
-                        <View style={styles.speedDialContainer}>
-                            <TouchableOpacity
-                                style={styles.subFab}
-                                onPress={() => {
-                                    setIsFabOpen(false);
-                                    navigation.navigate('SymptomLogger', { mode: 'symptom' });
-                                }}
-                            >
-                                <Text style={styles.subFabLabel}>Log Symptom</Text>
-                                <View style={[styles.subFabIcon, { backgroundColor: '#ef4444' }]} pointerEvents="none">
-                                    <Text style={{ fontSize: 24 }}>🤒</Text>
-                                </View>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.subFab}
-                                onPress={() => {
-                                    setIsFabOpen(false);
-                                    navigation.navigate('SymptomLogger', { mode: 'mood' });
-                                }}
-                            >
-                                <Text style={styles.subFabLabel}>Log Mood</Text>
-                                <View style={[styles.subFabIcon, { backgroundColor: '#8b5cf6' }]} pointerEvents="none">
-                                    <Text style={{ fontSize: 24 }}>😊</Text>
-                                </View>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.subFab}
-                                onPress={() => {
-                                    setIsFabOpen(false);
-                                    navigation.navigate('LogMeal');
-                                }}
-                            >
-                                <Text style={styles.subFabLabel}>Log Meal</Text>
-                                <View style={[styles.subFabIcon, { backgroundColor: '#2563eb' }]} pointerEvents="none">
-                                    <Text style={{ fontSize: 24 }}>🍽️</Text>
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-                    </>
-                )}
-
-                <TouchableOpacity
-                    style={[styles.fab, isFabOpen ? { backgroundColor: '#4b5563' } : {}]}
-                    onPress={() => setIsFabOpen(!isFabOpen)}
-                >
-                    <View pointerEvents="none">
-                        {isFabOpen ? <X color="#fff" size={32} /> : <Plus color="#fff" size={32} />}
-                    </View>
-                </TouchableOpacity>
+                <SmartFAB 
+                    hasActiveExperiment={activeExperiments.length > 0}
+                    onLogMeal={() => navigation.navigate('LogMeal')}
+                    onLogSymptom={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
+                    onLogMood={() => navigation.navigate('SymptomLogger', { mode: 'mood' })}
+                    onLogProgress={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
+                />
 
                 {/* Custom Daily Timeline Modal */}
                 <Modal
@@ -1260,5 +1290,17 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#64748b',
         marginTop: 2,
-    }
+    },
+    sectionDivider: {
+        height: 1,
+        backgroundColor: '#e5e7eb',
+        marginVertical: 32,
+        marginHorizontal: -20,
+    },
+    recentActivityTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1f2937',
+        marginBottom: 8,
+    },
 });

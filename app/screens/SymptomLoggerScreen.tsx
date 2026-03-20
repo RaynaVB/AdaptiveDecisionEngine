@@ -59,6 +59,12 @@ export default function SymptomLoggerScreen() {
     const route = useRoute<SymptomLoggerScreenRouteProp>();
     const mode = route.params?.mode || 'symptom';
 
+    React.useEffect(() => {
+        navigation.setOptions({
+            headerTitle: mode === 'mood' ? 'Log Mood' : 'Log Symptoms'
+        });
+    }, [navigation, mode]);
+
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
