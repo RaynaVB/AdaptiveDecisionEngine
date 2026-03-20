@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { StorageService } from '../../src/services/storage';
-import { Pattern, Insight } from '../../src/models/types';
-import { generateInsightsFromPatterns } from '../../src/core/insight_engine/insightEngine';
+import { Insight } from '../../src/models/types';
+import { InsightService } from '../../src/services/insightService';
 import { useFocusEffect } from '@react-navigation/native';
 import { Sparkles, Shield, TrendingUp, AlertTriangle, Activity } from 'lucide-react-native';
 import { auth } from '../../src/services/firebaseConfig';
@@ -16,22 +16,17 @@ export default function InsightFeedScreen() {
     const loadInsights = async () => {
         setLoading(true);
         try {
-            // Fetch user profile for personalization
-            if (auth.currentUser) {
-                const profile = await getUserProfile(auth.currentUser.uid);
+            let profile = userProfile;
+            if (auth.currentUser && !profile) {
+                profile = await getUserProfile(auth.currentUser.uid);
                 setUserProfile(profile);
             }
 
-            const meals = await StorageService.getMealEvents();
-            const moods = await StorageService.getMoodEvents();
-            const symptoms = await StorageService.getSymptomEvents();
-            
-            // Patterns are now server-side (using placeholder for now)
-            const patterns: Pattern[] = []; 
-            const generatedInsights = generateInsightsFromPatterns(patterns);
+            const response = await InsightService.getInsights();
+            const generatedInsights = response.insights;
             
             // Sort insights by user goals relevance
-            const sorted = sortByGoalRelevance(generatedInsights, userProfile);
+            const sorted = sortByGoalRelevance(generatedInsights, profile);
             setInsights(sorted);
         } catch(error) {
             console.error("Error loading insights:", error);
@@ -57,10 +52,10 @@ export default function InsightFeedScreen() {
 
         return [...insights].sort((a, b) => {
             const aRelevance = userKeywords.some(kw => 
-                a.title.toLowerCase().includes(kw) || a.description.toLowerCase().includes(kw)
+                a.title.toLowerCase().includes(kw) || a.summary.toLowerCase().includes(kw)
             ) ? 1 : 0;
             const bRelevance = userKeywords.some(kw => 
-                b.title.toLowerCase().includes(kw) || b.description.toLowerCase().includes(kw)
+                b.title.toLowerCase().includes(kw) || b.summary.toLowerCase().includes(kw)
             ) ? 1 : 0;
             return bRelevance - aRelevance;
         });
@@ -113,18 +108,18 @@ export default function InsightFeedScreen() {
                     </Text>
                 </View>
                 <Text style={styles.cardTitle}>{insight.title}</Text>
-                <Text style={styles.cardDescription}>{insight.description}</Text>
+                <Text style={styles.cardDescription}>{insight.summary}</Text>
                 <View style={styles.footer}>
-                    <Text style={styles.confidenceText}>Confidence: {insight.confidence}</Text>
+                    <Text style={styles.confidenceText}>Confidence: {insight.confidenceLevel}</Text>
                 </View>
             </View>
         );
     };
 
     // Categorize insights into sections
-    const triggers = insights.filter(i => i.type === 'correlation');
+    const triggers = insights.filter(i => i.type === 'trigger_pattern' || i.type === 'mood_trigger');
     const protectors = insights.filter(i => i.type === 'protective');
-    const emerging = insights.filter(i => i.type === 'timing' || i.type === 'compound');
+    const emerging = insights.filter(i => i.type === 'timing_pattern' || i.type === 'behavior_shift' || i.type === 'mood_association');
     const predictions = insights.filter(i => i.type === 'prediction');
 
     // Build sensitivity profile from user profile

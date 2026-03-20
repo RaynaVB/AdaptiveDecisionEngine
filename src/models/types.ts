@@ -181,16 +181,40 @@ export interface Pattern {
 }
 
 export interface Insight {
-  id: string;
+  id: string; // Map from insightId in backend
+  generationId: string;
+  userId: string;
+  type: string;
+  category: string;
   title: string;
-  description: string;
-  type: 'correlation' | 'protective' | 'timing' | 'compound' | 'prediction';
-  confidence: 'low' | 'medium' | 'high';
-  relatedPatternIds: string[];
-  createdAt: string;
-  actionableInsight?: {
-    label: string;
-    actionType: 'start_experiment' | 'log_more' | 'lifestyle_change' | 'log_water' | 'review_sleep';
-    experimentIdToStart?: string;
+  summary: string;
+  description?: string; // For backward compatibility
+  confidenceScore: number;
+  confidenceLevel: 'low' | 'medium' | 'high';
+  window?: {
+    minHours: number;
+    maxHours: number;
   };
+  supportingEvidence: {
+    matchCount: number;
+    sampleSize: number;
+  };
+  status: string;
+  relatedPatternIds?: string[];
+  createdAt: string;
+}
+
+export interface InsightGeneration {
+  id: string;
+  userId: string;
+  generatedAt: string;
+  trigger: string;
+  engineVersion: string;
+  status: string;
+  insightCount: number;
+}
+
+export interface InsightFeedResponse {
+  generation: InsightGeneration;
+  insights: Insight[];
 }

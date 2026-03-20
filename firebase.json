@@ -5,10 +5,18 @@
   "storage": {
     "rules": "storage.rules"
   },
-  "functions": {
-    "source": "functions/recommendation_service",
-    "runtime": "python312"
-  },
+  "functions": [
+    {
+      "codebase": "recommendations",
+      "source": "functions/recommendation_service",
+      "runtime": "python312"
+    },
+    {
+      "codebase": "insights",
+      "source": "functions/insights_service",
+      "runtime": "python312"
+    }
+  ],
   "emulators": {
     "functions": {
       "port": 5001,
