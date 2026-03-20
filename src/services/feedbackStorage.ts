@@ -11,7 +11,7 @@ export const FeedbackStorageService = {
             history.push(event);
             await AsyncStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(history));
 
-            // ML Update is now handled server-side via RecommendationService.submitFeedback
+            // Action update is now handled server-side via RecommendationService.submitAction
 
         } catch (e) {
             console.error('Failed to save feedback and update bandit', e);
@@ -19,9 +19,10 @@ export const FeedbackStorageService = {
     },
 
     getRewardForOutcome(outcome: FeedbackOutcome): number {
-        if (outcome === 'accepted_fully') return 1.0;
-        if (outcome === 'accepted_partially') return 0.5;
-        return 0.0; // rejected
+        if (outcome === 'accepted') return 1.0;
+        if (outcome === 'maybe') return 0.5;
+        if (outcome === 'completed') return 1.2; // Extra reward for completion
+        return 0.0; // rejected or dismissed
     },
 
     async getFeedbackHistory(): Promise<FeedbackEvent[]> {

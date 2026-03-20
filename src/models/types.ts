@@ -85,7 +85,14 @@ export interface MoodEvent {
   linkedMealEventId?: string;
 }
 
-export type FeedbackOutcome = 'accepted_fully' | 'accepted_partially' | 'rejected';
+export type FeedbackOutcome = 'accepted' | 'rejected' | 'maybe' | 'dismissed' | 'completed';
+
+export interface RecommendationAction {
+  state: 'none' | FeedbackOutcome;
+  actedAt?: string; // ISO
+  reasonCode?: string;
+  freeText?: string;
+}
 
 export interface FeedbackEvent {
   id: string; // uuid
@@ -98,11 +105,26 @@ export interface FeedbackEvent {
 }
 export interface Recommendation {
   id: string; // Instance UUID
-  templateId: string; // The underlying template ID
-  recommendationType: string;
+  generationId: string;
+  userId: string;
+  type: string;
+  category: string;
   title: string;
-  action: string;
-  whyThis: string;
+  summary: string;
+  priorityScore: number;
+  confidenceScore: number;
+  confidenceLevel: 'low' | 'medium' | 'high';
+  rank: number;
+  whyThis: Array<{
+    kind: string;
+    label: string;
+  }>;
+  cta?: {
+    type: string;
+    label: string;
+    payload?: Record<string, any>;
+  };
+  action: RecommendationAction;
   linkedPatternIds: string[];
   scores: {
     impact: number;
@@ -112,7 +134,31 @@ export interface Recommendation {
     total: number;
   };
   associatedExperimentId?: string;
-  createdAt: string;
+  createdAt: string; // ISO
+}
+
+export interface RecommendationGeneration {
+  id: string;
+  userId: string;
+  generatedAt: string; // ISO
+  trigger: 'meal_logged' | 'mood_logged' | 'symptom_logged' | 'feedback_submitted' | 'experiment_started' | 'experiment_completed' | 'manual_refresh';
+  sourceEventId?: string;
+  engineVersion: string;
+  status: 'completed' | 'failed';
+  recommendationCount: number;
+  topRecommendationId?: string;
+  inputSummary: {
+    lastMealAt?: string;
+    lastMoodAt?: string;
+    lastSymptomAt?: string;
+    lastExperimentUpdateAt?: string;
+    lastFeedbackAt?: string;
+  };
+}
+
+export interface RecommendationFeedResponse {
+  generation: RecommendationGeneration;
+  recommendations: Recommendation[];
 }
 
 export interface Pattern {

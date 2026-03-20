@@ -22,13 +22,14 @@ type RecTier = 'preventive' | 'optimization' | 'experiment';
 const classifyTier = (rec: Recommendation): RecTier => {
     if (rec.associatedExperimentId) return 'experiment';
     // Symptom-linked patterns are preventive (highest urgency)
-    if (rec.recommendationType === 'symptom_correlation' || rec.recommendationType === 'symptom_avoidance') return 'preventive';
+    if (rec.category === 'symptom_prevention' || rec.type === 'prevention_plan') return 'preventive';
     // Everything else is optimization
     return 'optimization';
 };
 
 export default function RecommendationFeedScreen() {
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+    const [generationId, setGenerationId] = useState<string | null>(null);
     const [feedbacks, setFeedbacks] = useState<Record<string, FeedbackOutcome | null>>({});
     const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
     const [loading, setLoading] = useState(true);
@@ -53,14 +54,10 @@ export default function RecommendationFeedScreen() {
             
             // 3. run Recommendation Engine (Remote)
             console.log("[Recommendations] Fetching from Cloud Function...");
-            const recs = await RecommendationService.getRecommendations();
+            const response = await RecommendationService.getRecommendations();
+            const recs = response.recommendations;
+            setGenerationId(response.generation.id);
             console.log("[Recommendations] Success! Result count:", recs.length);
-            
-            // Debug Logging (Optional)
-            console.log("Top recommendations:", recs.map(r => ({
-                title: r.title,
-                totalScore: r.scores?.total?.toFixed(2)
-            })));
             
             // 4. render recommendations
             // Filter out recommendations that are already active experiments
@@ -68,13 +65,22 @@ export default function RecommendationFeedScreen() {
                 !r.associatedExperimentId || 
                 !actives.some((run: ExperimentRun) => run.experimentId === r.associatedExperimentId)
             );
-            setRecommendations(filteredRecs);
-
+            
             const feedbackMap: Record<string, FeedbackOutcome | null> = {};
             for (const rec of recs) {
-                const outcome = await FeedbackStorageService.getLatestOutcomeForRecommendation(rec.templateId);
-                feedbackMap[rec.id] = outcome;
+                // Using the specific recommendation's current action state if available from backend
+                feedbackMap[rec.id] = rec.action.state === 'none' ? null : (rec.action.state as FeedbackOutcome);
             }
+
+            // Global sort: unacted first
+            const sortedRecs = [...filteredRecs].sort((a, b) => {
+                const aActed = feedbackMap[a.id] !== null;
+                const bActed = feedbackMap[b.id] !== null;
+                if (aActed === bActed) return 0;
+                return aActed ? 1 : -1;
+            });
+
+            setRecommendations(sortedRecs);
             setFeedbacks(feedbackMap);
         } catch(error) {
             console.error("Error loading recommendations:", error);
@@ -113,22 +119,27 @@ export default function RecommendationFeedScreen() {
     }
 
     const handleFeedback = async (rec: Recommendation, outcome: FeedbackOutcome) => {
-        const event: FeedbackEvent = {
-            id: uuidv4(),
-            recommendationId: rec.templateId,
-            recommendationType: rec.recommendationType,
-            title: rec.title,
-            action: rec.action,
-            outcome,
-            timestamp: new Date().toISOString()
-        };
-        await FeedbackStorageService.saveFeedback(event);
-        
+        if (!generationId) return;
+
         // Sync with backend
         try {
-            await RecommendationService.submitFeedback(rec.templateId, rec.recommendationType, outcome);
+            await RecommendationService.submitAction(generationId, rec.id, outcome);
+            
+            // Also store locally for history if needed
+            const event: FeedbackEvent = {
+                id: uuidv4(),
+                recommendationId: rec.id,
+                recommendationType: rec.type,
+                title: rec.title,
+                action: rec.summary,
+                outcome,
+                timestamp: new Date().toISOString()
+            };
+            await FeedbackStorageService.saveFeedback(event);
         } catch (e) {
-            console.error("Failed to sync feedback with backend", e);
+            console.error("Failed to sync action with backend", e);
+            Alert.alert("Error", "Could not save your response. Please try again.");
+            return;
         }
         
         setFeedbacks((prev: Record<string, FeedbackOutcome | null>) => ({
@@ -157,15 +168,15 @@ export default function RecommendationFeedScreen() {
         return (
             <View style={styles.feedbackContainer}>
                 <TouchableOpacity 
-                    style={[styles.feedbackButton, currentOutcome === 'accepted_fully' && styles.feedbackButtonActive]}
-                    onPress={() => handleFeedback(rec, 'accepted_fully')}
+                    style={[styles.feedbackButton, currentOutcome === 'accepted' && styles.feedbackButtonActive]}
+                    onPress={() => handleFeedback(rec, 'accepted')}
                 >
                     <Text style={styles.feedbackEmoji}>✅</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                    style={[styles.feedbackButton, currentOutcome === 'accepted_partially' && styles.feedbackButtonActive]}
-                    onPress={() => handleFeedback(rec, 'accepted_partially')}
+                    style={[styles.feedbackButton, currentOutcome === 'maybe' && styles.feedbackButtonActive]}
+                    onPress={() => handleFeedback(rec, 'maybe')}
                 >
                     <Text style={styles.feedbackEmoji}>⚠️</Text>
                 </TouchableOpacity>
@@ -181,9 +192,11 @@ export default function RecommendationFeedScreen() {
     };
 
     const getOutcomeText = (outcome: FeedbackOutcome | null) => {
-        if (outcome === 'accepted_fully') return 'Accepted';
-        if (outcome === 'accepted_partially') return 'Maybe';
+        if (outcome === 'accepted') return 'Accepted';
+        if (outcome === 'maybe') return 'Maybe';
         if (outcome === 'rejected') return 'Rejected';
+        if (outcome === 'dismissed') return 'Dismissed';
+        if (outcome === 'completed') return 'Completed';
         return 'None';
     };
 
@@ -195,13 +208,17 @@ export default function RecommendationFeedScreen() {
         }
     };
 
-    const renderCard = (rec: Recommendation, tier: RecTier) => (
-        <View key={rec.id} style={[styles.card, getTierStyle(tier)]}>
+    const renderCard = (rec: Recommendation, tier: RecTier) => {
+        const isActed = feedbacks[rec.id] !== null;
+        return (
+            <View key={rec.id} style={[styles.card, getTierStyle(tier), isActed && styles.actedCard]}>
             <Text style={styles.cardTitle}>{rec.title}</Text>
-            <Text style={styles.cardAction}>{rec.action}</Text>
+            <Text style={styles.cardAction}>{rec.summary}</Text>
             <View style={styles.whyContainer}>
                 <Text style={styles.whyLabel}>Why this?</Text>
-                <Text style={styles.whyText}>{rec.whyThis}</Text>
+                {rec.whyThis.map((reason, idx) => (
+                    <Text key={idx} style={styles.whyText}>• {reason.label}</Text>
+                ))}
             </View>
             
             {rec.associatedExperimentId && !activeExperiments.some(run => run.experimentId === rec.associatedExperimentId) && (
@@ -230,7 +247,8 @@ export default function RecommendationFeedScreen() {
                 {renderFeedbackButtons(rec)}
             </View>
         </View>
-    );
+        );
+    };
 
     // Classify recommendations into tiers
     const preventive = recommendations.filter(r => classifyTier(r) === 'preventive');
@@ -342,6 +360,10 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderLeftWidth: 4,
         borderLeftColor: '#dc2626',
+    },
+    actedCard: {
+        opacity: 0.6,
+        backgroundColor: '#f9fafb',
     },
     optimizationCard: {
         borderColor: '#fcd34d',

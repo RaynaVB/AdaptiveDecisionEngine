@@ -20,6 +20,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { analyzeFoodImage, uploadImageToFirebase, VisionAnalysisResult } from '../../src/services/visionService';
 import { auth } from '../../src/services/firebaseConfig';
 import { ingredientService } from '../../src/services/IngredientService';
+import { RecommendationService } from '../../src/services/recommendationService';
 
 type LogMealScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMeal'>;
 
@@ -410,6 +411,10 @@ export default function LogMealScreen() {
 
             await StorageService.addMealEvent(newMeal);
             await NotificationService.handleUserLoggedActivity('meal');
+            
+            // Trigger recommendation recompute in background
+            RecommendationService.recomputeRecommendations('meal_logged')
+                .catch(err => console.error("Failed to recompute recommendations:", err));
 
         } catch (error) {
             console.error("Save Error", error);

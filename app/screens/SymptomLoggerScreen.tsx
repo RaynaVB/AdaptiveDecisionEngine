@@ -10,6 +10,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import Slider from '@react-native-community/slider';
 import { NotificationService } from '../../src/services/NotificationService';
 import { Clock } from 'lucide-react-native';
+import { RecommendationService } from '../../src/services/recommendationService';
 
 type SymptomLoggerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SymptomLogger'>;
 type SymptomLoggerScreenRouteProp = RouteProp<RootStackParamList, 'SymptomLogger'>;
@@ -135,6 +136,11 @@ export default function SymptomLoggerScreen() {
         }
 
         await NotificationService.handleUserLoggedActivity('mood');
+        
+        // Trigger recommendation recompute in background
+        RecommendationService.recomputeRecommendations(mode === 'mood' ? 'mood_logged' : 'symptom_logged')
+            .catch(err => console.error("Failed to recompute recommendations:", err));
+
         navigation.goBack();
     };
 

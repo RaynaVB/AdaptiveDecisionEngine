@@ -27,9 +27,13 @@ class ActionTemplate(TypedDict):
     minMealEventsInWindow: int
     minMoodEventsInWindow: int
     tags: List[str]
+    category: str
     titleTemplate: str
+    summaryTemplate: str
     actionTemplate: str
     whyTemplate: str
+    ctaType: Optional[str]
+    ctaLabel: Optional[str]
     associatedExperimentId: Optional[str]
 
 ACTION_LIBRARY: List[ActionTemplate] = [
@@ -41,10 +45,13 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "minPatternConfidence": "low",
         "minMealEventsInWindow": 5,
         "minMoodEventsInWindow": 5,
-        "tags": ["low_friction", "pause"],
+        "category": "behavioral_shift",
         "titleTemplate": "Try a 60-second pause first",
+        "summaryTemplate": "A short pause before eating can help you stay mindful when stressed.",
         "actionTemplate": "Next time you notice a low mood or high stress, pause for 60 seconds before eating. Take 5 slow breaths, then decide.",
         "whyTemplate": "Your logs suggest eating often happens soon after a mood dip. A short pause can help you choose intentionally.",
+        "ctaType": "start_experiment",
+        "ctaLabel": "Try Pause",
         "associatedExperimentId": "stress_reset_60s",
     },
     {
@@ -55,10 +62,13 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "minPatternConfidence": "medium",
         "minMealEventsInWindow": 7,
         "minMoodEventsInWindow": 7,
-        "tags": ["low_friction", "timing"],
+        "category": "behavioral_shift",
         "titleTemplate": "Add a 10-minute buffer",
+        "summaryTemplate": "Delaying cravings by just 10 minutes can significantly reduce emotional eating.",
         "actionTemplate": "When a craving hits after a mood dip, set a 10-minute timer. If you still want food after the timer, eat without guilt.",
         "whyTemplate": "In your data, snacks often follow stress/low mood quickly. A small buffer can reduce autopilot eating.",
+        "ctaType": "log_mood",
+        "ctaLabel": "Try Buffer",
         "associatedExperimentId": None,
     },
     {
@@ -69,10 +79,13 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "minPatternConfidence": "medium",
         "minMealEventsInWindow": 7,
         "minMoodEventsInWindow": 7,
-        "tags": ["snack", "substitution"],
+        "category": "substitution",
         "titleTemplate": "Use a “pairing” snack",
+        "summaryTemplate": "Pairing sweets with fiber or protein stabilizes your blood sugar and mood.",
         "actionTemplate": "If you want something sweet, pair it with something filling (e.g., fruit + yogurt, or a small sweet + nuts).",
         "whyTemplate": "Your logs show mood dips often precede snacking. Pairing can keep the snack satisfying without needing exact tracking.",
+        "ctaType": "log_meal",
+        "ctaLabel": "Log Pairing",
         "associatedExperimentId": None,
     },
     {
@@ -83,10 +96,13 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "minPatternConfidence": "high",
         "minMealEventsInWindow": 10,
         "minMoodEventsInWindow": 10,
-        "tags": ["planning", "snack"],
+        "category": "planning",
         "titleTemplate": "Pre-plan one “default” snack",
+        "summaryTemplate": "Having a go-to healthy snack ready reduces the chance of stress-eating.",
         "actionTemplate": "Pick one simple default snack for stressful moments and keep it available (same option all week).",
         "whyTemplate": "Your pattern suggests stress → eating within a short window. A default snack reduces decision friction and helps consistency.",
+        "ctaType": "set_goal",
+        "ctaLabel": "Pick Snack",
         "associatedExperimentId": None,
     },
     {

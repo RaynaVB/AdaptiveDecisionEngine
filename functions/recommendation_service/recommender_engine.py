@@ -60,13 +60,33 @@ def run_recommendation_engine(
             
             scores = calculate_scores(template, pattern, rejection_rate, ml_score)
 
+            # Map confidence value to level
+            conf_val = get_confidence_value(pattern.get("confidence"))
+            conf_level = 'low'
+            if conf_val == 3: conf_level = 'high'
+            elif conf_val == 2: conf_level = 'medium'
+
             candidates.append({
                 "id": str(uuid.uuid4()),
                 "templateId": template["id"],
-                "recommendationType": template["recommendationType"],
+                "type": template["recommendationType"],
+                "category": template.get("category", "general"), # Default if not in template
                 "title": template["titleTemplate"],
-                "action": template["actionTemplate"],
-                "whyThis": template["whyTemplate"],
+                "summary": template.get("summaryTemplate", template["actionTemplate"]), # Fallback to action if summary missing
+                "confidenceScore": scores["confidence"],
+                "confidenceLevel": conf_level,
+                "priorityScore": scores["total"],
+                "whyThis": [
+                    {"kind": "pattern", "label": template["whyTemplate"]}
+                ],
+                "cta": {
+                    "type": template.get("ctaType", "view_details"),
+                    "label": template.get("ctaLabel", "Take Action"),
+                    "payload": {"experimentId": template.get("associatedExperimentId")} if template.get("associatedExperimentId") else {}
+                },
+                "action": {
+                    "state": "none"
+                },
                 "linkedPatternIds": [pattern.get("id")],
                 "scores": scores,
                 "associatedExperimentId": template.get("associatedExperimentId"),
@@ -94,7 +114,13 @@ def run_recommendation_engine(
                 "createdAt": datetime.now().isoformat()
             })
 
-    return rank_recommendations(candidates)
+    ranked = rank_recommendations(candidates)
+    
+    # Add rank field
+    for i, rec in enumerate(ranked):
+        rec["rank"] = i + 1
+        
+    return ranked
 
 def get_confidence_value(c: str) -> int:
     if c == "high": return 3

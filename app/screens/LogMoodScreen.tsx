@@ -9,6 +9,7 @@ import { NotificationService } from '../../src/services/NotificationService';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
+import { RecommendationService } from '../../src/services/recommendationService';
 
 type LogMoodScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMood'>;
 
@@ -111,6 +112,11 @@ export default function LogMoodScreen() {
 
         await StorageService.addMoodEvent(newMood);
         await NotificationService.handleUserLoggedActivity('mood');
+        
+        // Trigger recommendation recompute in background
+        RecommendationService.recomputeRecommendations('mood_logged')
+            .catch(err => console.error("Failed to recompute recommendations:", err));
+
         navigation.popToTop(); // Go back to Timeline
     };
 
