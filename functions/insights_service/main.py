@@ -55,16 +55,48 @@ def is_generation_valid(user_id, generation_data):
     if not generation_data:
         return False
     
-    # 1. TTL Check (12 hours for insights, slightly longer than recommendations)
+    # 1. TTL Check (12 hours)
     generated_at_str = generation_data.get('generatedAt')
     if not generated_at_str:
         return False
     
     try:
+        # Normalize to Z for lexicographical comparison if needed
+        # but Firestore query with > will handle ISO strings well if they are consistent.
         generated_at = datetime.fromisoformat(generated_at_str.replace('Z', '+00:00'))
-        if datetime.now(timezone.utc) - generated_at > timedelta(hours=12):
+        now = datetime.now(timezone.utc)
+        age = now - generated_at
+        
+        # Set debounce to 5 minutes as requested
+        if age < timedelta(minutes=5):
+            return True
+            
+        # Invalid if > 12 hours old (TTL)
+        if age > timedelta(hours=12):
             return False
-    except Exception:
+            
+        # 2. Check for new evidence since last generation
+        db = get_db()
+        user_ref = db.collection('users').document(user_id)
+        
+        # CHECK SYMPTOMS: Any new symptom since generated_at triggers refresh
+        new_symptoms = user_ref.collection('symptoms')\
+            .where('occurredAt', '>', generated_at_str)\
+            .limit(1).get()
+        if new_symptoms:
+            print(f"[Insights] Found new symptom after {generated_at_str}. Invalidating cache.")
+            return False
+            
+        # CHECK MEALS: 3+ new meals since generated_at triggers refresh
+        new_meals = user_ref.collection('meals')\
+            .where('occurredAt', '>', generated_at_str)\
+            .limit(4).get()
+        if len(new_meals) >= 3:
+            print(f"[Insights] Found {len(new_meals)} new meals after {generated_at_str}. Invalidating cache.")
+            return False
+            
+    except Exception as e:
+        print(f"Error checking generation validity: {e}")
         return False
     
     return True

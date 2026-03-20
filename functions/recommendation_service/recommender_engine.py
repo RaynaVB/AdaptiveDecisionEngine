@@ -13,8 +13,31 @@ def run_recommendation_engine(
     patterns: List[Dict[str, Any]],
     context: Dict[str, Any],
     rejection_rates: Dict[str, float] = {},
-    latest_rejections: Dict[str, str] = {}
+    latest_rejections: Dict[str, str] = {},
+    latest_insights: List[Dict[str, Any]] = []
 ) -> List[Dict[str, Any]]:
+    # Normalize latest_insights to match Pattern structure for the candidate loop
+    normalized_insights = []
+    type_mapping = {
+        "mood_trigger": "mood_dip_then_eat",
+        "timing_pattern": "late_night_eating_cluster",
+        "behavior_shift": "weekday_weekend_shift",
+        "mood_association": "meal_type_mood_association",
+        "trigger_pattern": "meal_type_mood_association" # Map symptom triggers to meal type associations for now
+    }
+    
+    for ins in latest_insights:
+        normalized_insights.append({
+            "id": ins.get("insightId"),
+            "patternType": type_mapping.get(ins.get("type"), "unknown"),
+            "confidence": ins.get("confidenceLevel"),
+            "source": "stable_insight"
+        })
+
+    # Combine fresh patterns and stable insights
+    # Patterns are fresh, insights are stable. We want to act on both.
+    all_patterns = patterns + normalized_insights
+    
     candidates = []
     meal_count = len(context.get("meals", []))
     mood_count = len(context.get("moods", []))
@@ -26,7 +49,7 @@ def run_recommendation_engine(
     target_time_ms = int(datetime.now().timestamp() * 1000)
     current_context = build_context_vector(target_time_ms, context.get("moods", []))
 
-    for pattern in patterns:
+    for pattern in all_patterns:
         pattern_type = pattern.get("patternType")
         applicable_templates = [
             t for t in ACTION_LIBRARY 

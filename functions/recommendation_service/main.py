@@ -101,6 +101,27 @@ def is_generation_valid(user_id, generation_data):
     
     return True
 
+def get_latest_insights(user_id):
+    """Fetch the latest generated insights for a user."""
+    db = get_db()
+    user_ref = db.collection('users').document(user_id)
+    
+    # Load latest insight generation
+    gen_query = user_ref.collection('insight_generations')\
+        .order_by('generatedAt', direction=firestore.Query.DESCENDING)\
+        .limit(1).get()
+    
+    if not gen_query:
+        return []
+        
+    latest_gen_doc = gen_query[0]
+    
+    # Fetch insights from subcollection
+    insights_docs = latest_gen_doc.reference.collection('insights')\
+        .order_by('confidenceScore', direction=firestore.Query.DESCENDING).get()
+    
+    return [doc.to_dict() for doc in insights_docs]
+
 def handle_get_recommendations(user_id, headers):
     db = get_db()
     user_ref = db.collection('users').document(user_id)
@@ -142,6 +163,9 @@ def handle_recompute(user_id, data, headers):
 
     patterns = run_pattern_engine(meals, moods, symptoms)
 
+    # Fetch latest stable insights to inform recommendations
+    latest_insights = get_latest_insights(user_id)
+
     # Simplified rejection logic for now
     rejection_rates = {}
     latest_rejections = {}
@@ -153,7 +177,8 @@ def handle_recompute(user_id, data, headers):
         patterns, 
         {"meals": meals, "moods": moods, "symptoms": symptoms},
         rejection_rates,
-        latest_rejections
+        latest_rejections,
+        latest_insights # Pass stable insights to decision layer
     )
 
     # Create new generation doc
