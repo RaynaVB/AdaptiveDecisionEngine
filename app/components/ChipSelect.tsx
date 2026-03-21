@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { OnboardingOption } from '../constants/options';
+import { Colors, Typography, Spacing, Radii } from '../constants/Theme';
 
 interface ChipSelectProps {
     options: OnboardingOption[];
@@ -52,44 +53,41 @@ export const ChipSelect: React.FC<ChipSelectProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 16,
+        marginBottom: Spacing.s4,
     },
     categoryTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#64748b',
-        marginBottom: 8,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        marginBottom: Spacing.s2,
     },
     chipsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: Spacing.s2,
     },
     chip: {
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.surfaceLowest,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 20,
-        paddingVertical: 8,
+        borderColor: Colors.surfaceContainer,
+        borderRadius: Radii.full,
+        paddingVertical: 10,
         paddingHorizontal: 16,
         marginBottom: 8,
     },
     chipSelected: {
-        backgroundColor: '#eff6ff',
-        borderColor: '#3b82f6',
+        backgroundColor: Colors.primaryContainer,
+        borderColor: Colors.primary,
     },
     chipDisabled: {
-        opacity: 0.5,
+        opacity: 0.4,
     },
     chipText: {
-        color: '#64748b',
+        color: Colors.onSurfaceVariant,
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     chipTextSelected: {
-        color: '#2563eb',
-        fontWeight: '600',
+        color: Colors.onPrimaryContainer,
+        fontWeight: '700',
     },
 });

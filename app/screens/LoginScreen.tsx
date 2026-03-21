@@ -5,6 +5,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { auth } from '../../src/services/firebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import AppHeader from '../components/AppHeader';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -43,7 +44,7 @@ export default function LoginScreen({ navigation }: Props) {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <Text style={styles.title}>Veyra</Text>
+                <AppHeader showTagline style={styles.header} />
 
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Email Address</Text>
@@ -103,13 +104,8 @@ const styles = StyleSheet.create({
         padding: Spacing.s6,
         justifyContent: 'center',
     },
-    title: {
-        ...Typography.headline,
-        fontSize: 36,
-        color: Colors.onSurface,
-        textAlign: 'center',
+    header: {
         marginBottom: 64,
-        letterSpacing: -1,
     },
     inputContainer: {
         marginBottom: 24,

@@ -5,6 +5,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { MEDICAL_DISCLAIMER_FULL } from '../constants/legal';
 import { CheckCircle2, Circle } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import AppHeader from '../components/AppHeader';
 
 type OnboardingWelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OnboardingWelcome'>;
 
@@ -18,6 +19,7 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
     return (
         <View style={styles.container}>
             <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
+                <AppHeader showTagline style={styles.header} />
                 <View style={styles.badge}>
                     <Text style={styles.badgeText}>BETA</Text>
                 </View>
@@ -85,9 +87,12 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 24,
-        paddingTop: 80,
+        paddingTop: 60,
         paddingBottom: 40,
         alignItems: 'center',
+    },
+    header: {
+        marginBottom: 32,
     },
     title: {
         ...Typography.display,
