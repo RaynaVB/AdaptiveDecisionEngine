@@ -49,9 +49,9 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
                     activeOpacity={0.7}
                 >
                     {accepted ? (
-                        <CheckCircle2 size={24} color="#3b82f6" />
+                        <CheckCircle2 size={24} color={Colors.info} />
                     ) : (
-                        <Circle size={24} color="#64748b" />
+                        <Circle size={24} color={Colors.outline} />
                     )}
                     <Text style={styles.checkboxText}>
                         I have read and agree to the medical disclaimer
@@ -152,12 +152,12 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     disclaimerContainer: {
-        backgroundColor: 'rgba(79, 99, 89, 0.05)',
+        backgroundColor: Colors.primaryMuted,
         padding: 20,
         borderRadius: Radii.lg,
         marginTop: 24,
         borderWidth: 1,
-        borderColor: 'rgba(79, 99, 89, 0.1)',
+        borderColor: Colors.borderSubtle,
         width: '100%',
     },
     disclaimerTitle: {
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     buttonText: {
-        color: '#ffffff',
+        color: Colors.onPrimaryContrast,
         fontSize: 18,
         fontWeight: '800',
         letterSpacing: 0.5,

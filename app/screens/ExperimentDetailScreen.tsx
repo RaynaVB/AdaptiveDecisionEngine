@@ -147,7 +147,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                         <View style={styles.badge}>
                             <Text style={styles.badgeText}>{definition?.durationDays} DAYS</Text>
                         </View>
-                        <View style={[styles.badge, { backgroundColor: 'rgba(79, 99, 89, 0.1)' }]}>
+                        <View style={[styles.badge, { backgroundColor: Colors.primaryMuted }]}>
                             <Text style={[styles.badgeText, { color: Colors.primary }]}>{definition?.category.toUpperCase()}</Text>
                         </View>
                     </View>
@@ -173,7 +173,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                         </View>
                     </View>
 
-                    <View style={[styles.infoCard, { backgroundColor: 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                    <View style={[styles.infoCard, { backgroundColor: Colors.errorMuted, borderColor: Colors.errorMuted }]}>
                         <View style={styles.infoRow}>
                             <AlertTriangle size={18} color={Colors.error} />
                             <Text style={[styles.infoLabel, { color: Colors.error }]}>Medical Disclaimer</Text>
@@ -188,7 +188,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                     ) : activeRun ? (
                         <View style={{ gap: 16 }}>
                             <TouchableOpacity style={styles.completeButton} onPress={handleComplete}>
-                                <CheckCircle size={20} color="#fff" style={{ marginRight: 8 }} />
+                                <CheckCircle size={20} color={Colors.onPrimaryContrast} style={{ marginRight: 8 }} />
                                 <Text style={styles.completeButtonText}>Complete Study</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.abandonButton} onPress={handleAbandon}>
@@ -197,7 +197,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                         </View>
                     ) : (
                         <TouchableOpacity style={styles.startButton} onPress={handleStart}>
-                            <Play size={20} color="#fff" fill="#fff" style={{ marginRight: 8 }} />
+                            <Play size={20} color={Colors.onPrimaryContrast} fill={Colors.onPrimaryContrast} style={{ marginRight: 8 }} />
                             <Text style={styles.startButtonText}>Start Protocol</Text>
                         </TouchableOpacity>
                     )}
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(79, 99, 89, 0.05)',
+        backgroundColor: Colors.primaryMuted,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     badge: {
-        backgroundColor: 'rgba(7, 45, 34, 0.05)',
+        backgroundColor: Colors.primaryMuted,
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: Radii.md,
@@ -282,12 +282,12 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     infoCard: {
-        backgroundColor: 'rgba(216, 230, 222, 0.1)',
+        backgroundColor: Colors.primaryMuted,
         borderRadius: 20,
         padding: 16,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: 'rgba(216, 230, 222, 0.3)',
+        borderColor: Colors.primaryContainer,
     },
     infoRow: {
         flexDirection: 'row',
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
         ...Shadows.ambient,
     },
     startButtonText: {
-        color: '#fff',
+        color: Colors.onPrimaryContrast,
         fontSize: 17,
         fontWeight: '800',
         letterSpacing: 0.5,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
         ...Shadows.ambient,
     },
     completeButtonText: {
-        color: '#fff',
+        color: Colors.onPrimaryContrast,
         fontSize: 17,
         fontWeight: '800',
         letterSpacing: 0.5,

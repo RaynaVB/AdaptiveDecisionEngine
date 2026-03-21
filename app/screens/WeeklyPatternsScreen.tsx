@@ -112,9 +112,9 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
     const getItemIcon = (type: WeeklyItem['type']) => {
         switch (type) {
             case 'trend': return <TrendingUp size={20} color={Colors.primary} />;
-            case 'win': return <Trophy size={20} color="#10b981" />;
-            case 'regression': return <AlertTriangle size={20} color="#ef4444" />;
-            case 'experiment_update': return <FlaskConical size={20} color="#8b5cf6" />;
+            case 'win': return <Trophy size={20} color={Colors.success} />;
+            case 'regression': return <AlertTriangle size={20} color={Colors.error} />;
+            case 'experiment_update': return <FlaskConical size={20} color={Colors.experiment} />;
             default: return <Info size={20} color={Colors.outline} />;
         }
     };
@@ -181,7 +181,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                                     backgroundGradientFrom: Colors.surfaceLowest,
                                     backgroundGradientTo: Colors.surfaceLowest,
                                     decimalPlaces: 1,
-                                    color: (opacity = 1) => `rgba(79, 99, 89, ${opacity})`,
+                                    color: (opacity = 1) => `rgba(79, 99, 89, ${opacity})`, // primary
                                     labelColor: (opacity = 1) => Colors.outline,
                                     style: { borderRadius: 16 },
                                     propsForDots: { r: "4", strokeWidth: "2", stroke: Colors.primary }
@@ -206,10 +206,10 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                                     backgroundGradientFrom: Colors.surfaceLowest,
                                     backgroundGradientTo: Colors.surfaceLowest,
                                     decimalPlaces: 0,
-                                    color: (opacity = 1) => `rgba(168, 56, 54, ${opacity})`,
+                                    color: (opacity = 1) => `rgba(168, 56, 54, ${opacity})`, // error
                                     labelColor: (opacity = 1) => Colors.outline,
                                     style: { borderRadius: 16 },
-                                    propsForDots: { r: "4", strokeWidth: "2", stroke: "#a83836" }
+                                    propsForDots: { r: "4", strokeWidth: "2", stroke: Colors.error }
                                 }}
                                 bezier
                                 style={{ marginVertical: 8, borderRadius: 16 }}
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     },
     heroSection: {
         marginBottom: Spacing.s6,
-        backgroundColor: 'rgba(79, 99, 89, 0.05)',
+        backgroundColor: Colors.primaryMuted,
         padding: 24,
         borderRadius: Radii.xl,
     },

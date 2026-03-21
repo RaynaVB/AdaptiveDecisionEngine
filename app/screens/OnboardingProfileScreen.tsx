@@ -205,7 +205,7 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                         <Text style={styles.subtitle}>Search for specific ingredients icons you dislike or avoid.</Text>
                         
                         <View style={styles.searchContainer}>
-                            <Search size={20} color="#64748b" style={styles.searchIcon} />
+                            <Search size={20} color={Colors.onSurfaceVariant} style={styles.searchIcon} />
                             <TextInput
                                 style={styles.searchInput}
                                 placeholder="Search ingredients (e.g. Garlic, Cilantro)"
@@ -233,7 +233,7 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                                 <View key={food} style={styles.avoidedChip}>
                                     <Text style={styles.avoidedText}>{food}</Text>
                                     <TouchableOpacity onPress={() => removeAvoidedFood(food)}>
-                                        <X size={16} color="#64748b" />
+                                        <X size={16} color={Colors.onSurfaceVariant} />
                                     </TouchableOpacity>
                                 </View>
                             ))}
@@ -304,12 +304,12 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                         disabled={saving}
                     >
                         {saving ? (
-                            <ActivityIndicator color="#ffffff" />
+                            <ActivityIndicator color={Colors.onPrimaryContrast} />
                         ) : (
-                            <>
-                                <Text style={styles.nextButtonText}>{step === 5 ? "Finish" : "Next"}</Text>
-                                <ChevronRight size={24} color="#ffffff" />
-                            </>
+                            <View style={styles.buttonContent}>
+                                <Text style={styles.buttonText}>{step === 5 ? "Finish" : "Next"}</Text>
+                                <ChevronRight size={24} color={Colors.onPrimaryContrast} />
+                            </View>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     },
     frequencyItemSelected: {
         borderColor: Colors.primary,
-        backgroundColor: 'rgba(79, 99, 89, 0.05)',
+        backgroundColor: Colors.primaryMuted,
     },
     frequencyText: {
         ...Typography.body,
@@ -515,8 +515,13 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.surfaceContainerHighest,
         opacity: 0.6,
     },
-    nextButtonText: {
-        color: '#ffffff',
+    buttonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    buttonText: {
+        color: Colors.onPrimaryContrast,
         fontSize: 18,
         fontWeight: '800',
         letterSpacing: 0.5,

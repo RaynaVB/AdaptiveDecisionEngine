@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BarChart2 } from 'lucide-react-native';
+import { Colors, Typography, Radii, Shadows, Spacing } from '../../constants/Theme';
 
 export interface WeekAtGlanceData {
   label: string;
@@ -18,7 +19,6 @@ interface WeekAtAGlanceProps {
 
 export const WeekAtAGlance: React.FC<WeekAtAGlanceProps> = ({ data, onPressDay }) => {
   const peakDay = [...data].sort((a, b) => b.score - a.score)[0];
-  const totalScore = data.reduce((acc, curr) => acc + curr.score, 0);
   
   // Simple trend logic
   const firstHalf = data.slice(0, 3).reduce((acc, curr) => acc + curr.score, 0);
@@ -28,7 +28,7 @@ export const WeekAtAGlance: React.FC<WeekAtAGlanceProps> = ({ data, onPressDay }
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <BarChart2 size={18} color="#6366f1" />
+        <BarChart2 size={18} color={Colors.primary} />
         <Text style={styles.headerText}>This Week</Text>
       </View>
       
@@ -37,11 +37,11 @@ export const WeekAtAGlance: React.FC<WeekAtAGlanceProps> = ({ data, onPressDay }
         
         <View style={styles.chartRow}>
           {data.map((day, idx) => {
-            let bgColor = '#f3f4f6';
+            let bgColor = Colors.surfaceContainerLow;
             if (day.score > 0) {
-              if (day.score <= 3) bgColor = '#fde047'; // Yellow
-              else if (day.score <= 6) bgColor = '#fb923c'; // Orange
-              else bgColor = '#ef4444'; // Red
+              if (day.score <= 3) bgColor = Colors.warning; // Mild
+              else if (day.score <= 6) bgColor = Colors.warning; // Moderate (approx)
+              else bgColor = Colors.error; // Severe
             }
             
             return (
@@ -84,26 +84,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerText: {
+    ...Typography.title,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    color: Colors.onSurface,
   },
   content: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xl,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    borderColor: Colors.surfaceContainer,
+    ...Shadows.ambient,
   },
   chartTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    ...Typography.label,
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
     marginBottom: 20,
   },
   chartRow: {
@@ -122,27 +118,30 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: Colors.surfaceContainerLow,
   },
   scoreText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1f2937',
+    ...Typography.label,
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.onSurface,
   },
   dayLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#4b5563',
+    ...Typography.label,
+    fontSize: 11,
+    color: Colors.onSurfaceVariant,
   },
   footer: {
     gap: 4,
   },
   peakText: {
-    fontSize: 14,
-    color: '#4b5563',
+    ...Typography.body,
+    fontSize: 13,
+    color: Colors.onSurfaceVariant,
   },
   trendText: {
-    fontSize: 14,
-    color: '#4b5563',
+    ...Typography.body,
+    fontSize: 13,
+    color: Colors.onSurfaceVariant,
   },
 });

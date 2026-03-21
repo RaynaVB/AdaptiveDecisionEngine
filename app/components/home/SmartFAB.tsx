@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Plus, X, Utensils, Beaker, Thermometer } from 'lucide-react-native';
+import { Colors, Shadows } from '../../constants/Theme';
 
 interface SmartFABProps {
   hasActiveExperiment: boolean;
@@ -37,9 +38,9 @@ export const SmartFAB: React.FC<SmartFABProps> = ({
 
   // Primary action logic
   const getPrimaryAction = () => {
-    if (hasActiveExperiment) return { label: 'Log Progress', icon: <Beaker size={24} color="#fff" />, action: onLogProgress, color: '#8b5cf6' };
-    if (isEvening()) return { label: 'Log Symptoms', icon: <Thermometer size={24} color="#fff" />, action: onLogSymptom, color: '#ef4444' };
-    return { label: 'Log Meal', icon: <Utensils size={24} color="#fff" />, action: onLogMeal, color: '#3b82f6' };
+    if (hasActiveExperiment) return { label: 'Log Progress', icon: <Beaker size={24} color={Colors.onPrimaryContrast} />, action: onLogProgress, color: Colors.experiment };
+    if (isEvening()) return { label: 'Log Symptoms', icon: <Thermometer size={24} color={Colors.onPrimaryContrast} />, action: onLogSymptom, color: Colors.error };
+    return { label: 'Log Meal', icon: <Utensils size={24} color={Colors.onPrimaryContrast} />, action: onLogMeal, color: Colors.interactive };
   };
 
   const primary = getPrimaryAction();
@@ -64,21 +65,21 @@ export const SmartFAB: React.FC<SmartFABProps> = ({
       {isOpen && (
         <Animated.View style={[styles.menu, { opacity: menuOpacity, transform: [{ translateY: menuTranslateY }] }]}>
           <TouchableOpacity style={styles.menuItem} onPress={() => { onLogMeal(); toggleMenu(); }}>
-            <View style={[styles.menuIcon, { backgroundColor: '#10b981' }]}>
-              <Utensils size={20} color="#fff" />
+            <View style={[styles.menuIcon, { backgroundColor: Colors.success }]}>
+              <Utensils size={20} color={Colors.onPrimaryContrast} />
             </View>
             <Text style={styles.menuLabel}>Log Meal</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuItem} onPress={() => { onLogSymptom(); toggleMenu(); }}>
-            <View style={[styles.menuIcon, { backgroundColor: '#ef4444' }]}>
-              <Thermometer size={20} color="#fff" />
+            <View style={[styles.menuIcon, { backgroundColor: Colors.error }]}>
+              <Thermometer size={20} color={Colors.onPrimaryContrast} />
             </View>
             <Text style={styles.menuLabel}>Log Symptom</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem} onPress={() => { onLogMood(); toggleMenu(); }}>
-            <View style={[styles.menuIcon, { backgroundColor: '#8b5cf6' }]}>
+            <View style={[styles.menuIcon, { backgroundColor: Colors.experiment }]}>
               <Text style={{ fontSize: 18 }}>😊</Text>
             </View>
             <Text style={styles.menuLabel}>Log Mood</Text>
@@ -87,12 +88,12 @@ export const SmartFAB: React.FC<SmartFABProps> = ({
       )}
 
       <TouchableOpacity 
-        style={[styles.fab, { backgroundColor: isOpen ? '#4b5563' : primary.color }]} 
+        style={[styles.fab, { backgroundColor: isOpen ? Colors.onSurfaceVariant : primary.color }]} 
         onPress={toggleMenu}
         activeOpacity={0.8}
       >
         <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-          {isOpen ? <X size={28} color="#fff" /> : <Plus size={32} color="#fff" />}
+          {isOpen ? <X size={28} color={Colors.onPrimaryContrast} /> : <Plus size={32} color={Colors.onPrimaryContrast} />}
         </Animated.View>
       </TouchableOpacity>
     </View>
@@ -114,14 +115,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.surfaceLowest,
     padding: 8,
     borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Shadows.ambient,
   },
   menuIcon: {
     width: 36,
@@ -133,7 +130,7 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.onSurface,
     marginRight: 8,
   },
   fab: {
@@ -142,14 +139,11 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    ...Shadows.ambient,
     elevation: 6,
   },
   fabLabel: {
-    color: '#fff',
+    color: Colors.onPrimaryContrast,
     fontWeight: '700',
     fontSize: 15,
   },

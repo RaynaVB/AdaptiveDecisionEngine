@@ -97,11 +97,11 @@ function MainTabNavigator() {
                 },
                 tabBarBackground: () => (
                     <View
-                        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255, 255, 255, 0.98)', borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', borderTopWidth: 1, borderTopColor: Colors.surfaceContainer }]}
+                        style={[StyleSheet.absoluteFill, { backgroundColor: Colors.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', borderTopWidth: 1, borderTopColor: Colors.surfaceContainer }]}
                     />
                 ),
-                tabBarActiveTintColor: '#000000',
-                tabBarInactiveTintColor: '#94a3b8',
+                tabBarActiveTintColor: Colors.onSurface,
+                tabBarInactiveTintColor: Colors.onSurfaceVariant,
                 tabBarLabelStyle: {
                     fontFamily: 'Manrope-Medium',
                     fontSize: 10,

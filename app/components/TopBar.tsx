@@ -82,8 +82,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                                     navigation.navigate('Admin');
                                 }}
                             >
-                                <ShieldCheck color="#10b981" size={20} />
-                                <Text style={[styles.menuItemText, { color: '#10b981' }]}>Admin System</Text>
+                                <ShieldCheck color={Colors.success} size={20} />
+                                <Text style={[styles.menuItemText, { color: Colors.success }]}>Admin System</Text>
                             </TouchableOpacity>
                         )}
 
@@ -96,7 +96,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                                 handleLogout();
                             }}
                         >
-                            <LogOut color="#6b7280" size={20} />
+                            <LogOut color={Colors.onSurfaceVariant} size={20} />
                             <Text style={styles.menuItemText}>Sign Out</Text>
                         </TouchableOpacity>
                     </View>
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     },
     menuBackdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.1)',
+        backgroundColor: Colors.scrimLight,
     },
     menuContent: {
         position: 'absolute',

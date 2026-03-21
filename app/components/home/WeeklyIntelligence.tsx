@@ -44,7 +44,7 @@ export const WeeklyIntelligence: React.FC<WeeklyIntelligenceProps> = ({ items, o
         
         <TouchableOpacity style={styles.actionButton} onPress={() => onStartTest(mainInsight)}>
           <Text style={styles.actionButtonText}>Start 5-Day Test</Text>
-          <ChevronRight size={18} color="#fff" />
+          <ChevronRight size={18} color={Colors.onPrimaryContrast} />
         </TouchableOpacity>
       </View>
     </View>
@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
   actionButtonText: {
     ...Typography.title,
     fontSize: 15,
-    color: '#fff',
+    color: Colors.onPrimaryContrast,
   },
 });

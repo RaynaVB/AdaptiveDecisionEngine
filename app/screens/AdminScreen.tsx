@@ -149,18 +149,18 @@ export default function AdminScreen({ navigation }: Props) {
 
                     <View style={styles.dangerZone}>
                         <View style={styles.dangerHeader}>
-                            <ShieldAlert color="#ef4444" size={18} style={{ marginRight: 8 }} />
+                            <ShieldAlert color={Colors.error} size={18} style={{ marginRight: 8 }} />
                             <Text style={styles.dangerHeaderText}>Danger Zone</Text>
                         </View>
                         
                         <TouchableOpacity 
-                            style={[styles.adminButton, { borderLeftColor: '#ef4444', backgroundColor: '#fef2f2' }]} 
+                            style={[styles.adminButton, { borderLeftColor: Colors.error, backgroundColor: Colors.errorMuted }]} 
                             onPress={handleClearSystemLogs}
                             disabled={saving}
                         >
-                            <Trash2 color="#ef4444" size={20} style={{ marginRight: 12 }} />
+                            <Trash2 color={Colors.error} size={20} style={{ marginRight: 12 }} />
                             <View>
-                                <Text style={[styles.adminButtonText, { color: '#ef4444' }]}>Clear All System Logs</Text>
+                                <Text style={[styles.adminButtonText, { color: Colors.error }]}>Clear All System Logs</Text>
                                 <Text style={styles.adminButtonSubtext}>Irreversibly delete data for ALL users</Text>
                             </View>
                         </TouchableOpacity>
@@ -257,10 +257,10 @@ const styles = StyleSheet.create({
     dangerZone: {
         marginTop: 16,
         padding: 16,
-        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+        backgroundColor: Colors.errorMuted,
         borderRadius: Radii.xl,
         borderWidth: 1,
-        borderColor: 'rgba(239, 68, 68, 0.1)',
+        borderColor: Colors.errorMuted,
         borderStyle: 'dashed',
     },
     dangerHeader: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     },
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(248, 250, 249, 0.6)',
+        backgroundColor: Colors.glassBackground,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,

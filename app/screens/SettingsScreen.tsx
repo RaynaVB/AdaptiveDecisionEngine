@@ -271,7 +271,7 @@ export default function SettingsScreen({ navigation }: Props) {
                                 <View key={food} style={styles.avoidedChip}>
                                     <Text style={styles.avoidedText}>{food}</Text>
                                     <TouchableOpacity onPress={() => removeAvoidedFood(food)}>
-                                        <X size={16} color="#64748b" />
+                                        <X size={16} color={Colors.onSurfaceVariant} />
                                     </TouchableOpacity>
                                 </View>
                             ))}
@@ -308,10 +308,10 @@ export default function SettingsScreen({ navigation }: Props) {
                             onPress={() => Alert.alert("Medical Disclaimer", MEDICAL_DISCLAIMER_FULL)}
                         >
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <ShieldCheck color="#64748b" size={20} style={{ marginRight: 12 }} />
+                                <ShieldCheck color={Colors.onSurfaceVariant} size={20} style={{ marginRight: 12 }} />
                                 <Text style={styles.legalItemText}>Medical Disclaimer</Text>
                             </View>
-                            <ChevronRight color="#cbd5e1" size={20} />
+                            <ChevronRight color={Colors.outline} size={20} />
                         </TouchableOpacity>
                     </View>
 
@@ -321,7 +321,7 @@ export default function SettingsScreen({ navigation }: Props) {
                         style={styles.logoutButton} 
                         onPress={handleLogout}
                     >
-                        <LogOut color="#ef4444" size={20} style={{ marginRight: 8 }} />
+                        <LogOut color={Colors.error} size={20} style={{ marginRight: 8 }} />
                         <Text style={styles.logoutButtonText}>Sign Out</Text>
                     </TouchableOpacity>
 
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     },
     frequencyItemSelected: {
         borderColor: Colors.primary,
-        backgroundColor: 'rgba(79, 99, 89, 0.05)',
+        backgroundColor: Colors.primaryMuted,
     },
     frequencyText: {
         ...Typography.body,
@@ -519,14 +519,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+        backgroundColor: Colors.errorMuted,
         borderRadius: Radii.xl,
         padding: 20,
         borderWidth: 1,
-        borderColor: 'rgba(239, 68, 68, 0.1)',
+        borderColor: Colors.errorMuted,
     },
     logoutButtonText: {
-        color: '#ef4444',
+        color: Colors.error,
         fontSize: 16,
         fontWeight: '800',
         letterSpacing: 0.5,

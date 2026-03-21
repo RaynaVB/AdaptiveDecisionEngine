@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   confidenceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(79, 99, 89, 0.08)',
+    backgroundColor: Colors.primaryMuted,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radii.full,
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     ...Typography.title,
     fontSize: 16,
-    color: '#fff',
+    color: Colors.onPrimaryContrast,
   },
   outlineButton: {
     width: 48,

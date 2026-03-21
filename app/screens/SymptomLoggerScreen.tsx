@@ -11,6 +11,7 @@ import Slider from '@react-native-community/slider';
 import { NotificationService } from '../../src/services/NotificationService';
 import { Clock } from 'lucide-react-native';
 import { RecommendationService } from '../../src/services/recommendationService';
+import { Colors, Shadows, Radii } from '../constants/Theme';
 
 type SymptomLoggerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SymptomLogger'>;
 type SymptomLoggerScreenRouteProp = RouteProp<RootStackParamList, 'SymptomLogger'>;
@@ -92,12 +93,12 @@ export default function SymptomLoggerScreen() {
 
     const getSeverityColor = (sev: number) => {
         switch (Math.round(sev)) {
-            case 1: return '#fde047'; // yellow
-            case 2: return '#fbbf24'; // amber
-            case 3: return '#f97316'; // orange
-            case 4: return '#ea580c'; // dark orange
-            case 5: return '#ef4444'; // red
-            default: return '#e5e7eb';
+            case 1: return Colors.warning;
+            case 2: return Colors.warning;
+            case 3: return Colors.warning;
+            case 4: return Colors.error;
+            case 5: return Colors.error;
+            default: return Colors.divider;
         }
     };
 
@@ -166,7 +167,7 @@ export default function SymptomLoggerScreen() {
             <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <View style={styles.dateTimeRow}>
                     <TouchableOpacity style={styles.dateTimeButton} onPress={() => toggleDatePicker(!showDatePicker)}>
-                        <Clock size={16} color="#64748b" style={{ marginRight: 6 }} />
+                        <Clock size={16} color={Colors.outline} style={{ marginRight: 6 }} />
                         <Text style={styles.dateTimeText}>
                             {occurredAt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                         </Text>
@@ -232,7 +233,7 @@ export default function SymptomLoggerScreen() {
                                     style={styles.durationBadge}
                                     onPress={() => setActiveDurationIndex(index)}
                                 >
-                                    <Clock size={16} color={entry.durationMinutes ? '#2563eb' : '#9ca3af'} />
+                                    <Clock size={16} color={entry.durationMinutes ? Colors.interactive : Colors.outline} />
                                     {entry.durationMinutes && (
                                         <Text style={styles.durationText}>{formatDuration(entry.durationMinutes)}</Text>
                                     )}
@@ -245,12 +246,12 @@ export default function SymptomLoggerScreen() {
                                         step={1}
                                         value={entry.severity}
                                         onValueChange={(val) => updateSeverity(index, val)}
-                                        minimumTrackTintColor={entry.severity > 0 ? getSeverityColor(entry.severity) : '#f97316'}
-                                        maximumTrackTintColor="#e5e7eb"
-                                        thumbTintColor={entry.severity > 0 ? getSeverityColor(entry.severity) : '#d1d5db'}
+                                        minimumTrackTintColor={entry.severity > 0 ? getSeverityColor(entry.severity) : Colors.error}
+                                        maximumTrackTintColor={Colors.divider}
+                                        thumbTintColor={entry.severity > 0 ? getSeverityColor(entry.severity) : Colors.outline}
                                     />
                                 </View>
-                                <Text style={[styles.severityValue, entry.severity > 0 && { color: '#111827', fontWeight: '700' }]}>
+                                <Text style={[styles.severityValue, entry.severity > 0 && { color: Colors.onSurface, fontWeight: '700' }]}>
                                     {Math.round(entry.severity)}
                                 </Text>
                             </View>
@@ -261,7 +262,7 @@ export default function SymptomLoggerScreen() {
                         <TextInput
                             style={styles.customInput}
                             placeholder={mode === 'mood' ? "Add custom mood..." : "Add custom symptom..."}
-                            placeholderTextColor="#9ca3af"
+                            placeholderTextColor={Colors.outline}
                             value={customSymptom}
                             onChangeText={setCustomSymptom}
                         />
@@ -327,9 +328,9 @@ export default function SymptomLoggerScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8fafc' },
+    container: { flex: 1, backgroundColor: Colors.background },
     header: { 
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surfaceLowest,
         paddingTop: Platform.OS === 'ios' ? 50 : 20, 
         paddingBottom: 16, 
         paddingHorizontal: 16,
@@ -337,51 +338,51 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9'
+        borderBottomColor: Colors.divider
     },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-    headerButton: { fontSize: 16, color: '#3b82f6' },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: Colors.onSurface },
+    headerButton: { fontSize: 16, color: Colors.interactive },
     
     contentContainer: { paddingBottom: 40 },
     
     dateTimeRow: { 
         flexDirection: 'row', 
-        backgroundColor: '#fff', 
+        backgroundColor: Colors.surfaceLowest, 
         paddingVertical: 14, 
         paddingHorizontal: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: Colors.divider,
         alignItems: 'center',
         justifyContent: 'space-between'
     },
     dateTimeButton: { flexDirection: 'row', alignItems: 'center' },
-    dateTimeText: { color: '#475569', fontSize: 16, fontWeight: '500' },
+    dateTimeText: { color: Colors.onSurfaceVariant, fontSize: 16, fontWeight: '500' },
     
-    iosPickerContainer: { backgroundColor: '#f9fafb', overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: '#e5e7eb' },
-    iosPickerDoneText: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
+    iosPickerContainer: { backgroundColor: Colors.surfaceContainerLow, overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: Colors.border },
+    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: Colors.border },
+    iosPickerDoneText: { color: Colors.interactive, fontSize: 16, fontWeight: '600' },
 
     listContainer: {
         marginTop: 24,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surfaceLowest,
         borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
+        borderTopColor: Colors.divider,
         borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
+        borderBottomColor: Colors.divider,
     },
     listHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingVertical: 12,
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.background,
         borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0'
+        borderBottomColor: Colors.divider
     },
     listHeaderLabel: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#94a3b8',
+        color: Colors.onSurfaceVariant,
         letterSpacing: 0.5
     },
     
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9'
+        borderBottomColor: Colors.divider
     },
     rowLeft: {
         width: '25%',
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
     },
     rowName: {
         fontSize: 15,
-        color: '#334155',
+        color: Colors.onSurface,
         fontWeight: '500',
         marginBottom: 4
     },
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
     },
     durationText: {
         fontSize: 12,
-        color: '#2563eb',
+        color: Colors.interactive,
         fontWeight: '600'
     },
     
@@ -435,44 +436,40 @@ const styles = StyleSheet.create({
         width: 24,
         textAlign: 'right',
         fontSize: 16,
-        color: '#94a3b8',
+        color: Colors.outline,
         fontVariant: ['tabular-nums']
     },
 
     customRow: {
         paddingVertical: 16,
         paddingHorizontal: 20,
-        backgroundColor: '#fff'
+        backgroundColor: Colors.surfaceLowest
     },
     customInput: {
         fontSize: 15,
-        color: '#334155',
+        color: Colors.onSurfaceVariant,
         fontStyle: 'italic'
     },
 
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: Colors.scrim,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 24
     },
     modalContent: {
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surfaceLowest,
         borderRadius: 16,
         padding: 24,
         width: '100%',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
-        elevation: 10
+        ...Shadows.ambient,
     },
     modalTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#0f172a',
+        color: Colors.onSurface,
         marginBottom: 20
     },
     presetTagsRow: {
@@ -485,47 +482,47 @@ const styles = StyleSheet.create({
     presetTag: {
         paddingHorizontal: 18,
         paddingVertical: 10,
-        backgroundColor: '#f1f5f9',
+        backgroundColor: Colors.divider,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#e2e8f0'
+        borderColor: Colors.border
     },
     presetTagSelected: {
-        backgroundColor: '#eff6ff',
-        borderColor: '#3b82f6'
+        backgroundColor: Colors.info + '1A', // info muted
+        borderColor: Colors.info
     },
     presetTagText: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#475569'
+        color: Colors.onSurfaceVariant
     },
     presetTagTextSelected: {
-        color: '#2563eb'
+        color: Colors.interactive
     },
     modalClearButton: {
         paddingVertical: 10
     },
     modalClearText: {
-        color: '#ef4444',
+        color: Colors.error,
         fontSize: 15,
         fontWeight: '600'
     },
     saveButton: { 
-        backgroundColor: '#ef4444', 
+        backgroundColor: Colors.interactive, 
         borderRadius: 12, 
         paddingVertical: 16, 
         alignItems: 'center' 
     },
     saveButtonText: { 
-        color: '#fff', 
+        color: Colors.onPrimaryContrast, 
         fontSize: 16, 
         fontWeight: '700' 
     },
     stickyFooter: {
         padding: 16,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surfaceLowest,
         borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
+        borderTopColor: Colors.divider,
         paddingBottom: Platform.OS === 'ios' ? 32 : 16 // Account for safe area
     }
 });

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-nativ
 import { useFocusEffect } from '@react-navigation/native';
 import { FeedbackStorageService } from '../../src/services/feedbackStorage';
 import { FeedbackEvent } from '../../src/models/types';
+import { Colors } from '../constants/Theme';
 
 export default function FeedbackHistoryScreen() {
     const [history, setHistory] = useState<FeedbackEvent[]>([]);
@@ -43,7 +44,7 @@ export default function FeedbackHistoryScreen() {
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+                <ActivityIndicator size="large" color={Colors.info} />
             </View>
         );
     }
@@ -89,7 +90,7 @@ export default function FeedbackHistoryScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: Colors.background,
     },
     center: {
         flex: 1,
@@ -101,13 +102,13 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     historyCard: {
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.surfaceLowest,
         borderRadius: 12,
         padding: 16,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
-        shadowColor: '#000',
+        borderColor: Colors.border,
+        shadowColor: Colors.onSurface,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
@@ -122,38 +123,38 @@ const styles = StyleSheet.create({
     typeLabel: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#6b7280',
+        color: Colors.onSurfaceVariant,
         flex: 1,
         marginRight: 8,
     },
     title: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1f2937',
+        color: Colors.onSurface,
         marginBottom: 4,
     },
     actionText: {
         fontSize: 14,
-        color: '#4b5563',
+        color: Colors.onSurfaceVariant,
         marginBottom: 12,
         lineHeight: 20,
     },
     date: {
         fontSize: 12,
-        color: '#9ca3af',
+        color: Colors.outline,
     },
     outcomeContainer: {
-        backgroundColor: '#f3f4f6',
+        backgroundColor: Colors.divider,
         padding: 10,
         borderRadius: 8,
     },
     outcomeText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#374151',
+        color: Colors.onSurface,
     },
     emptyText: {
         fontSize: 16,
-        color: '#9ca3af',
+        color: Colors.outline,
     }
 });

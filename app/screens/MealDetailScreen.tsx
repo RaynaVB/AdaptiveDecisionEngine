@@ -10,6 +10,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { Modal } from 'react-native';
 import { ingredientService } from '../../src/services/IngredientService';
 import { Ingredient } from '../../src/models/Ingredient';
+import { Colors, Typography, Radii, Shadows, Spacing } from '../constants/Theme';
 
 type MealDetailScreenRouteProp = RouteProp<RootStackParamList, 'MealDetail'>;
 type MealDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MealDetail'>;
@@ -218,11 +219,11 @@ export default function MealDetailScreen() {
                                         onPress={() => toggleIngredient(ing.ingredientId)}
                                     >
                                         <Text style={styles.ingredientTextConfirmed}>{ing.canonicalName}</Text>
-                                        <X color="#fff" size={14} style={{ marginLeft: 4 }} />
+                                        <X color={Colors.onPrimaryContrast} size={14} style={{ marginLeft: 4 }} />
                                     </TouchableOpacity>
                                 ))}
                                 <TouchableOpacity style={styles.addChip} onPress={() => setShowSearchModal(true)}>
-                                    <Plus color="#2563eb" size={16} />
+                                    <Plus color={Colors.primary} size={16} />
                                     <Text style={styles.addChipText}>Add</Text>
                                 </TouchableOpacity>
                             </View>
@@ -239,7 +240,7 @@ export default function MealDetailScreen() {
                                         style={styles.ingredientChipSuggested}
                                         onPress={() => toggleIngredient(ing.ingredientId)}
                                     >
-                                        <Check color="#2563eb" size={14} style={{ marginRight: 4 }} />
+                                        <Check color={Colors.primary} size={14} style={{ marginRight: 4 }} />
                                         <Text style={styles.ingredientTextSuggested}>{ing.canonicalName}</Text>
                                     </TouchableOpacity>
                                 ))}
@@ -249,7 +250,7 @@ export default function MealDetailScreen() {
 
                     {ingredients.length === 0 && (
                         <TouchableOpacity style={styles.addChip} onPress={() => setShowSearchModal(true)}>
-                            <Plus color="#2563eb" size={16} />
+                            <Plus color={Colors.primary} size={16} />
                             <Text style={styles.addChipText}>Add Ingredient</Text>
                         </TouchableOpacity>
                     )}
@@ -357,10 +358,8 @@ export default function MealDetailScreen() {
                     </View>
                 </View>
 
-                {/* Tags removal - redundant */}
-
                 <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                    <Trash2 color="#ef4444" size={20} />
+                    <Trash2 color={Colors.error} size={20} />
                     <Text style={styles.deleteText}>Delete Entry</Text>
                 </TouchableOpacity>
 
@@ -371,14 +370,14 @@ export default function MealDetailScreen() {
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <TouchableOpacity onPress={() => setShowSearchModal(false)}>
-                            <X color="#000" size={24} />
+                            <X color={Colors.onSurface} size={24} />
                         </TouchableOpacity>
                         <Text style={styles.modalTitle}>Add Ingredient</Text>
                         <View style={{ width: 24 }} />
                     </View>
                     
                     <View style={styles.searchBarContainer}>
-                        <Search color="#6b7280" size={20} style={{ marginLeft: 12 }} />
+                        <Search color={Colors.onSurfaceVariant} size={20} style={{ marginLeft: 12 }} />
                         <TextInput
                             style={styles.searchInput}
                             placeholder="Search ingredients..."
@@ -396,7 +395,7 @@ export default function MealDetailScreen() {
                                 onPress={() => addIngredient(ing)}
                             >
                                 <Text style={styles.resultText}>{ing.display_name}</Text>
-                                <Plus color="#2563eb" size={20} />
+                                <Plus color={Colors.primary} size={20} />
                             </TouchableOpacity>
                         ))}
                         {searchQuery.length > 1 && searchResults.length === 0 && (
@@ -416,100 +415,100 @@ export default function MealDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1, backgroundColor: Colors.background },
     scrollContent: { padding: 16, paddingBottom: 100 },
 
-    heroImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 20 },
+    heroImage: { width: '100%', height: 200, borderRadius: Radii.lg, marginBottom: 20 },
 
     section: { marginBottom: 24 },
-    label: { fontSize: 14, fontWeight: '500', color: '#6b7280', marginBottom: 6 },
+    label: { ...Typography.label, fontSize: 14, color: Colors.onSurfaceVariant, marginBottom: 6 },
     textInput: {
-        borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8,
-        padding: 12, fontSize: 16
+        borderWidth: 1, borderColor: Colors.divider, borderRadius: Radii.md,
+        padding: 12, fontSize: 16, color: Colors.onSurface
     },
 
-    sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#111827' },
+    sectionTitle: { ...Typography.title, fontSize: 16, marginBottom: 12, color: Colors.onSurface },
 
     dateTimeButton: {
         flex: 1,
-        backgroundColor: '#f3f4f6',
+        backgroundColor: Colors.surfaceContainerLow,
         paddingVertical: 12,
-        borderRadius: 8,
+        borderRadius: Radii.md,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#e5e7eb'
+        borderColor: Colors.surfaceContainer
     },
-    dateTimeText: { color: '#111827', fontSize: 16, fontWeight: '500' },
-    iosPickerContainer: { backgroundColor: '#f9fafb', borderRadius: 12, marginTop: 8, overflow: 'hidden' },
-    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: '#e5e7eb', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
-    iosPickerDoneText: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
+    dateTimeText: { color: Colors.onSurface, fontSize: 16, fontWeight: '500' },
+    iosPickerContainer: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, marginTop: 8, overflow: 'hidden' },
+    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: Colors.surfaceContainer, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
+    iosPickerDoneText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
 
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap' },
     tagChip: {
         paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
-        backgroundColor: '#f3f4f6', marginRight: 8, marginBottom: 8,
+        backgroundColor: Colors.surfaceContainerLow, marginRight: 8, marginBottom: 8,
         borderWidth: 1, borderColor: 'transparent'
     },
-    tagChipSelected: { backgroundColor: '#bfdbfe', borderColor: '#2563eb' },
-    tagText: { fontSize: 14, color: '#374151', textTransform: 'capitalize' },
-    tagTextSelected: { color: '#1e40af', fontWeight: '500' },
+    tagChipSelected: { backgroundColor: Colors.primaryMuted, borderColor: Colors.primary },
+    tagText: { fontSize: 14, color: Colors.onSurface, textTransform: 'capitalize' },
+    tagTextSelected: { color: Colors.primary, fontWeight: '500' },
 
     deleteButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20 },
-    deleteText: { color: '#ef4444', marginLeft: 8, fontSize: 16, fontWeight: '500' },
+    deleteText: { color: Colors.error, marginLeft: 8, fontSize: 16, fontWeight: '500' },
 
     footer: {
-        padding: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb', backgroundColor: '#fff'
+        padding: 16, borderTopWidth: 1, borderTopColor: Colors.surfaceContainer, backgroundColor: Colors.background
     },
     saveButton: {
-        backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 16,
+        backgroundColor: Colors.primary, borderRadius: Radii.lg, paddingVertical: 16,
         alignItems: 'center'
     },
-    saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    saveButtonText: { color: Colors.onPrimaryContrast, fontSize: 16, fontWeight: '700' },
 
     // New Styles for refinement
     inputSection: { marginBottom: 24 },
     dishNameContainer: { marginTop: 12, marginBottom: 12 },
-    dishNameLabel: { fontSize: 12, fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', marginBottom: 4 },
-    dishNameInput: { fontSize: 24, fontWeight: '700', color: '#111827', paddingVertical: 4 },
+    dishNameLabel: { ...Typography.label, fontSize: 12, color: Colors.onSurfaceVariant, textTransform: 'uppercase', marginBottom: 4 },
+    dishNameInput: { ...Typography.title, fontSize: 24, color: Colors.onSurface, paddingVertical: 4 },
     
-    subTitle: { fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#4b5563' },
+    subTitle: { ...Typography.label, fontSize: 14, marginBottom: 8, color: Colors.onSurfaceVariant },
     ingredientsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     ingredientChipConfirmed: { 
         flexDirection: 'row', alignItems: 'center', 
-        backgroundColor: '#2563eb', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+        backgroundColor: Colors.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
         marginRight: 6, marginBottom: 6
     },
-    ingredientTextConfirmed: { color: '#fff', fontSize: 14, fontWeight: '500' },
+    ingredientTextConfirmed: { color: Colors.onPrimaryContrast, fontSize: 14, fontWeight: '500' },
     ingredientChipSuggested: { 
         flexDirection: 'row', alignItems: 'center', 
-        backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#2563eb',
+        backgroundColor: Colors.surfaceContainerLow, borderWidth: 1, borderColor: Colors.primary,
         paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
         marginRight: 6, marginBottom: 6
     },
-    ingredientTextSuggested: { color: '#2563eb', fontSize: 14, fontWeight: '500' },
+    ingredientTextSuggested: { color: Colors.primary, fontSize: 14, fontWeight: '500' },
     addChip: { 
         flexDirection: 'row', alignItems: 'center', 
-        backgroundColor: '#eff6ff', borderStyle: 'dashed', borderWidth: 1, borderColor: '#2563eb',
+        backgroundColor: Colors.primaryMuted, borderStyle: 'dashed', borderWidth: 1, borderColor: Colors.primary,
         paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
         marginBottom: 6
     },
-    addChipText: { color: '#2563eb', fontSize: 14, fontWeight: '500', marginLeft: 4 },
+    addChipText: { color: Colors.primary, fontSize: 14, fontWeight: '500', marginLeft: 4 },
 
-    questionCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 12 },
-    questionText: { fontSize: 15, fontWeight: '600', color: '#374151', marginBottom: 12 },
+    questionCard: { backgroundColor: Colors.surface, padding: 16, borderRadius: Radii.lg, borderWidth: 1, borderColor: Colors.surfaceContainer, marginBottom: 12 },
+    questionText: { ...Typography.title, fontSize: 15, color: Colors.onSurface, marginBottom: 12 },
     questionOptions: { flexDirection: 'row', gap: 8 },
-    optionChip: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 8 },
-    optionChipSelected: { backgroundColor: '#bfdbfe' },
-    optionText: { color: '#4b5563', fontWeight: '500' },
-    optionTextSelected: { color: '#1e40af', fontWeight: '700' },
+    optionChip: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.md },
+    optionChipSelected: { backgroundColor: Colors.primaryMuted },
+    optionText: { color: Colors.onSurfaceVariant, fontWeight: '500' },
+    optionTextSelected: { color: Colors.primary, fontWeight: '700' },
 
-    modalContainer: { flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'ios' ? 40 : 0 },
-    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-    modalTitle: { fontSize: 18, fontWeight: '600' },
-    searchBarContainer: { flexDirection: 'row', alignItems: 'center', margin: 16, backgroundColor: '#f3f4f6', borderRadius: 12, paddingRight: 12 },
-    searchInput: { flex: 1, padding: 12, fontSize: 16 },
+    modalContainer: { flex: 1, backgroundColor: Colors.background, paddingTop: Platform.OS === 'ios' ? 40 : 0 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.surfaceContainer },
+    modalTitle: { ...Typography.title, fontSize: 18, color: Colors.onSurface },
+    searchBarContainer: { flexDirection: 'row', alignItems: 'center', margin: 16, backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, paddingRight: 12 },
+    searchInput: { flex: 1, padding: 12, fontSize: 16, color: Colors.onSurface },
     resultsList: { flex: 1, paddingHorizontal: 16 },
-    resultItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-    resultText: { fontSize: 16, color: '#111827' },
-    noResultsText: { textAlign: 'center', marginTop: 20, color: '#6b7280' },
+    resultItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.surfaceContainer },
+    resultText: { fontSize: 16, color: Colors.onSurface },
+    noResultsText: { textAlign: 'center', marginTop: 20, ...Typography.body, color: Colors.onSurfaceVariant },
 });

@@ -48,7 +48,7 @@ export default function OnboardingCompleteScreen({ navigation }: Props) {
                 disabled={finalizing}
             >
                 {finalizing ? (
-                    <ActivityIndicator color="#ffffff" />
+                    <ActivityIndicator color={Colors.onPrimaryContrast} />
                 ) : (
                     <Text style={styles.buttonText}>Start the Engine</Text>
                 )}
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     buttonText: {
-        color: '#ffffff',
+        color: Colors.onPrimaryContrast,
         fontSize: 18,
         fontWeight: '800',
         letterSpacing: 0.5,

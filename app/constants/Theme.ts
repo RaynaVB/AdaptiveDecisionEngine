@@ -25,15 +25,30 @@ export const Colors = {
   onSurfaceVariant: '#596060', // Label-md
   outline: '#757c7b',
   
-  // States
-  error: '#a83836',
-  
-  // Semantic UI
+  // Semantic UI (Extended)
   onPrimaryContrast: '#ffffff',
   primaryMuted: 'rgba(79, 99, 89, 0.08)', // primary + 8% alpha
   onSurfaceMuted: 'rgba(45, 52, 51, 0.8)', // onSurface + 80% alpha
   borderSubtle: 'rgba(0,0,0,0.02)',
   surfaceSubtle: 'rgba(0,0,0,0.01)',
+  
+  success: '#10b981',
+  successMuted: 'rgba(16, 185, 129, 0.1)',
+  warning: '#fbbf24',
+  warningMuted: 'rgba(251, 191, 36, 0.1)',
+  error: '#a83836',
+  errorMuted: 'rgba(168, 56, 54, 0.1)',
+  info: '#3b82f6',
+  infoMuted: 'rgba(59, 130, 246, 0.1)',
+  
+  // Interaction and Specific Brands
+  interactive: '#2563eb', // Standard blue for buttons/links
+  experiment: '#8b5cf6',   // Purple for experiments
+  experimentMuted: 'rgba(139, 92, 246, 0.1)',
+  
+  // Additional Tonal Layers
+  border: '#e5e7eb',
+  divider: '#f1f5f9',
   
   // High-contrast translucent (for use on primary/colored backgrounds)
   onPrimaryAlpha70: 'rgba(255, 255, 255, 0.7)',

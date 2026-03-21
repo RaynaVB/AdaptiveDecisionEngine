@@ -42,7 +42,7 @@ export default function ExperimentHistoryScreen({ navigation }: ExperimentHistor
                 onPress={() => navigation.navigate('ExperimentDetail', { experimentId: item.id })}
             >
                 <View style={styles.cardHeader}>
-                    <View style={[styles.statusBadge, { backgroundColor: isCompleted ? 'rgba(79, 99, 89, 0.1)' : 'rgba(239, 68, 68, 0.05)' }]}>
+                    <View style={[styles.statusBadge, { backgroundColor: isCompleted ? Colors.primaryMuted : Colors.errorMuted }]}>
                         {isCompleted ? <CheckCircle size={14} color={Colors.primary} /> : <XCircle size={14} color={Colors.error} />}
                         <Text style={[styles.statusText, { color: isCompleted ? Colors.primary : Colors.error }]}>
                             {item.status.toUpperCase()}
@@ -143,13 +143,13 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     card: {
-        backgroundColor: 'rgba(216, 230, 222, 0.05)',
+        backgroundColor: Colors.primaryMuted,
         borderRadius: 24,
         padding: 24,
         marginBottom: 16,
         ...Shadows.ambient,
         borderWidth: 1,
-        borderColor: 'rgba(216, 230, 222, 0.3)',
+        borderColor: Colors.primaryContainer,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     resultContainer: {
-        backgroundColor: 'rgba(79, 99, 89, 0.05)',
+        backgroundColor: Colors.primaryMuted,
         borderRadius: 16,
         padding: 16,
         marginBottom: 16,

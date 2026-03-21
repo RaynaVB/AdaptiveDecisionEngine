@@ -62,7 +62,7 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
 
     const delta = run.resultDelta || 0;
     const isPositiveChange = delta > 0;
-    const confidenceColor = run.confidenceScore === 'high' ? Colors.primary : run.confidenceScore === 'medium' ? '#f59e0b' : Colors.error;
+    const confidenceColor = run.confidenceScore === 'high' ? Colors.primary : run.confidenceScore === 'medium' ? Colors.warning : Colors.error;
 
     return (
         <View style={styles.container}>
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: 'rgba(7, 45, 34, 0.05)',
+        backgroundColor: Colors.primaryMuted,
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 24,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     },
     resultCard: {
         width: '100%',
-        backgroundColor: 'rgba(216, 230, 222, 0.1)',
+        backgroundColor: Colors.primaryMuted,
         borderRadius: 24,
         padding: 32,
         alignItems: 'center',
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
         ...Shadows.ambient,
     },
     doneButtonText: {
-        color: '#fff',
+        color: Colors.onPrimaryContrast,
         fontSize: 17,
         fontWeight: '800',
         letterSpacing: 0.5,

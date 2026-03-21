@@ -232,10 +232,10 @@ const styles = StyleSheet.create({
         marginVertical: 32,
         padding: 32,
         borderRadius: 32,
-        backgroundColor: 'rgba(216, 230, 222, 0.2)',
+        backgroundColor: Colors.primaryMuted,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(216, 230, 222, 0.3)',
+        borderColor: Colors.primaryContainer,
     },
     quoteText: {
         ...Typography.body,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     },
     menuBackdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.1)',
+        backgroundColor: Colors.scrimLight,
     },
     menuContent: {
         position: 'absolute',

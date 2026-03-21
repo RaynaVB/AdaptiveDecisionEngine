@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, LayoutAnimation } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, LayoutAnimation, KeyboardAvoidingView, SafeAreaView, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
 import { RecommendationService } from '../../src/services/recommendationService';
+import { Colors, Typography, Radii, Shadows, Spacing } from '../constants/Theme';
 
 type LogMoodScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMood'>;
 
@@ -205,8 +206,8 @@ export default function LogMoodScreen() {
                         step={0.1}
                         value={valence}
                         onValueChange={handleValenceChange}
-                        minimumTrackTintColor="#2563eb"
-                        maximumTrackTintColor="#d1d5db"
+                        minimumTrackTintColor={Colors.primary}
+                        maximumTrackTintColor={Colors.divider}
                     />
                     <View style={styles.sliderTicks}>
                         <Text style={styles.tickText}>Negative</Text>
@@ -224,8 +225,8 @@ export default function LogMoodScreen() {
                         step={0.1}
                         value={energy}
                         onValueChange={handleEnergyChange}
-                        minimumTrackTintColor="#2563eb"
-                        maximumTrackTintColor="#d1d5db"
+                        minimumTrackTintColor={Colors.primary}
+                        maximumTrackTintColor={Colors.divider}
                     />
                     <View style={styles.sliderTicks}>
                         <Text style={styles.tickText}>Low</Text>
@@ -266,54 +267,54 @@ export default function LogMoodScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1, backgroundColor: Colors.background },
     contentContainer: { padding: 20, flexGrow: 1, paddingBottom: 40, justifyContent: 'space-between' },
 
     sliderContainer: { marginBottom: 16 },
-    sliderLabel: { fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 2 },
-    sliderSubtext: { fontSize: 14, color: '#6b7280', marginBottom: 8 },
+    sliderLabel: { ...Typography.title, fontSize: 16, color: Colors.onSurface, marginBottom: 2 },
+    sliderSubtext: { ...Typography.body, fontSize: 14, color: Colors.onSurfaceVariant, marginBottom: 8 },
     slider: { width: '100%', height: 40 },
     sliderTicks: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 10 },
-    tickText: { fontSize: 12, color: '#9ca3af' },
+    tickText: { ...Typography.label, fontSize: 12, color: Colors.outline },
 
-    derivedBox: { backgroundColor: '#f3f4f6', padding: 12, borderRadius: 12, alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#e5e7eb' },
-    derivedLabel: { fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: '600', marginBottom: 2 },
-    derivedValue: { fontSize: 20, fontWeight: '700', color: '#1e40af' },
+    derivedBox: { backgroundColor: Colors.surfaceContainerLow, padding: 12, borderRadius: Radii.lg, alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: Colors.surfaceContainer },
+    derivedLabel: { ...Typography.label, fontSize: 12, color: Colors.onSurfaceVariant, textTransform: 'uppercase', marginBottom: 2 },
+    derivedValue: { ...Typography.title, fontSize: 20, color: Colors.primary },
 
     segmentContainer: { marginBottom: 16 },
-    segmentLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8, textTransform: 'uppercase' },
-    segmentRow: { flexDirection: 'row', backgroundColor: '#f3f4f6', borderRadius: 8, padding: 4 },
+    segmentLabel: { ...Typography.label, fontSize: 14, color: Colors.onSurface, marginBottom: 8, textTransform: 'uppercase' },
+    segmentRow: { flexDirection: 'row', backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.md, padding: 4 },
     segmentBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 6 },
-    segmentBtnSelected: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
-    segmentBtnText: { color: '#6b7280', fontWeight: '500', textTransform: 'capitalize' },
-    segmentBtnTextSelected: { color: '#111827', fontWeight: '700' },
+    segmentBtnSelected: { backgroundColor: Colors.surface, ...Shadows.ambient },
+    segmentBtnText: { ...Typography.body, color: Colors.onSurfaceVariant, textTransform: 'capitalize' },
+    segmentBtnTextSelected: { color: Colors.onSurface, fontWeight: '700' },
 
     section: { marginTop: 8 },
-    sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#111827' },
+    sectionTitle: { ...Typography.title, fontSize: 16, marginBottom: 8, color: Colors.onSurface },
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap' },
     tagChip: {
         paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
-        backgroundColor: '#f3f4f6', marginRight: 8, marginBottom: 8,
+        backgroundColor: Colors.surfaceContainerLow, marginRight: 8, marginBottom: 8,
         borderWidth: 1, borderColor: 'transparent'
     },
-    tagChipSelected: { backgroundColor: '#bfdbfe', borderColor: '#2563eb' },
-    tagText: { fontSize: 14, color: '#374151', textTransform: 'capitalize' },
-    tagTextSelected: { color: '#1e40af', fontWeight: '500' },
+    tagChipSelected: { backgroundColor: Colors.primaryMuted, borderColor: Colors.primary },
+    tagText: { ...Typography.body, fontSize: 14, color: Colors.onSurface, textTransform: 'capitalize' },
+    tagTextSelected: { color: Colors.primary, fontWeight: '700' },
 
     dateTimeButton: {
         flex: 1,
-        backgroundColor: '#f3f4f6',
+        backgroundColor: Colors.surfaceContainerLow,
         paddingVertical: 12,
-        borderRadius: 8,
+        borderRadius: Radii.md,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#e5e7eb'
+        borderColor: Colors.surfaceContainer
     },
-    dateTimeText: { color: '#111827', fontSize: 16, fontWeight: '500' },
-    iosPickerContainer: { backgroundColor: '#f9fafb', borderRadius: 12, marginTop: 8, overflow: 'hidden' },
-    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: '#e5e7eb', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
-    iosPickerDoneText: { color: '#2563eb', fontSize: 16, fontWeight: '600' },
+    dateTimeText: { ...Typography.body, color: Colors.onSurface, fontSize: 16, fontWeight: '500' },
+    iosPickerContainer: { backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg, marginTop: 8, overflow: 'hidden' },
+    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: Colors.surfaceContainer, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
+    iosPickerDoneText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
 
-    saveButton: { backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-    saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    saveButton: { backgroundColor: Colors.primary, borderRadius: Radii.lg, paddingVertical: 16, alignItems: 'center' },
+    saveButtonText: { color: Colors.onPrimaryContrast, fontSize: 16, fontWeight: '700' },
 });
