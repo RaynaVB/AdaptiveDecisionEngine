@@ -10,35 +10,23 @@ export const Colors = {
   surfaceLowest: '#ffffff',
   surfaceContainerLow: '#f0f4f3',
   surfaceContainer: '#eaefee',
-  surfaceContainerHigh: '#e4e9e8',
   surfaceContainerHighest: '#dde4e3',
-  surfaceVariant: '#dde4e3',
   
   // Primary Palette (Botanical Sage)
   primary: '#4f6359',
-  primaryDim: '#44574e',
   primaryContainer: '#d1e8db',
-  primaryFixed: '#d1e8db',
-  primaryFixedDim: '#c3dacd',
-  onPrimary: '#e8fef1',
   onPrimaryContainer: '#42564c',
   
   // Secondary / Tertiary
   secondary: '#55625c',
-  secondaryContainer: '#d8e6de',
-  onSecondaryContainer: '#48554f',
-  tertiary: '#59615e',
-  tertiaryContainer: '#f6fefa',
   
   // Text and UI
   onSurface: '#2d3433',
   onSurfaceVariant: '#596060', // Label-md
   outline: '#757c7b',
-  outlineVariant: '#acb3b2',
   
   // States
   error: '#a83836',
-  errorContainer: '#fa746f',
   
   // Semantic UI
   onPrimaryContrast: '#ffffff',
@@ -97,8 +85,6 @@ export const Spacing = {
   s4: 24,
   s5: 28, // 1.7rem
   s6: 32, // 2rem
-  s16: 88, // 5.5rem
-  s20: 112, // 7rem
 };
 
 export const Radii = {
@@ -118,17 +104,3 @@ export const Shadows = {
   },
 };
 
-export const EditorialStyles = {
-  noLineBoundary: {
-    borderWidth: 0,
-    // Use background shifts instead
-  },
-  glass: {
-    backgroundColor: Colors.glassBackground,
-    // Use BackdropBlur on web/ios
-  },
-  asymmetricHeader: {
-    marginLeft: Spacing.s6,
-    marginTop: Spacing.s6,
-  },
-};

@@ -4,6 +4,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { auth } from '../../src/services/firebaseConfig';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 type SignUpScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SignUp'>;
 
@@ -56,13 +57,15 @@ export default function SignUpScreen({ navigation }: Props) {
                 <Text style={styles.title}>Create Account</Text>
 
                 <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Email</Text>
+                    <Text style={styles.label}>Email Address</Text>
                     <TextInput
                         style={styles.input}
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        placeholder="your@email.com"
+                        placeholderTextColor={Colors.onSurfaceVariant + '80'}
                     />
                 </View>
 
@@ -73,6 +76,8 @@ export default function SignUpScreen({ navigation }: Props) {
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
+                        placeholder="••••••••"
+                        placeholderTextColor={Colors.onSurfaceVariant + '80'}
                     />
                 </View>
 
@@ -83,6 +88,8 @@ export default function SignUpScreen({ navigation }: Props) {
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
                         secureTextEntry
+                        placeholder="••••••••"
+                        placeholderTextColor={Colors.onSurfaceVariant + '80'}
                     />
                 </View>
 
@@ -92,14 +99,14 @@ export default function SignUpScreen({ navigation }: Props) {
                     disabled={loading}
                 >
                     {loading ? (
-                        <ActivityIndicator color="#ffffff" />
+                        <ActivityIndicator color={Colors.onPrimaryContrast} />
                     ) : (
                         <Text style={styles.buttonText}>Sign Up</Text>
                     )}
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.linkButton}>
-                    <Text style={styles.linkText}>Already have an account? Log In</Text>
+                    <Text style={styles.linkText}>Already have an account? <Text style={{ color: Colors.primary, fontWeight: '700' }}>Log In</Text></Text>
                 </TouchableOpacity>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -109,63 +116,68 @@ export default function SignUpScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.background,
     },
     scrollContent: {
         flexGrow: 1,
-        padding: 24,
+        padding: Spacing.s6,
         justifyContent: 'center',
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...Typography.headline,
+        fontSize: 36,
+        color: Colors.onSurface,
         textAlign: 'center',
-        marginBottom: 48,
+        marginBottom: 64,
+        letterSpacing: -1,
     },
     inputContainer: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     label: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#64748b',
-        marginBottom: 8,
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        marginBottom: 10,
+        marginLeft: 4,
     },
     input: {
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.surfaceLowest,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 16,
+        borderColor: Colors.outline + '20',
+        borderRadius: Radii.lg,
+        padding: 18,
         fontSize: 16,
-        color: '#1e293b',
+        color: Colors.onSurface,
+        ...Shadows.ambient,
+        shadowOpacity: 0.02,
     },
     button: {
-        backgroundColor: '#3b82f6',
-        borderRadius: 12,
-        padding: 16,
+        backgroundColor: Colors.primary,
+        borderRadius: Radii.full,
+        padding: 20,
         alignItems: 'center',
-        marginTop: 12,
-        minHeight: 56,
+        marginTop: 24,
+        minHeight: 64,
         justifyContent: 'center',
+        ...Shadows.ambient,
     },
     buttonDisabled: {
-        backgroundColor: '#93c5fd',
+        backgroundColor: Colors.primary + '80',
     },
     buttonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
+        color: Colors.onPrimaryContrast,
+        fontSize: 18,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     linkButton: {
-        marginTop: 24,
+        marginTop: 32,
         alignItems: 'center',
         padding: 12,
     },
     linkText: {
-        color: '#3b82f6',
-        fontSize: 14,
+        color: Colors.onSurfaceVariant,
+        fontSize: 15,
         fontWeight: '500',
     },
 });
