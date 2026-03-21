@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, Modal, Platform } from 'react-native';
 import { StorageService } from '../../src/services/storage';
 import { Recommendation, FeedbackOutcome, FeedbackEvent } from '../../src/models/types';
 import { FeedbackStorageService } from '../../src/services/feedbackStorage';
@@ -9,11 +9,14 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { ExperimentRun } from '../../src/models/healthlab';
-import { Play, CheckCircle, AlertTriangle, Zap, Beaker } from 'lucide-react-native';
+import { Play, CheckCircle, AlertTriangle, Zap, Beaker, Menu, Bell, X, Settings, LogOut, ShieldCheck, Sparkles, Check, History } from 'lucide-react-native';
 import { auth } from '../../src/services/firebaseConfig';
-import { getUserProfile, UserProfile } from '../../src/services/userProfile';
+import { signOut } from 'firebase/auth';
+import { getUserProfile, UserProfile, isInternalUser } from '../../src/services/userProfile';
 import { RecommendationService } from '../../src/services/recommendationService';
 import { MICRO_DISCLAIMER_RECOMMENDATIONS } from '../constants/legal';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import { TopBar } from '../components/TopBar';
 
 type RecsScreenProp = StackNavigationProp<RootStackParamList, 'Recommendations'>;
 
@@ -42,38 +45,25 @@ export default function RecommendationFeedScreen() {
             const actives = await ExperimentEngine.getActiveExperiments();
             setActiveExperiments(actives);
 
-            // Fetch user profile for goal-based sorting
             if (auth.currentUser) {
                 const profile = await getUserProfile(auth.currentUser.uid);
                 setUserProfile(profile);
             }
 
-            // 1. fetch recent meals, moods, AND symptoms from Firestore
-            const meals = await StorageService.getMealEvents();
-            const moods = await StorageService.getMoodEvents();
-            const symptoms = await StorageService.getSymptomEvents();
-            
-            // 3. run Recommendation Engine (Remote)
-            console.log("[Recommendations] Fetching from Cloud Function...");
             const response = await RecommendationService.getRecommendations();
             const recs = response.recommendations;
             setGenerationId(response.generation.id);
-            console.log("[Recommendations] Success! Result count:", recs.length);
-            
-            // 4. render recommendations
-            // Filter out recommendations that are already active experiments
-            const filteredRecs = recs.filter((r: Recommendation) => 
-                !r.associatedExperimentId || 
+
+            const filteredRecs = recs.filter((r: Recommendation) =>
+                !r.associatedExperimentId ||
                 !actives.some((run: ExperimentRun) => run.experimentId === r.associatedExperimentId)
             );
-            
+
             const feedbackMap: Record<string, FeedbackOutcome | null> = {};
             for (const rec of recs) {
-                // Using the specific recommendation's current action state if available from backend
-                feedbackMap[rec.id] = rec.action.state === 'none' ? null : (rec.action.state as FeedbackOutcome);
+                feedbackMap[rec.id] = rec.action?.state === 'none' ? null : (rec.action?.state as FeedbackOutcome);
             }
 
-            // Global sort: unacted first
             const sortedRecs = [...filteredRecs].sort((a, b) => {
                 const aActed = feedbackMap[a.id] !== null;
                 const bActed = feedbackMap[b.id] !== null;
@@ -83,7 +73,7 @@ export default function RecommendationFeedScreen() {
 
             setRecommendations(sortedRecs);
             setFeedbacks(feedbackMap);
-        } catch(error) {
+        } catch (error) {
             console.error("Error loading recommendations:", error);
         } finally {
             setLoading(false);
@@ -98,35 +88,10 @@ export default function RecommendationFeedScreen() {
 
     const navigation = useNavigation<RecsScreenProp>();
 
-    React.useLayoutEffect(() => {
-        navigation.setOptions({
-            headerRight: () => (
-                <TouchableOpacity 
-                    onPress={() => navigation.navigate('FeedbackHistory')}
-                    style={{ marginRight: 16 }}
-                >
-                    <Text style={{ color: '#2563eb', fontSize: 16, fontWeight: '500' }}>History</Text>
-                </TouchableOpacity>
-            ),
-        });
-    }, [navigation]);
-
-    if (loading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#3b82f6" />
-            </View>
-        );
-    }
-
     const handleFeedback = async (rec: Recommendation, outcome: FeedbackOutcome) => {
         if (!generationId) return;
-
-        // Sync with backend
         try {
             await RecommendationService.submitAction(generationId, rec.id, outcome);
-            
-            // Also store locally for history if needed
             const event: FeedbackEvent = {
                 id: uuidv4(),
                 recommendationId: rec.id,
@@ -137,351 +102,338 @@ export default function RecommendationFeedScreen() {
                 timestamp: new Date().toISOString()
             };
             await FeedbackStorageService.saveFeedback(event);
+
+            setFeedbacks(prev => ({ ...prev, [rec.id]: outcome }));
         } catch (e) {
             console.error("Failed to sync action with backend", e);
             Alert.alert("Error", "Could not save your response. Please try again.");
-            return;
-        }
-        
-        setFeedbacks((prev: Record<string, FeedbackOutcome | null>) => ({
-            ...prev,
-            [rec.id]: outcome
-        }));
-    };
-
-    const handleStartExperiment = async (experimentId: string) => {
-        try {
-            setLoading(true);
-            await ExperimentEngine.startExperiment(experimentId);
-            Alert.alert("Success", "Experiment started! You can track your progress on the home screen.");
-            navigation.navigate('Timeline');
-        } catch (e) {
-            console.error("Failed to start experiment:", e);
-            Alert.alert("Error", "Could not start experiment. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const renderFeedbackButtons = (rec: Recommendation) => {
-        const currentOutcome = feedbacks[rec.id];
-
-        return (
-            <View style={styles.feedbackContainer}>
-                <TouchableOpacity 
-                    style={[styles.feedbackButton, currentOutcome === 'accepted' && styles.feedbackButtonActive]}
-                    onPress={() => handleFeedback(rec, 'accepted')}
-                >
-                    <Text style={styles.feedbackEmoji}>✅</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                    style={[styles.feedbackButton, currentOutcome === 'maybe' && styles.feedbackButtonActive]}
-                    onPress={() => handleFeedback(rec, 'maybe')}
-                >
-                    <Text style={styles.feedbackEmoji}>⚠️</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                    style={[styles.feedbackButton, currentOutcome === 'rejected' && styles.feedbackButtonActive]}
-                    onPress={() => handleFeedback(rec, 'rejected')}
-                >
-                    <Text style={styles.feedbackEmoji}>❌</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    };
-
-    const getOutcomeText = (outcome: FeedbackOutcome | null) => {
-        if (outcome === 'accepted') return 'Accepted';
-        if (outcome === 'maybe') return 'Maybe';
-        if (outcome === 'rejected') return 'Rejected';
-        if (outcome === 'dismissed') return 'Dismissed';
-        if (outcome === 'completed') return 'Completed';
-        return 'None';
-    };
-
-    const getTierStyle = (tier: RecTier) => {
-        switch (tier) {
-            case 'preventive': return styles.preventiveCard;
-            case 'experiment': return styles.experimentCard;
-            default: return styles.optimizationCard;
         }
     };
 
     const renderCard = (rec: Recommendation, tier: RecTier) => {
         const isActed = feedbacks[rec.id] !== null;
+        const badgeBg = tier === 'preventive' ? '#d8e6de' : '#d1e8db';
+        const badgeColor = tier === 'preventive' ? '#48554f' : '#42564c';
+
         return (
-            <View key={rec.id} style={[styles.card, getTierStyle(tier), isActed && styles.actedCard]}>
-            <Text style={styles.cardTitle}>{rec.title}</Text>
-            <Text style={styles.cardAction}>{rec.summary}</Text>
-            <View style={styles.whyContainer}>
-                <Text style={styles.whyLabel}>Why this?</Text>
-                {rec.whyThis.map((reason, idx) => (
-                    <Text key={idx} style={styles.whyText}>• {reason.label}</Text>
-                ))}
-            </View>
-            
-            {rec.associatedExperimentId && !activeExperiments.some(run => run.experimentId === rec.associatedExperimentId) && (
-                <TouchableOpacity 
-                    style={styles.experimentButton}
-                    onPress={() => handleStartExperiment(rec.associatedExperimentId!)}
-                >
-                    <Play size={16} color="#fff" fill="#fff" style={{ marginRight: 8 }} />
-                    <Text style={styles.experimentButtonText}>Start 5-Day Experiment</Text>
-                </TouchableOpacity>
-            )}
+            <View key={rec.id} style={[styles.card, isActed && styles.actedCard]}>
+                <Text style={styles.cardTitle}>{rec.title}</Text>
+                <Text style={styles.cardSummary}>{rec.summary}</Text>
 
-            {rec.associatedExperimentId && activeExperiments.some(run => run.experimentId === rec.associatedExperimentId) && (
-                <View style={styles.activeExperimentTag}>
-                    <CheckCircle size={14} color="#16a34a" style={{ marginRight: 6 }} />
-                    <Text style={styles.activeExperimentText}>Running as Experiment</Text>
-                </View>
-            )}
-
-            <View style={styles.outcomeRow}>
-                {feedbacks[rec.id] && (
-                    <Text style={styles.lastOutcomeText}>
-                        Last outcome: {getOutcomeText(feedbacks[rec.id])}
+                <View style={styles.whySection}>
+                    <Text style={styles.whyHeader}>WHY THIS?</Text>
+                    <Text style={styles.whyText}>
+                        {rec.whyThis.map(w => w.label).join('. ')}
                     </Text>
-                )}
-                {renderFeedbackButtons(rec)}
+                </View>
+
+                <View style={styles.cardActions}>
+                    <TouchableOpacity
+                        style={[
+                            styles.actionButton,
+                            feedbacks[rec.id] === 'accepted' ? styles.acceptedButtonPressed : styles.actionButtonOutline
+                        ]}
+                        onPress={() => handleFeedback(rec, 'accepted')}
+                    >
+                        <Check size={20} color={feedbacks[rec.id] === 'accepted' ? '#fff' : Colors.primary} />
+                        <Text style={[
+                            styles.actionButtonLabel,
+                            { color: feedbacks[rec.id] === 'accepted' ? '#fff' : Colors.onSurfaceVariant }
+                        ]}>CHECK</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.actionButton,
+                            feedbacks[rec.id] === 'maybe' ? styles.maybeButtonPressed : styles.actionButtonOutline
+                        ]}
+                        onPress={() => handleFeedback(rec, 'maybe')}
+                    >
+                        <History size={20} color={feedbacks[rec.id] === 'maybe' ? '#fff' : Colors.secondary} />
+                        <Text style={[
+                            styles.actionButtonLabel,
+                            { color: feedbacks[rec.id] === 'maybe' ? '#fff' : Colors.onSurfaceVariant }
+                        ]}>MAYBE</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.actionButton,
+                            feedbacks[rec.id] === 'rejected' ? styles.rejectedButtonPressed : styles.actionButtonOutline
+                        ]}
+                        onPress={() => handleFeedback(rec, 'rejected')}
+                    >
+                        <X size={20} color={feedbacks[rec.id] === 'rejected' ? '#fff' : Colors.error} />
+                        <Text style={[
+                            styles.actionButtonLabel,
+                            { color: feedbacks[rec.id] === 'rejected' ? '#fff' : Colors.onSurfaceVariant }
+                        ]}>DISMISS</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-        </View>
         );
     };
 
-    // Classify recommendations into tiers
     const preventive = recommendations.filter(r => classifyTier(r) === 'preventive');
-    const optimization = recommendations.filter(r => classifyTier(r) === 'optimization');
-    const experiments = recommendations.filter(r => classifyTier(r) === 'experiment');
+    const optimization = recommendations.filter(r => classifyTier(r) !== 'preventive');
+
+    if (loading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+        );
+    }
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentParams} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadRecommendations}/>}>
-            
-            {/* Tier 1: Preventive (highest urgency) */}
-            {preventive.length > 0 && (
-                <View style={styles.section}>
-                    <View style={styles.tierHeader}>
-                        <AlertTriangle size={16} color="#dc2626" />
-                        <Text style={[styles.sectionHeader, styles.preventiveHeader]}>🚨 PREVENTIVE</Text>
+        <View style={styles.container}>
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+
+            <TopBar userProfile={userProfile} />
+
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={loading} onRefresh={loadRecommendations} />}
+            >
+                <View style={styles.pageHeader}>
+                    <Text style={styles.pageLabel}>TODAY'S GUIDANCE</Text>
+                    <Text style={styles.pageTitle}>Recommendations</Text>
+                </View>
+
+                {preventive.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionLabel}>PREVENTIVE</Text>
+                            <View style={styles.sectionLine} />
+                        </View>
+                        {preventive.map(rec => renderCard(rec, 'preventive'))}
                     </View>
-                    <Text style={styles.tierSubtext}>Based on your symptom patterns</Text>
-                    {preventive.map(rec => renderCard(rec, 'preventive'))}
-                </View>
-            )}
+                )}
 
-            {/* Tier 2: Optimization */}
-            {optimization.length > 0 && (
-                <View style={styles.section}>
-                    <View style={styles.tierHeader}>
-                        <Zap size={16} color="#f59e0b" />
-                        <Text style={[styles.sectionHeader, styles.optimizationHeader]}>⚡ OPTIMIZATION</Text>
+                {optimization.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionLabel}>OPTIMIZATION</Text>
+                            <View style={styles.sectionLine} />
+                        </View>
+                        {optimization.map(rec => renderCard(rec, 'optimization'))}
                     </View>
-                    <Text style={styles.tierSubtext}>Improve your daily performance</Text>
-                    {optimization.map(rec => renderCard(rec, 'optimization'))}
-                </View>
-            )}
+                )}
 
-            {/* Tier 3: Experiments */}
-            {experiments.length > 0 && (
-                <View style={styles.section}>
-                    <View style={styles.tierHeader}>
-                        <Beaker size={16} color="#6366f1" />
-                        <Text style={[styles.sectionHeader, styles.experimentHeader]}>🧪 EXPERIMENTS</Text>
-                    </View>
-                    <Text style={styles.tierSubtext}>Test and confirm your patterns</Text>
-                    {experiments.map(rec => renderCard(rec, 'experiment'))}
-                </View>
-            )}
+                <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_RECOMMENDATIONS}</Text>
+            </ScrollView>
 
-            {recommendations.length === 0 && !loading && (
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>No recommendations available yet.</Text>
-                </View>
-            )}
-
-            <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_RECOMMENDATIONS}</Text>
-        </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: Colors.background,
     },
-    contentParams: {
-        padding: 16,
-        paddingBottom: 40,
+    scrollContent: {
+        paddingHorizontal: Spacing.s4,
+        paddingTop: Spacing.s4,
+        paddingBottom: 120,
+    },
+    pageHeader: {
+        marginBottom: Spacing.s6,
+    },
+    pageLabel: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        marginBottom: 8,
+    },
+    pageTitle: {
+        ...Typography.display,
+        fontSize: 36,
+        lineHeight: 40,
+        color: Colors.onSurface,
     },
     section: {
-        marginBottom: 24,
+        marginBottom: Spacing.s6,
     },
-    tierHeader: {
+    sectionHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginBottom: 4,
+        marginBottom: Spacing.s4,
     },
-    tierSubtext: {
-        fontSize: 13,
-        color: '#9ca3af',
-        marginBottom: 12,
-        marginLeft: 24,
+    sectionLabel: {
+        ...Typography.label,
+        color: Colors.primary,
+        fontWeight: '800',
+        letterSpacing: 1.5,
     },
-    sectionHeader: {
-        fontSize: 14,
-        fontWeight: '700',
-        letterSpacing: 0.5,
-    },
-    preventiveHeader: {
-        color: '#dc2626',
-    },
-    optimizationHeader: {
-        color: '#d97706',
-    },
-    experimentHeader: {
-        color: '#6366f1',
+    sectionLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: Colors.surfaceContainer,
+        marginLeft: Spacing.s4,
     },
     card: {
-        backgroundColor: '#ffffff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
+        backgroundColor: Colors.surfaceLowest,
+        borderRadius: 24,
+        padding: 28,
+        marginBottom: Spacing.s4,
+        ...Shadows.ambient,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    preventiveCard: {
-        borderColor: '#fca5a5',
-        borderWidth: 2,
-        borderLeftWidth: 4,
-        borderLeftColor: '#dc2626',
+        borderColor: 'rgba(0,0,0,0.02)',
     },
     actedCard: {
         opacity: 0.6,
-        backgroundColor: '#f9fafb',
     },
-    optimizationCard: {
-        borderColor: '#fcd34d',
-        borderWidth: 1,
-        borderLeftWidth: 4,
-        borderLeftColor: '#f59e0b',
-    },
-    experimentCard: {
-        borderColor: '#c4b5fd',
-        borderWidth: 1,
-        borderLeftWidth: 4,
-        borderLeftColor: '#6366f1',
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#111827',
-        marginBottom: 8,
-    },
-    cardAction: {
-        fontSize: 16,
-        color: '#374151',
-        marginBottom: 16,
-        lineHeight: 22,
-    },
-    whyContainer: {
-        backgroundColor: '#f3f4f6',
-        padding: 12,
-        borderRadius: 8,
-    },
-    whyLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#4b5563',
-        marginBottom: 4,
-        textTransform: 'uppercase',
-    },
-    whyText: {
-        fontSize: 14,
-        color: '#4b5563',
-        lineHeight: 20,
-    },
-    emptyState: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 60,
-    },
-    emptyText: {
-        fontSize: 16,
-        color: '#9ca3af',
-    },
-    outcomeRow: {
+    cardTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 16,
+        alignItems: 'flex-start',
+        marginBottom: 16,
     },
-    lastOutcomeText: {
-        fontSize: 12,
-        color: '#6b7280',
-        fontWeight: '500',
-    },
-    feedbackContainer: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    feedbackButton: {
-        padding: 8,
-        borderRadius: 20,
-        backgroundColor: '#f3f4f6',
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
-    },
-    feedbackButtonActive: {
-        backgroundColor: '#dbeafe',
-        borderColor: '#bfdbfe',
-    },
-    feedbackEmoji: {
-        fontSize: 16,
-    },
-    experimentButton: {
-        backgroundColor: '#2563eb',
-        borderRadius: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        flexDirection: 'row',
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 16,
+        backgroundColor: Colors.surfaceContainerLow,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 12,
     },
-    experimentButtonText: {
-        color: '#fff',
+    badge: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 20,
+    },
+    badgeText: {
+        ...Typography.label,
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    cardTitle: {
+        ...Typography.title,
+        fontSize: 20,
+        marginBottom: 8,
+        color: Colors.onSurface,
+    },
+    cardSummary: {
+        ...Typography.body,
+        color: Colors.onSurfaceVariant,
+        marginBottom: 24,
+        lineHeight: 24,
+    },
+    whySection: {
+        marginBottom: 32,
+    },
+    whyHeader: {
+        ...Typography.label,
+        fontSize: 11,
+        color: Colors.onSurfaceVariant,
+        fontStyle: 'italic',
+        marginBottom: 8,
+    },
+    whyText: {
+        ...Typography.body,
         fontSize: 14,
-        fontWeight: '700',
+        color: 'rgba(45, 52, 51, 0.8)',
+        lineHeight: 20,
     },
-    activeExperimentTag: {
+    cardActions: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#dcfce7',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 6,
+        justifyContent: 'space-between',
+        gap: 8,
         marginTop: 12,
-        alignSelf: 'flex-start',
     },
-    activeExperimentText: {
-        fontSize: 13,
-        fontWeight: '600',
+    actionButton: {
+        flex: 1,
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        borderRadius: Radii.lg,
+        borderWidth: 1.5,
+    },
+    actionButtonOutline: {
+        backgroundColor: 'transparent',
+        borderColor: Colors.surfaceContainer,
+    },
+    acceptedButtonPressed: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    maybeButtonPressed: {
+        backgroundColor: Colors.secondary,
+        borderColor: Colors.secondary,
+    },
+    rejectedButtonPressed: {
+        backgroundColor: Colors.error,
+        borderColor: Colors.error,
+    },
+    actionButtonLabel: {
+        ...Typography.label,
+        fontSize: 9,
+        marginTop: 4,
+        fontWeight: '800',
+    },
+    quoteCard: {
+        marginVertical: 32,
+        padding: 32,
+        borderRadius: 32,
+        backgroundColor: 'rgba(216, 230, 222, 0.2)',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(216, 230, 222, 0.3)',
+    },
+    quoteText: {
+        ...Typography.body,
+        fontStyle: 'italic',
+        textAlign: 'center',
+        color: Colors.onSurface,
+        marginBottom: 12,
+        fontWeight: '500',
+    },
+    quoteSubtext: {
+        ...Typography.label,
+        fontSize: 10,
+        color: Colors.onSurfaceVariant,
+        fontWeight: '800',
     },
     disclaimerText: {
-        fontSize: 12,
-        color: '#9ca3af',
+        ...Typography.label,
+        fontSize: 11,
+        color: Colors.outline,
         textAlign: 'center',
-        marginTop: 24,
-        paddingHorizontal: 16,
         lineHeight: 18,
+        paddingHorizontal: 16,
     },
+    menuBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.1)',
+    },
+    menuContent: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 100 : 60,
+        right: 16,
+        backgroundColor: Colors.background,
+        borderRadius: Radii.lg,
+        padding: Spacing.s2,
+        minWidth: 180,
+        ...Shadows.ambient,
+        borderWidth: 1,
+        borderColor: Colors.surfaceContainer,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.s3,
+        borderRadius: Radii.md,
+    },
+    menuItemText: {
+        marginLeft: Spacing.s3,
+        ...Typography.body,
+        fontWeight: '500',
+    },
+    menuDivider: {
+        height: 1,
+        backgroundColor: Colors.surfaceContainer,
+        marginVertical: Spacing.s1,
+    }
 });

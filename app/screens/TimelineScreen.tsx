@@ -7,7 +7,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { SymptomEvent } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
-import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb, Menu, Settings, ShieldCheck } from 'lucide-react-native';
+import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb, Menu, Settings, ShieldCheck, Utensils, Zap, Smile, CheckCircle2 } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 import { Insight } from '../../src/models/types';
 import { InsightService } from '../../src/services/insightService';
@@ -15,7 +15,7 @@ import { InsightService } from '../../src/services/insightService';
 import { auth } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
-import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
+import { HealthLabService } from '../../src/services/healthLabService';
 import { ExperimentRun } from '../../src/models/healthlab';
 import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
 import { Play, ChevronRight, Beaker as BeakerIcon, Bell } from 'lucide-react-native';
@@ -30,6 +30,7 @@ import { ActiveExperimentCard } from '../components/home/ActiveExperimentCard';
 import { WeeklyIntelligence } from '../components/home/WeeklyIntelligence';
 import { WeekAtAGlance, WeekAtGlanceData } from '../components/home/WeekAtAGlance';
 import { MicroInsightCard } from '../components/home/MicroInsightCard';
+import { TopBar } from '../components/TopBar';
 import { SmartFAB } from '../components/home/SmartFAB';
 
 // Enable LayoutAnimation on Android
@@ -117,6 +118,8 @@ function SwipeToDeleteCard({ onDelete, children }: SwipeToDeleteProps) {
 
 type TimelineScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timeline'>;
 
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+
 export default function TimelineScreen() {
     const navigation = useNavigation<TimelineScreenNavigationProp>();
     // Union Type for List
@@ -133,7 +136,6 @@ export default function TimelineScreen() {
     const [selectedDayEvents, setSelectedDayEvents] = useState<{ dateStr: string; events: TimelineItem[] } | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     // AI Intelligence State
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -148,7 +150,7 @@ export default function TimelineScreen() {
     const handleStartExperimentFocus = async (experimentId: string) => {
         try {
             setLoading(true);
-            await ExperimentEngine.startExperiment(experimentId);
+            await HealthLabService.startExperiment(experimentId);
             Alert.alert("Success", "Experiment started! You can track your progress right here on the home screen.");
             await loadData();
         } catch (e) {
@@ -215,34 +217,28 @@ export default function TimelineScreen() {
             StorageService.getMealEvents(),
             StorageService.getMoodEvents(),
             StorageService.getSymptomEvents(),
-            ExperimentEngine.getActiveExperiments(),
+            HealthLabService.getActiveExperiments().catch(() => []),
             RecommendationService.getRecommendations().catch(() => ({ recommendations: [] })),
             WeeklyPatternsService.getWeeklySummary().catch(() => ({ items: [] })),
             InsightService.getInsights().catch(() => ({ insights: [] }))
         ]);
         
         // Filter out recommendations that have been acted upon (local or backend state)
-        // action.state is set to 'none' if unacted. 
         const allRecs = (recsResponse.recommendations || []).filter(r => 
             !dismissedRecIds.has(r.id) && 
             (r.action?.state === 'none' || !r.action?.state)
         );
         
-        // 1. Hero is the top recommendation
-        const heroRec = allRecs[0];
         setRecommendations(allRecs);
         
-        // 2. Heads Up: High priority items, excluding the hero to avoid duplication
         const headsUp = allRecs
             .slice(1) // Skip the hero
             .filter((r: Recommendation) => r.priorityScore > 0.7)
             .map((r: Recommendation) => r.summary);
             
-        // Final uniqueness check
         const uniqueHeadsUp = Array.from(new Set(headsUp)).slice(0, 2);
         setHeadsUpItems(uniqueHeadsUp);
 
-        // Micro Insights: Medium confidence insights
         const micro = (insightsResponse.insights || [])
             .filter((i: Insight) => i.confidenceLevel === 'medium')
             .slice(0, 3);
@@ -254,7 +250,6 @@ export default function TimelineScreen() {
             setUserProfile(profile);
         }
 
-        // Strict requirement: Timeline shows last 3 days of items
         const threeDaysAgo = new Date();
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
@@ -263,24 +258,20 @@ export default function TimelineScreen() {
         const filteredSymptoms = loadedSymptoms.filter(s => new Date(s.occurredAt) >= threeDaysAgo);
 
         setMeals(filteredMeals);
-        setMoods(loadedMoods); // Keep full mood list for context lookup
+        setMoods(loadedMoods); 
         setSymptoms(filteredSymptoms);
 
-        // Merge and Sort
         const merged: TimelineItem[] = [
             ...filteredMeals.map(m => ({ type: 'meal' as const, data: m })),
             ...filteredMoods.map(m => ({ type: 'mood' as const, data: m })),
             ...filteredSymptoms.map(s => ({ type: 'symptom' as const, data: s }))
         ];
 
-        // Sort fully by exact occurredAt time descending
         merged.sort((a, b) => new Date(b.data.occurredAt).getTime() - new Date(a.data.occurredAt).getTime());
 
-        // Group by Day
         const grouped: { [key: string]: TimelineItem[] } = {};
         merged.forEach(item => {
             const d = new Date(item.data.occurredAt);
-            // Format as "Wed, Oct 25" etc.
             const today = new Date();
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
@@ -304,7 +295,6 @@ export default function TimelineScreen() {
             data: grouped[key]
         }));
 
-        // Compute Week at a Glance (7 Days)
         const weekAtGlance: { label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[] = [];
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
@@ -328,8 +318,6 @@ export default function TimelineScreen() {
             ...recentMoodsForDots.map(m => ({ type: 'mood' as const, data: m })),
             ...recentSymptomsForDots.map(s => ({ type: 'symptom' as const, data: s }))
         ];
-        merged7Days.sort((a, b) => new Date(b.data.occurredAt).getTime() - new Date(a.data.occurredAt).getTime());
-
         merged7Days.forEach(item => {
             const dStr = new Date(item.data.occurredAt).toLocaleDateString();
             const dayEntry = weekAtGlance.find(w => w.dateStr === dStr);
@@ -342,8 +330,8 @@ export default function TimelineScreen() {
         });
 
         setWeekAtGlanceData(weekAtGlance);
-
         setTimelineData(sections);
+        setActiveExperiments(activeExps);
         setLoading(false);
     };
 
@@ -352,19 +340,6 @@ export default function TimelineScreen() {
             loadData();
         }, [])
     );
-
-    const handleLogout = useCallback(async () => {
-        Alert.alert('Sign Out', 'Are you sure you want to log out?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Log Out',
-                style: 'destructive',
-                onPress: async () => {
-                    await signOut(auth);
-                }
-            }
-        ]);
-    }, []);
 
     const deleteWithAnimation = useCallback(async (deleteOp: () => Promise<void>) => {
         LayoutAnimation.configureNext({
@@ -376,73 +351,57 @@ export default function TimelineScreen() {
         await loadData();
     }, [loadData]);
 
-    React.useLayoutEffect(() => {
-        navigation.setOptions({
-            headerShown: false, // Turn off native header to fix the cutoff bug
-        });
-    }, [navigation, handleLogout]);
-
     const getMoodForMeal = (meal: MealEvent) => {
-        // 1. Check for directly linked mood
         const linkedMood = moods.find(m => m.linkedMealEventId === meal.id);
         if (linkedMood) return linkedMood;
 
-        // 2. Fallback: Time Window (< 6 hours before)
         const mealTime = new Date(meal.occurredAt).getTime();
         const validMoods = moods.filter(m => {
             const moodTime = new Date(m.occurredAt).getTime();
             return moodTime <= mealTime && (mealTime - moodTime) <= 6 * 60 * 60 * 1000;
         });
 
-        // Sort descending by time
         validMoods.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
-
         return validMoods.length > 0 ? validMoods[0] : null;
     };
 
     const renderMealItem = (item: MealEvent) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const dayString = date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-
         const mood = getMoodForMeal(item);
-        const moodText = mood ? `${mood.valence} / ${mood.stress}${mood.tag ? ` (${mood.tag})` : ''}` : '—';
-        const moodColor = mood?.valence === 'negative' ? '#fee2e2' : mood?.valence === 'positive' ? '#dcfce7' : '#f3f4f6';
 
         return (
             <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteMealEvent(item.id))}>
                 <View style={styles.timelineRow}>
-                    <View style={styles.timeColumn}>
-                        <Text style={styles.timeColumnText}>{timeString}</Text>
+                    <View style={styles.leftColumn}>
+                        <View style={styles.timelineLine} />
+                        <View style={[styles.iconCircle, { backgroundColor: '#f3e8ff' }]}>
+                            <Utensils size={16} color="#9333ea" />
+                        </View>
                     </View>
+                    
                     <TouchableOpacity
-                        style={[styles.card, { flex: 1, borderLeftWidth: 4, borderLeftColor: '#3b82f6' }]}
+                        style={[styles.card, styles.cardColumn]}
                         onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
                     >
-                        <View style={styles.cardHeader}>
-                            <View style={styles.cardTitleRow}>
-                                <View style={styles.slotBadge}>
-                                    <Text style={styles.slotText}>{item.mealSlot}</Text>
-                                </View>
+                        {item.photoUri ? (
+                            <Image source={{ uri: item.photoUri }} style={[styles.mealImage, { marginBottom: Spacing.s3 }] as any} resizeMode="cover" />
+                        ) : null}
+
+                        <View style={{ paddingHorizontal: 4 }}>
+                            <Text style={[styles.summaryText, { fontSize: 18, marginBottom: 4 }]}>{formatMealSummary(item)}</Text>
+                            <Text style={styles.timeColumnText}>
+                                {timeString} • {item.mealSlot.charAt(0).toUpperCase() + item.mealSlot.slice(1)}
+                            </Text>
+
+                            {item.textDescription ? (
+                                <Text style={[styles.description, { marginTop: 8 }]} numberOfLines={2}>{item.textDescription}</Text>
+                            ) : null}
+
+                            <View style={styles.checkmarkContainer}>
+                                <CheckCircle2 size={20} color={Colors.primary} />
                             </View>
                         </View>
-
-                        {item.photoUri ? (
-                            <Image source={{ uri: item.photoUri }} style={styles.mealImage} resizeMode="cover" />
-                        ) : null}
-
-                        <Text style={styles.summaryText}>{formatMealSummary(item)}</Text>
-
-                        {item.textDescription ? (
-                            <Text style={styles.description} numberOfLines={1}>{item.textDescription}</Text>
-                        ) : null}
-
-                        {mood ? (
-                            <View style={[styles.moodContainer, { backgroundColor: moodColor }]}>
-                                <Text style={styles.moodLabel}>Mood context:</Text>
-                                <Text style={styles.moodValue}>{moodText}</Text>
-                            </View>
-                        ) : null}
                     </TouchableOpacity>
                 </View>
             </SwipeToDeleteCard>
@@ -452,40 +411,33 @@ export default function TimelineScreen() {
     const renderMoodItem = (item: MoodEvent) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        // Mood Color Logic
-        const moodColor = item.valence === 'negative' ? '#fee2e2' : item.valence === 'positive' ? '#dcfce7' : '#f3f4f6';
-        const borderColor = item.valence === 'negative' ? '#fca5a5' : item.valence === 'positive' ? '#86efac' : '#e5e7eb';
+        
+        let emoji = '😐';
+        if (item.valence === 'positive') emoji = '😊';
+        else if (item.valence === 'negative') emoji = '😟';
 
         return (
             <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteMoodEvent(item.id))}>
                 <View style={styles.timelineRow}>
-                    <View style={styles.timeColumn}>
-                        <Text style={styles.timeColumnText}>{timeString}</Text>
+                    <View style={styles.leftColumn}>
+                        <View style={styles.timelineLine} />
+                        <View style={[styles.iconCircle, { backgroundColor: '#dcfce7' }]}>
+                            <Smile size={18} color="#22c55e" />
+                        </View>
                     </View>
-                    <View style={[styles.card, { flex: 1, borderLeftWidth: 4, borderLeftColor: borderColor }]}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.slotBadge, { backgroundColor: moodColor }]}>
-                                <Text style={[styles.slotText, { color: '#374151' }]}>Mood Check-in</Text>
-                            </View>
-                        </View>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            <Text style={{ fontSize: 24, marginRight: 8 }}>
-                                {item.valence === 'positive' ? '🙂' : item.valence === 'negative' ? '🙁' : '😐'}
+                    
+                    <View style={[styles.card, styles.cardColumn, { flexDirection: 'row', alignItems: 'center', padding: Spacing.s4 }]}>
+                        <Text style={{ fontSize: 32, marginRight: Spacing.s4 }}>{emoji}</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.summaryText, { fontSize: 17, marginBottom: 2 }]}>
+                                {typeof item.valence === 'string' 
+                                    ? item.valence.charAt(0).toUpperCase() + item.valence.slice(1) 
+                                    : 'Mood'} & {item.energy} Energy
                             </Text>
-                            <Text style={{ fontSize: 18, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize' }}>
-                                {item.valence} • {item.energy} Energy
+                            <Text style={styles.timeColumnText}>
+                                {timeString} {item.tag ? `• ${item.tag}` : ''}
                             </Text>
                         </View>
-
-                        {item.tag && (
-                            <View style={{ flexDirection: 'row', marginTop: 8 }}>
-                                <View style={styles.tag}>
-                                    <Text style={styles.tagText}>{item.tag}</Text>
-                                </View>
-                            </View>
-                        )}
                     </View>
                 </View>
             </SwipeToDeleteCard>
@@ -499,31 +451,28 @@ export default function TimelineScreen() {
         return (
             <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteSymptomEvent(item.id))}>
                 <View style={styles.timelineRow}>
-                    <View style={styles.timeColumn}>
-                        <Text style={styles.timeColumnText}>{timeString}</Text>
+                    <View style={styles.leftColumn}>
+                        <View style={styles.timelineLine} />
+                        <View style={[styles.iconCircle, { backgroundColor: '#fee2e2' }]}>
+                            <Zap size={16} color="#ef4444" fill="#ef4444" />
+                        </View>
                     </View>
-                    <View style={[styles.card, { flex: 1, borderLeftWidth: 4, borderLeftColor: '#ef4444' }]}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.slotBadge, { backgroundColor: '#fee2e2' }]}>
-                                <Text style={[styles.slotText, { color: '#991b1b' }]}>Symptom</Text>
+                    
+                    <View style={[styles.card, styles.cardColumn, { padding: Spacing.s4 }]}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                            <Text style={[styles.summaryText, { fontSize: 18, flex: 1, marginRight: 8 }]}>
+                                {item.symptomType.charAt(0).toUpperCase() + item.symptomType.slice(1)}
+                            </Text>
+                            <View style={styles.intensityBadge}>
+                                <Text style={styles.intensityText}>Intensity {item.severity}</Text>
                             </View>
                         </View>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            <Text style={{ fontSize: 24, marginRight: 8 }}>🤒</Text>
-                            <Text style={{ fontSize: 18, fontWeight: '600', color: '#1f2937', textTransform: 'capitalize' }}>
-                                {item.symptomType}
-                            </Text>
-                        </View>
-                        <Text style={{ fontSize: 14, color: '#4b5563', marginBottom: 8 }}>
-                            Severity: {item.severity}/5 {item.durationMinutes ? `• ${item.durationMinutes} min` : ''}
+                        <Text style={styles.timeColumnText}>
+                            {timeString} {item.durationMinutes ? `• ${item.durationMinutes}m duration` : ''}
                         </Text>
-
-                        {item.notes && (
-                            <Text style={[styles.description, { marginTop: 4 }]} numberOfLines={2}>
-                                {item.notes}
-                            </Text>
-                        )}
+                        {item.notes ? (
+                            <Text style={[styles.description, { marginTop: 8 }]} numberOfLines={2}>{item.notes}</Text>
+                        ) : null}
                     </View>
                 </View>
             </SwipeToDeleteCard>
@@ -537,333 +486,462 @@ export default function TimelineScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.customHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={styles.headerTitleText}>Timeline</Text>
-                    <View style={styles.miniBadge}>
-                        <Text style={styles.miniBadgeText}>BETA</Text>
+        <View style={[styles.container, { backgroundColor: Colors.background }]}>
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            
+            <TopBar userProfile={userProfile} />
+
+            <SectionList
+                sections={timelineData}
+                renderItem={renderItem}
+                renderSectionHeader={({ section: { title } }) => (
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionHeaderText}>{title}</Text>
+                        <View style={styles.sectionDivider} />
                     </View>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => navigation.navigate('InsightFeed')} style={styles.headerIconButton}>
-                        <Lightbulb color="#f59e0b" size={22} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('Recommendations')} style={styles.headerIconButton}>
-                        <Sparkles color="#2563eb" size={22} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('WeeklyPatterns')} style={styles.headerIconButton}>
-                        <TrendingUp color="#2563eb" size={22} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('HealthLab')} style={styles.headerIconButton}>
-                        <Beaker color="#2563eb" size={22} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setIsMenuOpen(true)} style={styles.headerIconButton}>
-                        <Menu color="#4b5563" size={24} />
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            <View style={styles.container}>
-                {timelineData.length === 0 && !loading ? (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>No logs found.</Text>
-                    </View>
-                ) : (
-                    <SectionList
-                        sections={timelineData}
-                        renderItem={renderItem}
-                        renderSectionHeader={({ section: { title } }) => (
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionHeaderText}>{title}</Text>
-                            </View>
-                        )}
-                        keyExtractor={item => item.data.id}
-                        contentContainerStyle={styles.listContent}
-                        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
-                        ListHeaderComponent={
-                            <View style={{ paddingBottom: 24, paddingTop: 16 }}>
-                                {/* 1. Hero — Best Next Action */}
-                                {recommendations.length > 0 && (
-                                    <HeroAction 
-                                        recommendation={recommendations[0]} 
-                                        onStart={handleStartHero}
-                                        onMaybe={handleMaybeRecommendation}
-                                        onDismiss={handleDismissRecommendation}
-                                    />
-                                )}
-
-                                {/* 2. Heads Up (Predictive Intelligence) */}
-                                {headsUpItems.length > 0 && <HeadsUp items={headsUpItems} />}
-
-                                {/* 3. Active Experiment */}
-                                {activeExperiments.map(run => (
-                                    <ActiveExperimentCard 
-                                        key={run.runId || run.id}
-                                        experiment={run}
-                                        onPress={() => navigation.navigate('HealthLab')}
-                                        onLogProgress={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
-                                    />
-                                ))}
-
-                                {/* 4. Weekly Intelligence */}
-                                {weeklyItems.length > 0 && (
-                                    <WeeklyIntelligence 
-                                        items={weeklyItems} 
-                                        onStartTest={handleStartTest}
-                                    />
-                                )}
-
-                                {/* 5. Week at a Glance */}
-                                {weekAtGlanceData.length > 0 && (
-                                    <WeekAtAGlance 
-                                        data={weekAtGlanceData.map(d => ({
-                                            label: d.label,
-                                            score: d.score,
-                                            dateStr: d.dateStr,
-                                            displayDate: d.displayDate,
-                                            hasEvents: d.events.length > 0,
-                                            eventCount: d.events.length
-                                        }))}
-                                        onPressDay={(d) => {
-                                            const day = weekAtGlanceData.find(w => w.dateStr === d.dateStr);
-                                            if (day && day.events.length > 0) {
-                                                setSelectedDayEvents({ dateStr: d.displayDate, events: day.events });
-                                            } else {
-                                                Alert.alert('No Logs', 'You had no activity logged on this day.');
-                                            }
-                                        }}
-                                    />
-                                )}
-
-                                {/* 6. Micro Insight */}
-                                {microInsights.map(insight => (
-                                    <MicroInsightCard key={insight.id} insight={insight} />
-                                ))}
-
-                                <View style={styles.sectionDivider} />
-                                <Text style={styles.recentActivityTitle}>Recent Activity</Text>
-                                <Text style={styles.subtitle}>Showing last 3 days</Text>
-                            </View>
-                        }
-                    />
                 )}
+                keyExtractor={item => item.data.id}
+                contentContainerStyle={styles.listContent}
+                refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={Colors.primary} />}
+                ListHeaderComponent={
+                    <View style={{ paddingBottom: 24 }}>
+                        <View style={styles.pageHeader}>
+                            <Text style={styles.headerLabel}>Today's Snapshot</Text>
+                            <Text style={styles.pageTitle}>Timeline</Text>
+                        </View>
+                        {/* 1. Hero — Best Next Action */}
+                        {recommendations.length > 0 && (
+                            <HeroAction 
+                                recommendation={recommendations[0]} 
+                                onStart={handleStartHero}
+                                onMaybe={handleMaybeRecommendation}
+                                onDismiss={handleDismissRecommendation}
+                            />
+                        )}
 
-                <SmartFAB 
-                    hasActiveExperiment={activeExperiments.length > 0}
-                    onLogMeal={() => navigation.navigate('LogMeal')}
-                    onLogSymptom={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
-                    onLogMood={() => navigation.navigate('SymptomLogger', { mode: 'mood' })}
-                    onLogProgress={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
-                />
+                        {/* 2. Heads Up (Predictive Intelligence) */}
+                        {headsUpItems.length > 0 && <HeadsUp items={headsUpItems} />}
 
-                {/* Custom Daily Timeline Modal */}
-                <Modal
-                    visible={selectedDayEvents !== null}
-                    transparent={true}
-                    animationType="fade"
-                    onRequestClose={() => setSelectedDayEvents(null)}
-                >
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
-                            <View style={styles.modalHeader}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <View style={{ backgroundColor: '#e0e7ff', padding: 8, borderRadius: 8, marginRight: 12 }}>
-                                        <Text style={{ fontSize: 20 }}>🗓️</Text>
-                                    </View>
-                                    <View>
-                                        <Text style={styles.modalTitle}>Daily Timeline</Text>
-                                        <Text style={styles.modalSubtitle}>{selectedDayEvents?.dateStr}</Text>
-                                    </View>
-                                </View>
-                                <TouchableOpacity onPress={() => setSelectedDayEvents(null)} style={{ padding: 4 }}>
-                                    <X color="#9ca3af" size={24} />
-                                </TouchableOpacity>
-                            </View>
-                            
-                            <SectionList
-                                style={{ maxHeight: Dimensions.get('window').height * 0.6 }}
-                                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
-                                sections={[{ title: 'Events', data: selectedDayEvents?.events || [] }]}
-                                renderItem={({ item }) => {
-                                    const timeStr = new Date(item.data.occurredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                                    
-                                    if (item.type === 'symptom') {
-                                        const sym = item.data;
-                                        let severityColor = '#fbbf24';
-                                        if (sym.severity >= 4) severityColor = '#ef4444';
-                                        else if (sym.severity === 3) severityColor = '#f97316';
-                                        
-                                        return (
-                                            <View style={[styles.timelineRow, { marginBottom: 2 }]}>
-                                                <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
-                                                    <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
-                                                </View>
-                                                <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: severityColor, shadowOpacity: 0, elevation: 0 }]}>
-                                                    <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4}}>
-                                                        <View style={{flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingRight: 8}}>
-                                                            <Text style={{fontSize: 16, marginRight: 6}}>🤒</Text>
-                                                            <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]} numberOfLines={1}>{sym.symptomType}</Text>
-                                                        </View>
-                                                        <View style={{alignItems: 'flex-end'}}>
-                                                            <Text style={[styles.symptomSeverityText, { color: severityColor, marginBottom: 2, fontSize: 11 }]}>Severity: {sym.severity}/5</Text>
-                                                            <View style={styles.severityBarContainer}>
-                                                                {[1,2,3,4,5].map(level => (
-                                                                    <View key={level} style={[styles.severitySegment, { height: 3, width: 8, backgroundColor: level <= sym.severity ? severityColor : '#e5e7eb' }]} />
-                                                                ))}
-                                                            </View>
-                                                        </View>
-                                                    </View>
-                                                    {sym.notes ? <Text style={[styles.symptomNotes, { marginTop: 4 }]} numberOfLines={2}>{sym.notes}</Text> : null}
-                                                </View>
-                                            </View>
-                                        );
-                                    } else if (item.type === 'meal') {
-                                        const meal = item.data;
-                                        return (
-                                            <View style={[styles.timelineRow, { marginBottom: 2 }]}>
-                                                <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
-                                                    <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
-                                                </View>
-                                                <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#3b82f6', shadowOpacity: 0, elevation: 0 }]}>
-                                                    <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
-                                                        <Text style={{fontSize: 16, marginRight: 6}}>🍽️</Text>
-                                                        <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]} numberOfLines={1}>{meal.mealSlot}</Text>
-                                                    </View>
-                                                    <Text style={styles.symptomNotes} numberOfLines={2}>{formatMealSummary(meal)}</Text>
-                                                </View>
-                                            </View>
-                                        );
+                        {/* 3. Active Experiment */}
+                        {activeExperiments.map(run => (
+                            <ActiveExperimentCard 
+                                key={run.runId || run.id}
+                                experiment={run}
+                                onPress={() => navigation.navigate('ExperimentDetail', { experimentId: run.id })}
+                            />
+                        ))}
+
+                        {/* 4. Weekly Intelligence */}
+                        {weeklyItems.length > 0 && (
+                            <WeeklyIntelligence 
+                                items={weeklyItems} 
+                                onStartTest={handleStartTest}
+                            />
+                        )}
+
+                        {/* 5. Week at a Glance */}
+                        {weekAtGlanceData.length > 0 && (
+                            <WeekAtAGlance 
+                                data={weekAtGlanceData.map(d => ({
+                                    label: d.label,
+                                    score: d.score,
+                                    dateStr: d.dateStr,
+                                    displayDate: d.displayDate,
+                                    hasEvents: d.events.length > 0,
+                                    eventCount: d.events.length
+                                }))}
+                                onPressDay={(d) => {
+                                    const day = weekAtGlanceData.find(w => w.dateStr === d.dateStr);
+                                    if (day && day.events.length > 0) {
+                                        setSelectedDayEvents({ dateStr: d.displayDate, events: day.events });
                                     } else {
-                                        const mood = item.data;
-                                        let emoji = '😐';
-                                        if (mood.valence === 'positive') emoji = '🙂';
-                                        else if (mood.valence === 'negative') emoji = '🙁';
-                                        const borderColor = mood.valence === 'negative' ? '#fca5a5' : mood.valence === 'positive' ? '#86efac' : '#e5e7eb';
-                                        
-                                        return (
-                                            <View style={[styles.timelineRow, { marginBottom: 2 }]}>
-                                                <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
-                                                    <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
-                                                </View>
-                                                <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: borderColor, shadowOpacity: 0, elevation: 0 }]}>
-                                                    <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
-                                                        <Text style={{fontSize: 16, marginRight: 6}}>{emoji}</Text>
-                                                        <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]}>Mood</Text>
-                                                    </View>
-                                                    <Text style={styles.symptomNotes} numberOfLines={2}>{mood.valence} mood, {mood.energy} energy</Text>
-                                                </View>
-                                            </View>
-                                        );
+                                        Alert.alert('No Logs', 'You had no activity logged on this day.');
                                     }
                                 }}
-                                keyExtractor={(item) => item.data.id}
                             />
-                            
-                            <TouchableOpacity 
-                                style={styles.modalCloseButton} 
-                                onPress={() => setSelectedDayEvents(null)}
-                            >
-                                <Text style={styles.modalCloseText}>Done</Text>
-                            </TouchableOpacity>
+                        )}
+
+                        {/* 6. Micro Insight */}
+                        {microInsights.map(insight => (
+                            <MicroInsightCard key={insight.id} insight={insight} />
+                        ))}
+
+                        <View style={styles.recentActivityHeader}>
+                            <Text style={styles.recentActivityTitle}>Recent Activity</Text>
+                            <Text style={styles.recentActivitySubtitle}>Showing last 3 days</Text>
                         </View>
                     </View>
-                </Modal>
+                }
+            />
 
-                {/* Hamburger Menu Modal */}
-                <Modal
-                    visible={isMenuOpen}
-                    transparent={true}
-                    animationType="fade"
-                    onRequestClose={() => setIsMenuOpen(false)}
-                >
-                    <TouchableOpacity 
-                        style={styles.menuBackdrop} 
-                        activeOpacity={1} 
-                        onPress={() => setIsMenuOpen(false)}
-                    >
-                        <View style={styles.menuContent}>
-                            <TouchableOpacity 
-                                style={styles.menuItem}
-                                onPress={() => {
-                                    setIsMenuOpen(false);
-                                    navigation.navigate('Settings');
-                                }}
-                            >
-                                <Settings color="#3b82f6" size={20} />
-                                <Text style={styles.menuItemText}>Preferences</Text>
-                            </TouchableOpacity>
+            <SmartFAB 
+                hasActiveExperiment={activeExperiments.length > 0}
+                onLogMeal={() => navigation.navigate('LogMeal')}
+                onLogSymptom={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
+                onLogMood={() => navigation.navigate('SymptomLogger', { mode: 'mood' })}
+                onLogProgress={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
+            />
 
-                            {isInternalUser(userProfile) && (
-                                <TouchableOpacity 
-                                    style={styles.menuItem}
-                                    onPress={() => {
-                                        setIsMenuOpen(false);
-                                        navigation.navigate('Admin');
-                                    }}
-                                >
-                                    <ShieldCheck color="#10b981" size={20} />
-                                    <Text style={[styles.menuItemText, { color: '#10b981' }]}>Admin System</Text>
-                                </TouchableOpacity>
-                            )}
-
-                            <View style={styles.menuDivider} />
-
-                            <TouchableOpacity 
-                                style={styles.menuItem}
-                                onPress={() => {
-                                    setIsMenuOpen(false);
-                                    handleLogout();
-                                }}
-                            >
-                                <LogOut color="#6b7280" size={20} />
-                                <Text style={styles.menuItemText}>Sign Out</Text>
+            {/* Daily Timeline Modal */}
+            <Modal
+                visible={selectedDayEvents !== null}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setSelectedDayEvents(null)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <View style={{ backgroundColor: Colors.surfaceContainer, padding: Spacing.s2, borderRadius: Radii.md, marginRight: Spacing.s3 }}>
+                                    <Text style={{ fontSize: 20 }}>🗓️</Text>
+                                </View>
+                                <View>
+                                    <Text style={styles.modalTitle}>Daily Timeline</Text>
+                                    <Text style={styles.modalSubtitle}>{selectedDayEvents?.dateStr}</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={() => setSelectedDayEvents(null)} style={{ padding: 4 }}>
+                                <X color={Colors.onSurfaceVariant} size={24} />
                             </TouchableOpacity>
                         </View>
-                    </TouchableOpacity>
-                </Modal>
-            </View>
-        </SafeAreaView>
+                        
+                        <SectionList
+                            style={{ maxHeight: Dimensions.get('window').height * 0.6 }}
+                            contentContainerStyle={{ paddingHorizontal: Spacing.s3, paddingBottom: Spacing.s3 }}
+                            sections={[{ title: 'Events', data: selectedDayEvents?.events || [] }]}
+                            renderItem={({ item }) => {
+                                const timeStr = new Date(item.data.occurredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                                
+                                if (item.type === 'symptom') {
+                                    const sym = item.data;
+                                    let severityColor = Colors.primary;
+                                    if (sym.severity >= 4) severityColor = '#ef4444';
+                                    
+                                    return (
+                                        <View style={[styles.timelineRow, { marginBottom: 2 }]}>
+                                            <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
+                                                <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
+                                            </View>
+                                            <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: severityColor, shadowOpacity: 0, elevation: 0 }]}>
+                                                <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4}}>
+                                                    <View style={{flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingRight: 8}}>
+                                                        <Text style={{fontSize: 16, marginRight: 6}}>🤒</Text>
+                                                        <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]} numberOfLines={1}>{sym.symptomType}</Text>
+                                                    </View>
+                                                </View>
+                                                {sym.notes ? <Text style={[styles.symptomNotes, { marginTop: 4 }]} numberOfLines={2}>{sym.notes}</Text> : null}
+                                            </View>
+                                        </View>
+                                    );
+                                } else if (item.type === 'meal') {
+                                    const meal = item.data;
+                                    return (
+                                        <View style={[styles.timelineRow, { marginBottom: 2 }]}>
+                                            <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
+                                                <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
+                                            </View>
+                                            <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: Colors.primary, shadowOpacity: 0, elevation: 0 }]}>
+                                                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
+                                                    <Text style={{fontSize: 16, marginRight: 6}}>🍽️</Text>
+                                                    <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]} numberOfLines={1}>{meal.mealSlot}</Text>
+                                                </View>
+                                                <Text style={styles.symptomNotes} numberOfLines={2}>{formatMealSummary(meal)}</Text>
+                                            </View>
+                                        </View>
+                                    );
+                                } else {
+                                    const mood = item.data;
+                                    let emoji = '😐';
+                                    if (mood.valence === 'positive') emoji = '🙂';
+                                    else if (mood.valence === 'negative') emoji = '🙁';
+                                    
+                                    return (
+                                        <View style={[styles.timelineRow, { marginBottom: 2 }]}>
+                                            <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
+                                                <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
+                                            </View>
+                                            <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: Colors.surface, shadowOpacity: 0, elevation: 0 }]}>
+                                                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
+                                                    <Text style={{fontSize: 16, marginRight: 6}}>{emoji}</Text>
+                                                    <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]}>Mood</Text>
+                                                </View>
+                                                <Text style={styles.symptomNotes} numberOfLines={2}>{mood.valence} mood, {mood.energy} energy</Text>
+                                            </View>
+                                        </View>
+                                    );
+                                }
+                            }}
+                            keyExtractor={(item) => item.data.id}
+                        />
+                        
+                        <TouchableOpacity 
+                            style={styles.modalCloseButton} 
+                            onPress={() => setSelectedDayEvents(null)}
+                        >
+                            <Text style={styles.modalCloseText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
+    container: {
         flex: 1,
-        backgroundColor: '#fff',
-        paddingTop: Platform.OS === 'android' ? 40 : 0
+        backgroundColor: Colors.background,
     },
-    customHeader: {
+    editorialHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        paddingHorizontal: Spacing.s4,
+        paddingTop: Spacing.s4,
+        paddingBottom: Spacing.s3,
+    },
+    pageHeader: {
+        paddingTop: Spacing.s4,
+        paddingBottom: Spacing.s3,
+    },
+    headerLabel: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        marginBottom: 4,
+        textTransform: 'none',
+    },
+    pageTitle: {
+        ...Typography.display,
+        fontSize: 36,
+        color: Colors.onSurface,
+    },
+    adminBadge: {
+        backgroundColor: Colors.surfaceContainer,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: Radii.md,
+        marginBottom: 8,
+    },
+    adminBadgeText: {
+        ...Typography.label,
+        color: Colors.primary,
+        fontWeight: '800',
+    },
+    sectionHeader: {
+        paddingHorizontal: Spacing.s4,
+        paddingTop: Spacing.s4,
+        paddingBottom: Spacing.s2,
+        backgroundColor: Colors.background,
+    },
+    sectionHeaderText: {
+        ...Typography.title,
+        color: Colors.onSurface,
+    },
+    sectionDivider: {
+        height: 1,
+        backgroundColor: Colors.surfaceContainer,
+        marginTop: Spacing.s1,
+        width: 40,
+        marginBottom: Spacing.s3,
+    },
+    listContent: {
+        paddingHorizontal: Spacing.s4,
+        paddingBottom: 120,
+    },
+    timelineRow: {
+        flexDirection: 'row',
+        marginBottom: Spacing.s4,
+    },
+    leftColumn: {
+        width: 44,
+        alignItems: 'center',
+        marginRight: Spacing.s3,
+    },
+    timelineLine: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        width: 2,
+        backgroundColor: Colors.surfaceContainer,
+    },
+    iconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1,
+        marginTop: 4,
+    },
+    cardColumn: {
+        flex: 1,
+    },
+    timeColumn: {
+        width: 60,
+        paddingTop: Spacing.s3,
+    },
+    timeColumnText: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        textTransform: 'none',
+    },
+    card: {
+        backgroundColor: Colors.surfaceLowest,
+        borderRadius: Radii.xl,
+        padding: Spacing.s3,
+        marginBottom: Spacing.s3,
+        ...Shadows.ambient,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.s2,
+    },
+    cardTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    slotBadge: {
+        backgroundColor: Colors.surfaceContainerLow,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: Radii.md,
+    },
+    slotText: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        textTransform: 'capitalize',
+    },
+    summaryText: {
+        ...Typography.body,
+        fontWeight: '700',
+        color: Colors.onSurface,
+        marginBottom: 4,
+    },
+    description: {
+        ...Typography.body,
+        color: Colors.onSurfaceVariant,
+        fontSize: 14,
+    },
+    mealImage: {
+        width: '100%',
+        height: 200,
+        borderRadius: Radii.lg,
+        marginBottom: Spacing.s2,
+    },
+    moodContainer: {
+        marginTop: Spacing.s2,
+        padding: Spacing.s1,
+        borderRadius: Radii.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    moodLabel: {
+        ...Typography.label,
+        marginRight: 4,
+        textTransform: 'none',
+    },
+    moodValue: {
+        ...Typography.label,
+        fontWeight: '700',
+        textTransform: 'none',
+    },
+    recentActivityHeader: {
+        paddingHorizontal: Spacing.s4,
+        marginTop: Spacing.s4,
+        marginBottom: Spacing.s2,
+    },
+    recentActivityTitle: {
+        ...Typography.headline,
+        fontSize: 24,
+        color: Colors.onSurface,
+    },
+    recentActivitySubtitle: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        textTransform: 'none',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(23, 31, 28, 0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.s4,
+    },
+    modalContent: {
+        backgroundColor: Colors.background,
+        borderRadius: Radii.xl,
+        width: '100%',
+        maxHeight: '80%',
+        ...Shadows.ambient,
+    },
+    modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingTop: Platform.OS === 'ios' ? 12 : 0,
-        paddingBottom: 12,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
+        padding: Spacing.s4,
     },
-    headerTitleText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#111827',
+    modalTitle: {
+        ...Typography.title,
+        color: Colors.onSurface,
     },
-    miniBadge: {
-        backgroundColor: '#dbeafe',
-        paddingHorizontal: 6,
+    modalSubtitle: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        textTransform: 'none',
+    },
+    modalCloseButton: {
+        padding: Spacing.s4,
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: Colors.surfaceContainer,
+    },
+    modalCloseText: {
+        ...Typography.label,
+        color: Colors.primary,
+        textTransform: 'none',
+        fontSize: 16,
+    },
+    symptomTypeName: {
+        ...Typography.body,
+        fontWeight: '700',
+    },
+    symptomNotes: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        textTransform: 'none',
+    },
+    tag: {
+        backgroundColor: Colors.surfaceContainer,
+        paddingHorizontal: 8,
         paddingVertical: 2,
-        borderRadius: 4,
-        marginLeft: 8,
+        borderRadius: Radii.md,
+        marginRight: 4,
     },
-    miniBadgeText: {
-        color: '#2563eb',
+    tagText: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        textTransform: 'none',
+    },
+    intensityBadge: {
+        backgroundColor: '#fee2e2',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: Radii.md,
+    },
+    intensityText: {
+        ...Typography.label,
+        color: '#ef4444',
         fontSize: 10,
         fontWeight: '800',
+        textTransform: 'uppercase',
     },
-    headerIconButton: {
-        marginLeft: 12,
-        padding: 4,
+    checkmarkContainer: {
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
     },
     menuBackdrop: {
         flex: 1,
@@ -873,434 +951,28 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: Platform.OS === 'ios' ? 100 : 60,
         right: 16,
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 8,
+        backgroundColor: Colors.background,
+        borderRadius: Radii.lg,
+        padding: Spacing.s2,
         minWidth: 180,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 5,
+        ...Shadows.ambient,
         borderWidth: 1,
-        borderColor: '#f1f5f9',
+        borderColor: Colors.surfaceContainer,
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
-        borderRadius: 8,
+        padding: Spacing.s3,
+        borderRadius: Radii.md,
     },
     menuItemText: {
-        marginLeft: 12,
-        fontSize: 16,
-        color: '#1e293b',
+        marginLeft: Spacing.s3,
+        ...Typography.body,
         fontWeight: '500',
     },
     menuDivider: {
         height: 1,
-        backgroundColor: '#f1f5f9',
-        marginVertical: 4,
-    },
-    deleteAction: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row',
-        width: 90,
-        borderRadius: 12,
-        marginBottom: 16,
-        gap: 6,
-    },
-    deleteActionText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 14,
-    },
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    timelineRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 8,
-    },
-    timeColumn: {
-        width: 65,
-        paddingTop: 16,
-        paddingRight: 10,
-        alignItems: 'flex-end',
-    },
-    timeColumnText: {
-        fontSize: 12,
-        color: '#6b7280',
-        fontWeight: '600',
-    },
-    listContent: {
-        padding: 16,
-        paddingBottom: 100,
-    },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    time: {
-        fontSize: 14,
-        color: '#6b7280',
-        fontWeight: '500',
-    },
-    slotBadge: {
-        backgroundColor: '#eff6ff',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    slotText: {
-        fontSize: 12,
-        color: '#1d4ed8',
-        fontWeight: '600',
-        textTransform: 'capitalize',
-    },
-    tag: {
-        backgroundColor: '#f3f4f6',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 16,
-        marginRight: 6,
-        marginBottom: 6,
-    },
-    tagText: {
-        fontSize: 12,
-        color: '#374151',
-        textTransform: 'capitalize',
-    },
-    description: {
-        fontSize: 14,
-        color: '#4b5563',
-        marginBottom: 12,
-        fontStyle: 'italic',
-    },
-    moodContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 8,
-        borderRadius: 8,
-        marginTop: 4,
-    },
-    moodLabel: {
-        fontSize: 12,
-        color: '#6b7280',
-        marginRight: 6,
-    },
-    moodValue: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#1f2937',
-        textTransform: 'capitalize',
-    },
-    cardTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    mealImage: {
-        width: '100%',
-        height: 160,
-        borderRadius: 8,
-        marginBottom: 12,
-        backgroundColor: '#f3f4f6'
-    },
-    sectionHeader: {
-        backgroundColor: '#f9fafb',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        marginBottom: 12,
-        marginTop: 8,
-    },
-    sectionHeaderText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    emptyState: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    emptyText: {
-        fontSize: 18,
-        color: '#9ca3af',
-        marginBottom: 20,
-    },
-    seedButton: {
-        backgroundColor: '#2563eb',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 8,
-    },
-    seedButtonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 16,
-    },
-    fab: {
-        position: 'absolute',
-        bottom: 30,
-        right: 20,
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#2563eb',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 8,
-        zIndex: 50,
-    },
-    summaryText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: 8,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#6b7280',
-        fontWeight: '500',
-    },
-    chartCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-        alignItems: 'center',
-    },
-    chartTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: 4,
-        alignSelf: 'flex-start',
-    },
-    chartLegend: {
-        flexDirection: 'row',
-        alignSelf: 'flex-start',
-        marginBottom: 8,
-        alignItems: 'center',
-    },
-    legendDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        marginRight: 6,
-    },
-    legendText: {
-        fontSize: 12,
-        color: '#6b7280',
-        marginRight: 16,
-    },
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        zIndex: 40,
-    },
-    speedDialContainer: {
-        position: 'absolute',
-        bottom: 110,
-        right: 28,
-        alignItems: 'flex-end',
-        zIndex: 50,
-    },
-    subFab: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    subFabIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 3,
-        elevation: 5,
-        marginLeft: 12,
-    },
-    subFabLabel: {
-        backgroundColor: '#fff',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#374151',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
-        overflow: 'hidden',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(17, 24, 39, 0.6)', // dark transparent
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    modalContent: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        width: '100%',
-        maxWidth: 400,
-        maxHeight: '80%',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 20,
-        elevation: 10,
-        overflow: 'hidden',
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    modalSubtitle: {
-        fontSize: 14,
-        color: '#6b7280',
-        marginTop: 2,
-    },
-    modalBody: {
-        padding: 20,
-    },
-    modalSymptomRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
-    },
-    symptomTypeName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1f2937',
-        textTransform: 'capitalize',
-        marginBottom: 4,
-    },
-    symptomNotes: {
-        fontSize: 13,
-        color: '#6b7280',
-        fontStyle: 'italic',
-    },
-    symptomSeverityText: {
-        fontSize: 12,
-        fontWeight: '700',
-        marginBottom: 6,
-    },
-    severityBarContainer: {
-        flexDirection: 'row',
-        gap: 2,
-    },
-    severitySegment: {
-        width: 12,
-        height: 4,
-        borderRadius: 2,
-    },
-    modalCloseButton: {
-        backgroundColor: '#f3f4f6',
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    modalCloseText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#374151',
-    },
-    activeExperimentsSection: {
-        marginBottom: 24,
-    },
-    activeExpCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 8,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    activeExpIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#2563eb',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    activeExpTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1e293b',
-    },
-    activeExpSub: {
-        fontSize: 13,
-        color: '#64748b',
-        marginTop: 2,
-    },
-    sectionDivider: {
-        height: 1,
-        backgroundColor: '#e5e7eb',
-        marginVertical: 32,
-        marginHorizontal: -20,
-    },
-    recentActivityTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#1f2937',
-        marginBottom: 8,
-    },
+        backgroundColor: Colors.surfaceContainer,
+        marginVertical: Spacing.s1,
+    }
 });

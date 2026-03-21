@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { WeeklyItem } from '../../../src/models/types';
 import { Brain, ChevronRight } from 'lucide-react-native';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../../constants/Theme';
 
 interface WeeklyIntelligenceProps {
   items: WeeklyItem[];
@@ -17,7 +18,7 @@ export const WeeklyIntelligence: React.FC<WeeklyIntelligenceProps> = ({ items, o
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Brain size={18} color="#10b981" />
+        <Brain size={18} color={Colors.primary} />
         <Text style={styles.headerText}>This Week</Text>
       </View>
       
@@ -52,83 +53,80 @@ export const WeeklyIntelligence: React.FC<WeeklyIntelligenceProps> = ({ items, o
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 4,
-    marginBottom: 24,
+    paddingHorizontal: Spacing.s1,
+    marginBottom: Spacing.s6,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.s4,
     gap: 8,
   },
   headerText: {
+    ...Typography.title,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    color: Colors.onSurface,
   },
   content: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: Radii.xl,
+    padding: Spacing.s5,
+    ...Shadows.ambient,
   },
   insightTitle: {
+    ...Typography.title,
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 8,
+    color: Colors.onSurface,
+    marginBottom: Spacing.s2,
   },
   insightSummary: {
-    fontSize: 15,
-    color: '#4b5563',
-    lineHeight: 22,
-    marginBottom: 16,
+    ...Typography.body,
+    fontSize: 14,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 20,
+    marginBottom: Spacing.s4,
   },
   triggersSection: {
-    marginBottom: 16,
+    marginBottom: Spacing.s4,
   },
   triggersLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    ...Typography.label,
+    fontSize: 11,
+    color: Colors.onSurface,
+    marginBottom: Spacing.s1,
   },
   triggerItem: {
-    fontSize: 14,
-    color: '#4b5563',
+    ...Typography.body,
+    fontSize: 13,
+    color: Colors.onSurfaceVariant,
     marginBottom: 2,
   },
   focusSection: {
-    marginBottom: 20,
+    marginBottom: Spacing.s5,
   },
   focusLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    ...Typography.label,
+    fontSize: 11,
+    color: Colors.onSurface,
+    marginBottom: Spacing.s1,
   },
   focusText: {
-    fontSize: 14,
-    color: '#4b5563',
+    ...Typography.body,
+    fontSize: 13,
+    color: Colors.onSurfaceVariant,
   },
   actionButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: Colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: Radii.lg,
     gap: 8,
   },
   actionButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+    ...Typography.title,
     fontSize: 15,
+    color: '#fff',
   },
 });

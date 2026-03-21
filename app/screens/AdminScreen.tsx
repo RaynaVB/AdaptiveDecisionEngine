@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, SafeAreaView, Platform } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { updateUserProfile } from '../../src/services/userProfile';
 import { auth } from '../../src/services/firebaseConfig';
 import { StorageService } from '../../src/services/storage';
 import { ChevronLeft, Trash2, RotateCcw, Database, ShieldAlert } from 'lucide-react-native';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 type AdminScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Admin'>;
 
@@ -108,10 +109,10 @@ export default function AdminScreen({ navigation }: Props) {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ChevronLeft color="#1e293b" size={28} />
+                    <ChevronLeft color={Colors.onSurface} size={28} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Admin System</Text>
-                <View style={{ width: 28 }} />
+                <View style={{ width: 44 }} />
             </View>
 
             <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -119,7 +120,7 @@ export default function AdminScreen({ navigation }: Props) {
                     <Text style={styles.sectionLabel}>Developer Utilities</Text>
                     
                     <TouchableOpacity style={styles.adminButton} onPress={handleSeed} disabled={saving}>
-                        <Database color="#3b82f6" size={20} style={{ marginRight: 12 }} />
+                        <Database color={Colors.primary} size={20} style={{ marginRight: 12 }} />
                         <View>
                             <Text style={styles.adminButtonText}>Seed Demo Logs</Text>
                             <Text style={styles.adminButtonSubtext}>Generate test data for your account</Text>
@@ -127,7 +128,7 @@ export default function AdminScreen({ navigation }: Props) {
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.adminButton} onPress={handleClearMyLogs} disabled={saving}>
-                        <Trash2 color="#64748b" size={20} style={{ marginRight: 12 }} />
+                        <Trash2 color={Colors.onSurfaceVariant} size={20} style={{ marginRight: 12 }} />
                         <View>
                             <Text style={styles.adminButtonText}>Clear My Logs</Text>
                             <Text style={styles.adminButtonSubtext}>Delete only your logs</Text>
@@ -139,7 +140,7 @@ export default function AdminScreen({ navigation }: Props) {
                     <Text style={styles.sectionLabel}>App Management</Text>
                     
                     <TouchableOpacity style={styles.adminButton} onPress={handleRestartOnboarding} disabled={saving}>
-                        <RotateCcw color="#3b82f6" size={20} style={{ marginRight: 12 }} />
+                        <RotateCcw color={Colors.primary} size={20} style={{ marginRight: 12 }} />
                         <View>
                             <Text style={styles.adminButtonText}>Restart Onboarding</Text>
                             <Text style={styles.adminButtonSubtext}>Test the new user experience</Text>
@@ -168,7 +169,7 @@ export default function AdminScreen({ navigation }: Props) {
 
                 {saving && (
                     <View style={styles.overlay}>
-                        <ActivityIndicator size="large" color="#3b82f6" />
+                        <ActivityIndicator size="large" color={Colors.primary} />
                     </View>
                 )}
             </ScrollView>
@@ -179,39 +180,50 @@ export default function AdminScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'ios' ? 8 : 0,
         paddingBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: Colors.surfaceContainer,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#1e293b',
+        ...Typography.label,
+        fontSize: 16,
+        fontWeight: '800',
+        color: Colors.onSurface,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
     backButton: {
-        padding: 4,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.surfaceContainerLow,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.background,
     },
     contentContainer: {
         padding: 24,
+        paddingBottom: 40,
     },
     section: {
         marginBottom: 32,
     },
     sectionLabel: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#64748b',
+        ...Typography.label,
+        fontSize: 13,
+        fontWeight: '800',
+        color: Colors.primary,
         marginBottom: 16,
         textTransform: 'uppercase',
         letterSpacing: 1,
@@ -219,37 +231,36 @@ const styles = StyleSheet.create({
     adminButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
-        padding: 16,
+        backgroundColor: Colors.surfaceContainer,
+        borderRadius: Radii.full,
+        paddingVertical: 8,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
+        borderColor: Colors.surfaceContainer,
         borderLeftWidth: 4,
-        borderLeftColor: '#3b82f6',
-        shadowColor: '000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
+        borderLeftColor: Colors.primary,
     },
     adminButtonText: {
+        ...Typography.body,
         fontSize: 16,
-        fontWeight: '600',
-        color: '#1e293b',
+        fontWeight: '700',
+        color: Colors.onSurface,
     },
     adminButtonSubtext: {
-        fontSize: 12,
-        color: '#64748b',
+        ...Typography.label,
+        fontSize: 11,
+        color: Colors.onSurfaceVariant,
         marginTop: 2,
+        textTransform: 'none',
+        letterSpacing: 0,
     },
     dangerZone: {
-        marginTop: 8,
+        marginTop: 16,
         padding: 16,
-        backgroundColor: '#fff1f2',
-        borderRadius: 20,
+        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+        borderRadius: Radii.xl,
         borderWidth: 1,
-        borderColor: '#fecaca',
+        borderColor: 'rgba(239, 68, 68, 0.1)',
         borderStyle: 'dashed',
     },
     dangerHeader: {
@@ -258,14 +269,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     dangerHeaderText: {
-        fontSize: 14,
+        ...Typography.label,
+        fontSize: 13,
         fontWeight: '800',
-        color: '#991b1b',
-        textTransform: 'uppercase',
+        color: Colors.error,
     },
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        backgroundColor: 'rgba(248, 250, 249, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, SafeAreaView } from 'react-native';
 import { StorageService } from '../../src/services/storage';
 import { Insight } from '../../src/models/types';
 import { InsightService } from '../../src/services/insightService';
@@ -8,6 +8,8 @@ import { Sparkles, Shield, TrendingUp, AlertTriangle, Activity } from 'lucide-re
 import { auth } from '../../src/services/firebaseConfig';
 import { getUserProfile, UserProfile } from '../../src/services/userProfile';
 import { MICRO_DISCLAIMER_INSIGHTS } from '../constants/legal';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import { TopBar } from '../components/TopBar';
 
 export default function InsightFeedScreen() {
     const [insights, setInsights] = useState<Insight[]>([]);
@@ -26,7 +28,6 @@ export default function InsightFeedScreen() {
             const response = await InsightService.getInsights();
             const generatedInsights = response.insights;
             
-            // Sort insights by user goals relevance
             const sorted = sortByGoalRelevance(generatedInsights, profile);
             setInsights(sorted);
         } catch(error) {
@@ -70,26 +71,34 @@ export default function InsightFeedScreen() {
 
     if (loading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+                <ActivityIndicator size="large" color={Colors.primary} />
             </View>
         );
     }
 
     const renderInsightCard = (insight: Insight) => {
         const isPrediction = insight.type === 'prediction';
-        const isTrigger = insight.type === 'correlation';
+        const isTrigger = insight.type === 'correlation' || insight.type === 'trigger_pattern' || insight.type === 'mood_trigger';
         const isProtective = insight.type === 'protective';
         
-        const cardStyle = isPrediction ? styles.predictionCard 
-            : isTrigger ? styles.triggerCard 
-            : isProtective ? styles.protectiveCard 
-            : null;
-        
-        const iconColor = isPrediction ? '#ef4444' 
-            : isTrigger ? '#f59e0b' 
-            : isProtective ? '#10b981' 
-            : '#2563eb';
+        let iconColor = Colors.primary;
+        let badgeBg = Colors.surfaceContainerLow;
+        let badgeColor = Colors.onSurfaceVariant;
+
+        if (isPrediction) {
+            iconColor = '#ef4444';
+            badgeBg = '#fee2e2';
+            badgeColor = '#991b1b';
+        } else if (isTrigger) {
+            iconColor = '#f59e0b';
+            badgeBg = '#fef3c7';
+            badgeColor = '#92400e';
+        } else if (isProtective) {
+            iconColor = '#10b981';
+            badgeBg = '#d1fae5';
+            badgeColor = '#065f46';
+        }
 
         const Icon = isPrediction ? AlertTriangle 
             : isTrigger ? Sparkles 
@@ -97,156 +106,244 @@ export default function InsightFeedScreen() {
             : TrendingUp;
         
         return (
-            <View key={insight.id} style={[styles.card, cardStyle]}>
+            <View key={insight.id} style={styles.card}>
                 <View style={styles.cardHeader}>
-                    <Icon color={iconColor} size={20} />
-                    <Text style={[styles.typeBadge, 
-                        isPrediction && styles.predictionBadge,
-                        isTrigger && styles.triggerBadge,
-                        isProtective && styles.protectiveBadge
-                    ]}>
-                        {insight.type.toUpperCase()}
-                    </Text>
+                    <View style={styles.iconBox}>
+                        <Icon color={iconColor} size={20} />
+                    </View>
+                    <View style={[styles.typeBadge, { backgroundColor: badgeBg }]}>
+                        <Text style={[styles.typeBadgeText, { color: badgeColor }]}>
+                            {insight.type.replace('_', ' ').toUpperCase()}
+                        </Text>
+                    </View>
                 </View>
                 <Text style={styles.cardTitle}>{insight.title}</Text>
                 <Text style={styles.cardDescription}>{insight.summary}</Text>
                 <View style={styles.footer}>
-                    <Text style={styles.confidenceText}>Confidence: {insight.confidenceLevel}</Text>
+                    <Text style={styles.confidenceText}>
+                        CONFIDENCE: {insight.confidenceLevel.toUpperCase()}
+                    </Text>
                 </View>
             </View>
         );
     };
 
-    // Categorize insights into sections
-    const triggers = insights.filter(i => i.type === 'trigger_pattern' || i.type === 'mood_trigger');
+    const triggers = insights.filter(i => i.type === 'trigger_pattern' || i.type === 'mood_trigger' || i.type === 'correlation');
     const protectors = insights.filter(i => i.type === 'protective');
     const emerging = insights.filter(i => i.type === 'timing_pattern' || i.type === 'behavior_shift' || i.type === 'mood_association');
     const predictions = insights.filter(i => i.type === 'prediction');
 
-    // Build sensitivity profile from user profile
     const sensitivityItems = [
         ...(userProfile?.sensitivities || []),
         ...(userProfile?.allergies || []),
     ];
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentParams} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadInsights}/>}>
+        <View style={styles.container}>
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
             
-            {/* Sensitivity Profile Card */}
-            {sensitivityItems.length > 0 && (
-                <View style={styles.sensitivityCard}>
-                    <View style={styles.sensitivityHeader}>
-                        <Activity color="#6366f1" size={20} />
-                        <Text style={styles.sensitivityTitle}>Your Sensitivity Profile</Text>
+            <TopBar userProfile={userProfile} />
+
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent} 
+                refreshControl={<RefreshControl refreshing={loading} onRefresh={loadInsights}/>}
+            >
+                <View style={styles.pageHeader}>
+                    <Text style={styles.pageLabel}>AI ANALYSIS</Text>
+                    <Text style={styles.pageTitle}>Health Insights</Text>
+                </View>
+
+                {sensitivityItems.length > 0 && (
+                    <View style={styles.sensitivityCard}>
+                        <View style={styles.sensitivityHeader}>
+                            <Activity color={Colors.primary} size={20} />
+                            <Text style={styles.sensitivityTitle}>Sensitivity Profile</Text>
+                        </View>
+                        <View style={styles.sensitivityChips}>
+                            {sensitivityItems.map(item => (
+                                <View key={item} style={styles.sensitivityChip}>
+                                    <Text style={styles.sensitivityChipText}>
+                                        {item.replace(/_/g, ' ').replace(/sensitive|allergy/g, '').trim()}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                        <Text style={styles.sensitivitySubtext}>
+                            Insights prioritized for your body's profile.
+                        </Text>
                     </View>
-                    <View style={styles.sensitivityChips}>
-                        {sensitivityItems.map(item => (
-                            <View key={item} style={styles.sensitivityChip}>
-                                <Text style={styles.sensitivityChipText}>
-                                    {item.replace(/_/g, ' ').replace(/sensitive|allergy/g, '').trim()}
-                                </Text>
-                            </View>
-                        ))}
+                )}
+
+                {predictions.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionLabel}>PREDICTIONS</Text>
+                            <View style={styles.sectionLine} />
+                        </View>
+                        {predictions.map(renderInsightCard)}
                     </View>
-                    <Text style={styles.sensitivitySubtext}>
-                        Insights are prioritized based on these sensitivities and your goals.
-                    </Text>
-                </View>
-            )}
+                )}
 
-            {/* Predictions / Heads Up */}
-            {predictions.length > 0 && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>🔮 PREDICTIONS</Text>
-                    {predictions.map(renderInsightCard)}
-                </View>
-            )}
+                {triggers.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionLabel}>TRIGGERS</Text>
+                            <View style={styles.sectionLine} />
+                        </View>
+                        {triggers.map(renderInsightCard)}
+                    </View>
+                )}
 
-            {/* Top Triggers */}
-            {triggers.length > 0 && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>🎯 TOP TRIGGERS</Text>
-                    {triggers.map(renderInsightCard)}
-                </View>
-            )}
+                {protectors.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionLabel}>PROTECTORS</Text>
+                            <View style={styles.sectionLine} />
+                        </View>
+                        {protectors.map(renderInsightCard)}
+                    </View>
+                )}
 
-            {/* Top Protectors */}
-            {protectors.length > 0 && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>🛡️ TOP PROTECTORS</Text>
-                    {protectors.map(renderInsightCard)}
-                </View>
-            )}
+                {emerging.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionLabel}>EMERGING</Text>
+                            <View style={styles.sectionLine} />
+                        </View>
+                        {emerging.map(renderInsightCard)}
+                    </View>
+                )}
 
-            {/* Emerging Patterns */}
-            {emerging.length > 0 && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>📊 EMERGING PATTERNS</Text>
-                    {emerging.map(renderInsightCard)}
-                </View>
-            )}
+                {insights.length === 0 && !loading && (
+                    <View style={styles.emptyState}>
+                        <Sparkles size={48} color={Colors.surfaceContainer} style={{ marginBottom: 16 }} />
+                        <Text style={styles.emptyText}>Analyzing your data for patterns...</Text>
+                    </View>
+                )}
 
-            {insights.length === 0 && !loading && (
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>No insights available yet. Keep logging!</Text>
-                </View>
-            )}
-
-            <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_INSIGHTS}</Text>
-        </ScrollView>
+                <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_INSIGHTS}</Text>
+            </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f9fafb' },
-    contentParams: { padding: 16, paddingBottom: 40 },
-    section: { marginBottom: 24 },
-    sectionHeader: { fontSize: 14, fontWeight: '700', color: '#6b7280', marginBottom: 12, letterSpacing: 0.5 },
+    container: {
+        flex: 1,
+        backgroundColor: Colors.background,
+    },
+    scrollContent: {
+        paddingHorizontal: Spacing.s6,
+        paddingTop: Spacing.s4,
+        paddingBottom: 120,
+    },
+    pageHeader: {
+        marginBottom: Spacing.s6,
+    },
+    pageLabel: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        marginBottom: 8,
+    },
+    pageTitle: {
+        ...Typography.display,
+        fontSize: 36,
+        color: Colors.onSurface,
+    },
+    section: {
+        marginBottom: Spacing.s6,
+    },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.s4,
+    },
+    sectionLabel: {
+        ...Typography.label,
+        color: Colors.primary,
+        fontWeight: '800',
+    },
+    sectionLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: Colors.surfaceContainer,
+        marginLeft: Spacing.s4,
+    },
     card: {
-        backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12,
-        borderWidth: 1, borderColor: '#e5e7eb', shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05, shadowRadius: 2, elevation: 2,
-    },
-    predictionCard: {
-        borderColor: '#fca5a5', borderWidth: 2, backgroundColor: '#fef2f2'
-    },
-    triggerCard: {
-        borderColor: '#fcd34d', borderWidth: 2, backgroundColor: '#fffbeb'
-    },
-    protectiveCard: {
-        borderColor: '#6ee7b7', borderWidth: 2, backgroundColor: '#ecfdf5'
-    },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
-    typeBadge: { fontSize: 12, fontWeight: '700', color: '#2563eb', backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-    predictionBadge: { color: '#991b1b', backgroundColor: '#fee2e2' },
-    triggerBadge: { color: '#92400e', backgroundColor: '#fef3c7' },
-    protectiveBadge: { color: '#065f46', backgroundColor: '#d1fae5' },
-    cardTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
-    cardDescription: { fontSize: 15, color: '#4b5563', lineHeight: 22, marginBottom: 16 },
-    footer: { borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 12, alignItems: 'flex-end' },
-    confidenceText: { fontSize: 12, color: '#9ca3af', textTransform: 'capitalize', fontWeight: '500' },
-    emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 },
-    emptyText: { fontSize: 16, color: '#9ca3af' },
-
-    // Sensitivity Profile Card
-    sensitivityCard: {
-        backgroundColor: '#eef2ff',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 24,
+        backgroundColor: Colors.surfaceLowest,
+        borderRadius: Radii.xl,
+        padding: 24,
+        marginBottom: Spacing.s4,
+        ...Shadows.ambient,
         borderWidth: 1,
-        borderColor: '#c7d2fe',
+        borderColor: 'rgba(0,0,0,0.02)',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    iconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: Colors.surfaceContainerLow,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    typeBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 20,
+    },
+    typeBadgeText: {
+        ...Typography.label,
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    cardTitle: {
+        ...Typography.title,
+        fontSize: 18,
+        marginBottom: 8,
+        color: Colors.onSurface,
+    },
+    cardDescription: {
+        ...Typography.body,
+        fontSize: 15,
+        color: Colors.onSurfaceVariant,
+        lineHeight: 22,
+        marginBottom: 20,
+    },
+    footer: {
+        borderTopWidth: 1,
+        borderTopColor: Colors.surfaceContainer,
+        paddingTop: 12,
+    },
+    confidenceText: {
+        ...Typography.label,
+        fontSize: 10,
+        color: Colors.outline,
+        fontWeight: '700',
+    },
+    sensitivityCard: {
+        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+        borderRadius: Radii.lg,
+        padding: 24,
+        marginBottom: Spacing.s6,
+        borderWidth: 1,
+        borderColor: 'rgba(99, 102, 241, 0.1)',
     },
     sensitivityHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        marginBottom: 12,
+        gap: 12,
+        marginBottom: 16,
     },
     sensitivityTitle: {
+        ...Typography.title,
         fontSize: 16,
-        fontWeight: '700',
-        color: '#312e81',
+        color: Colors.primary,
     },
     sensitivityChips: {
         flexDirection: 'row',
@@ -255,28 +352,38 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     sensitivityChip: {
-        backgroundColor: '#c7d2fe',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 6,
     },
     sensitivityChipText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#4338ca',
+        ...Typography.label,
+        color: Colors.primary,
+        fontSize: 12,
         textTransform: 'capitalize',
     },
     sensitivitySubtext: {
-        fontSize: 13,
-        color: '#6366f1',
+        ...Typography.body,
+        fontSize: 12,
+        color: Colors.primary,
         fontStyle: 'italic',
+        opacity: 0.8,
+    },
+    emptyState: {
+        paddingVertical: 80,
+        alignItems: 'center',
+    },
+    emptyText: {
+        ...Typography.body,
+        color: Colors.outline,
     },
     disclaimerText: {
-        fontSize: 12,
-        color: '#9ca3af',
+        ...Typography.label,
+        fontSize: 11,
+        color: Colors.outline,
         textAlign: 'center',
-        marginTop: 24,
-        paddingHorizontal: 16,
         lineHeight: 18,
+        paddingHorizontal: 16,
     },
 });

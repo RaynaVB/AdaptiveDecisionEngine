@@ -11,6 +11,7 @@ import { ChipSelect } from '../components/ChipSelect';
 import { ingredientService } from '../../src/services/IngredientService';
 import { StorageService } from '../../src/services/storage';
 import { Ingredient } from '../../src/models/Ingredient';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
 
@@ -157,7 +158,7 @@ export default function SettingsScreen({ navigation }: Props) {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+                <ActivityIndicator size="large" color={Colors.primary} />
             </View>
         );
     }
@@ -166,11 +167,11 @@ export default function SettingsScreen({ navigation }: Props) {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ChevronLeft color="#1e293b" size={28} />
+                    <ChevronLeft color={Colors.onSurface} size={28} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Preferences</Text>
                 <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.saveButton}>
-                    {saving ? <ActivityIndicator size="small" color="#3b82f6" /> : <Save color="#3b82f6" size={24} />}
+                    {saving ? <ActivityIndicator size="small" color={Colors.primary} /> : <Save color={Colors.primary} size={24} />}
                 </TouchableOpacity>
             </View>
 
@@ -241,10 +242,11 @@ export default function SettingsScreen({ navigation }: Props) {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Foods Avoided</Text>
                         <View style={styles.searchContainer}>
-                            <Search size={20} color="#64748b" style={styles.searchIcon} />
+                            <Search size={20} color={Colors.onSurfaceVariant} style={styles.searchIcon} />
                             <TextInput
                                 style={styles.searchInput}
                                 placeholder="Search ingredients"
+                                placeholderTextColor={Colors.onSurfaceVariant}
                                 value={searchQuery}
                                 onChangeText={searchIngs}
                             />
@@ -335,13 +337,13 @@ export default function SettingsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.background,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -351,83 +353,101 @@ const styles = StyleSheet.create({
         paddingTop: Platform.OS === 'ios' ? 8 : 0,
         paddingBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: Colors.surfaceContainer,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#1e293b',
+        ...Typography.label,
+        fontSize: 16,
+        fontWeight: '800',
+        color: Colors.onSurface,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
     backButton: {
-        padding: 4,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.surfaceContainerLow,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     saveButton: {
-        padding: 4,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.surfaceContainerLow,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     keyboardAvoidingView: {
         flex: 1,
     },
     container: {
         flex: 1,
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.background,
     },
     contentContainer: {
         padding: 24,
-        paddingBottom: 48,
+        paddingBottom: 120,
     },
     inputGroup: {
         marginBottom: 32,
     },
     label: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#334155',
+        ...Typography.label,
+        fontSize: 13,
+        fontWeight: '800',
+        color: Colors.primary,
         marginBottom: 12,
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 1,
     },
     input: {
-        backgroundColor: '#f8fafc',
+        ...Typography.body,
+        backgroundColor: Colors.surfaceContainerLow,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 14,
+        borderColor: Colors.surfaceContainer,
+        borderRadius: Radii.lg,
+        padding: 16,
         fontSize: 16,
-        color: '#1e293b',
+        color: Colors.onSurface,
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.surfaceContainerLow,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        paddingHorizontal: 12,
+        borderColor: Colors.surfaceContainer,
+        borderRadius: Radii.lg,
+        paddingHorizontal: 16,
         marginBottom: 12,
     },
     searchIcon: {
         marginRight: 8,
     },
     searchInput: {
+        ...Typography.body,
         flex: 1,
-        paddingVertical: 12,
+        paddingVertical: 14,
         fontSize: 15,
-        color: '#1e293b',
+        color: Colors.onSurface,
     },
     resultsContainer: {
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.background,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
+        borderColor: Colors.surfaceContainer,
+        borderRadius: Radii.lg,
         marginBottom: 12,
+        ...Shadows.ambient,
     },
     resultItem: {
-        padding: 12,
+        padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: Colors.surfaceContainer,
     },
     resultText: {
-        fontSize: 15,
+        ...Typography.body,
+        color: Colors.onSurface,
     },
     avoidedChips: {
         flexDirection: 'row',
@@ -437,99 +457,104 @@ const styles = StyleSheet.create({
     avoidedChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f1f5f9',
-        borderRadius: 16,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        gap: 4,
+        backgroundColor: Colors.surfaceContainer,
+        borderRadius: Radii.full,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        gap: 6,
     },
     avoidedText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#334155',
+        ...Typography.label,
+        fontSize: 12,
+        fontWeight: '700',
+        color: Colors.onSurface,
     },
     frequencyList: {
-        gap: 10,
+        gap: 12,
     },
     frequencyItem: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: '#f8fafc',
+        padding: 20,
+        backgroundColor: Colors.surfaceContainerLow,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
+        borderColor: Colors.surfaceContainer,
+        borderRadius: Radii.xl,
     },
     frequencyItemSelected: {
-        borderColor: '#3b82f6',
-        backgroundColor: '#eff6ff',
+        borderColor: Colors.primary,
+        backgroundColor: 'rgba(79, 99, 89, 0.05)',
     },
     frequencyText: {
-        fontSize: 15,
+        ...Typography.body,
+        fontSize: 16,
         fontWeight: '500',
-        color: '#334155',
+        color: Colors.onSurfaceVariant,
     },
     frequencyTextSelected: {
-        color: '#2563eb',
-        fontWeight: '700',
+        color: Colors.primary,
+        fontWeight: '800',
     },
     radioEmpty: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         borderWidth: 2,
-        borderColor: '#cbd5e1',
+        borderColor: Colors.surfaceContainer,
     },
     radioFilled: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        borderWidth: 5,
-        borderColor: '#3b82f6',
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        borderWidth: 7,
+        borderColor: Colors.primary,
     },
     divider: {
         height: 1,
-        backgroundColor: '#f1f5f9',
-        marginVertical: 24,
+        backgroundColor: Colors.surfaceContainer,
+        marginVertical: 32,
     },
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#fef2f2',
-        borderRadius: 12,
-        padding: 16,
+        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+        borderRadius: Radii.xl,
+        padding: 20,
         borderWidth: 1,
-        borderColor: '#fee2e2',
+        borderColor: 'rgba(239, 68, 68, 0.1)',
     },
     logoutButtonText: {
         color: '#ef4444',
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     versionFooter: {
-        marginTop: 32,
+        marginTop: 40,
         alignItems: 'center',
     },
     versionText: {
-        fontSize: 13,
-        color: '#94a3b8',
-        fontWeight: '500',
+        ...Typography.label,
+        fontSize: 12,
+        color: Colors.onSurfaceVariant,
+        opacity: 0.6,
     },
     legalItem: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.surfaceContainerLow,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 16,
+        borderColor: Colors.surfaceContainer,
+        borderRadius: Radii.lg,
+        padding: 18,
     },
     legalItemText: {
+        ...Typography.body,
         fontSize: 15,
         fontWeight: '600',
-        color: '#334155',
+        color: Colors.onSurface,
     },
 });

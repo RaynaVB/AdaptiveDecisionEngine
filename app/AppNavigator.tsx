@@ -26,14 +26,130 @@ import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import AdminScreen from './screens/AdminScreen';
 
-import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
+import { TouchableOpacity, Text, ActivityIndicator, View, StyleSheet } from 'react-native';
 import { auth } from '../src/services/firebaseConfig';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../src/services/firebaseConfig';
 import { getUserProfile, UserProfile } from '../src/services/userProfile';
 
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BlurView } from 'expo-blur';
+import { Sparkles, Lightbulb, Beaker, TrendingUp, Menu, Bell, Home } from 'lucide-react-native';
+import { Colors, Typography } from './constants/Theme';
+
 const Stack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator();
+
+function HomeStackNavigator() {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Timeline" component={TimelineScreen} />
+            <Stack.Screen 
+                name="MealDetail" 
+                component={MealDetailScreen}
+                options={{ headerShown: true, title: 'Meal Details' }} 
+            />
+            <Stack.Screen 
+                name="ExperimentDetail" 
+                component={ExperimentDetailScreen}
+                options={{ headerShown: true, title: 'Experiment Details' }} 
+            />
+        </Stack.Navigator>
+    );
+}
+
+function HealthLabStackNavigator() {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="HealthLab" component={HealthLabScreen} />
+            <Stack.Screen 
+                name="ExperimentDetail" 
+                component={ExperimentDetailScreen}
+                options={{ headerShown: true, title: 'Experiment Details' }} 
+            />
+            <Stack.Screen 
+                name="ExperimentHistory" 
+                component={ExperimentHistoryScreen}
+                options={{ headerShown: true, title: 'Experiment History' }} 
+            />
+            <Stack.Screen 
+                name="ExperimentResult" 
+                component={ExperimentResultScreen}
+                options={{ headerShown: true, title: 'Experiment Result' }} 
+            />
+        </Stack.Navigator>
+    );
+}
+
+function MainTabNavigator() {
+    return (
+        <Tab.Navigator
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: {
+                    position: 'absolute',
+                    borderTopWidth: 0,
+                    elevation: 0,
+                    height: 85,
+                    paddingBottom: 25,
+                    backgroundColor: 'transparent',
+                },
+                tabBarBackground: () => (
+                    <View
+                        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255, 255, 255, 0.98)', borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', borderTopWidth: 1, borderTopColor: Colors.surfaceContainer }]}
+                    />
+                ),
+                tabBarActiveTintColor: '#000000',
+                tabBarInactiveTintColor: '#94a3b8',
+                tabBarLabelStyle: {
+                    fontFamily: 'Manrope-Medium',
+                    fontSize: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                },
+            }}
+        >
+            <Tab.Screen 
+                name="HomeTab" 
+                component={HomeStackNavigator} 
+                options={{
+                    title: 'Home',
+                    tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+                }}
+            />
+            <Tab.Screen 
+                name="Insights" 
+                component={InsightFeedScreen} 
+                options={{
+                    tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} />,
+                }}
+            />
+            <Tab.Screen 
+                name="Recommendations" 
+                component={RecommendationFeedScreen} 
+                options={{
+                    tabBarIcon: ({ color, size }) => <Lightbulb color={color} size={size} />,
+                }}
+            />
+            <Tab.Screen 
+                name="HealthLabTab" 
+                component={HealthLabStackNavigator} 
+                options={{
+                    title: 'Health Lab',
+                    tabBarIcon: ({ color, size }) => <Beaker color={color} size={size} />,
+                }}
+            />
+            <Tab.Screen 
+                name="Weekly" 
+                component={WeeklyPatternsScreen} 
+                options={{
+                    tabBarIcon: ({ color, size }) => <TrendingUp color={color} size={size} />,
+                }}
+            />
+        </Tab.Navigator>
+    );
+}
 
 export default function AppNavigator() {
     const [user, setUser] = useState<User | null>(null);
@@ -46,10 +162,7 @@ export default function AppNavigator() {
         const unsubscribeAuth = onAuthStateChanged(auth, async (usr) => {
             setUser(usr);
             if (usr) {
-                // Ensure profile exists first
                 await getUserProfile(usr.uid);
-                
-                // Then listen for changes
                 unsubscribeProfile = onSnapshot(doc(db, 'users', usr.uid), (docSnap) => {
                     if (docSnap.exists()) {
                         setProfile(docSnap.data() as UserProfile);
@@ -74,32 +187,28 @@ export default function AppNavigator() {
 
     if (loading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+                <ActivityIndicator size="large" color={Colors.primary} />
             </View>
         );
     }
 
     return (
-        <Stack.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
             {user ? (
                 profile?.hasCompletedOnboarding ? (
-                    // User is signed in and has completed onboarding
                     <Stack.Group>
-                        <Stack.Screen
-                            name="Timeline"
-                            component={TimelineScreen}
-                            options={{ title: 'Timeline' }}
-                        />
+                        <Stack.Screen name="Main" component={MainTabNavigator} />
                         <Stack.Screen
                             name="LogMeal"
                             component={LogMealScreen}
                             options={({ navigation }) => ({
+                                headerShown: true,
                                 title: 'Log Meal',
                                 presentation: 'modal',
                                 headerLeft: () => (
                                     <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 16 }}>
-                                        <Text style={{ color: '#2563eb', fontSize: 16 }}>Cancel</Text>
+                                        <Text style={{ color: Colors.primary, fontSize: 16, fontFamily: 'Manrope-Medium' }}>Cancel</Text>
                                     </TouchableOpacity>
                                 )
                             })}
@@ -107,17 +216,18 @@ export default function AppNavigator() {
                         <Stack.Screen
                             name="LogMood"
                             component={LogMoodScreen}
-                            options={{ title: 'Log Mood' }}
+                            options={{ headerShown: true, title: 'Log Mood' }}
                         />
                         <Stack.Screen
                             name="SymptomLogger"
                             component={SymptomLoggerScreen}
                             options={({ navigation }) => ({
+                                headerShown: true,
                                 title: 'Log Symptom',
                                 presentation: 'modal',
                                 headerLeft: () => (
                                     <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 16 }}>
-                                        <Text style={{ color: '#2563eb', fontSize: 16 }}>Cancel</Text>
+                                        <Text style={{ color: Colors.primary, fontSize: 16, fontFamily: 'Manrope-Medium' }}>Cancel</Text>
                                     </TouchableOpacity>
                                 )
                             })}
@@ -125,79 +235,60 @@ export default function AppNavigator() {
                         <Stack.Screen
                             name="MealDetail"
                             component={MealDetailScreen}
-                            options={{ title: 'Meal Details' }}
+                            options={{ headerShown: true, title: 'Meal Details' }}
                         />
                         <Stack.Screen
                             name="WeeklyPatterns"
                             component={WeeklyPatternsScreen}
-                            options={{ headerShown: false }}
                         />
                         <Stack.Screen
                             name="InsightFeed"
                             component={InsightFeedScreen}
-                            options={{ title: 'AI Insights' }}
+                            options={{ headerShown: true, title: 'AI Insights' }}
                         />
                         <Stack.Screen
                             name="Recommendations"
                             component={RecommendationFeedScreen}
-                            options={{ title: 'Recommendations' }}
+                            options={{ headerShown: true, title: 'Recommendations' }}
                         />
                         <Stack.Screen
                             name="FeedbackHistory"
                             component={FeedbackHistoryScreen}
-                            options={{ title: 'Feedback History' }}
+                            options={{ headerShown: true, title: 'Feedback History' }}
                         />
                         <Stack.Screen
                             name="HealthLab"
                             component={HealthLabScreen}
-                            options={{ headerShown: false }}
                         />
                         <Stack.Screen
                             name="ExperimentDetail"
                             component={ExperimentDetailScreen}
-                            options={{ headerShown: false }}
                         />
                         <Stack.Screen
                             name="ExperimentHistory"
                             component={ExperimentHistoryScreen}
-                            options={{ headerShown: false }}
                         />
                         <Stack.Screen
                             name="ExperimentResult"
                             component={ExperimentResultScreen}
-                            options={{ headerShown: false }}
                         />
                         <Stack.Screen
                             name="Settings"
                             component={SettingsScreen}
-                            options={{ headerShown: false }}
                         />
                         <Stack.Screen
                             name="Admin"
                             component={AdminScreen}
-                            options={{ headerShown: false }}
                         />
                     </Stack.Group>
                 ) : (
-                    // User is signed in but HAS NOT completed onboarding
                     <Stack.Group screenOptions={{ headerShown: false }}>
                         <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
                         <Stack.Screen name="OnboardingProfile" component={OnboardingProfileScreen} />
-                        <Stack.Screen 
-                            name="OnboardingComplete" 
-                            component={OnboardingCompleteScreen} 
-                            // Pass down a callback so the screen can trigger an update in the Navigator state 
-                            // to unmount the Onboarding stack and show the main Timeline stack.
-                            // However React Navigation doesn't easily support passing params to Screen components this way 
-                            // without custom types, so we will handle the profile update at the component level 
-                            // and then use an Event emitter or let the user click a button to refresh, 
-                            // OR we can pass it via React Context. 
-                            // Let's pass it via initialParams for simplicity if possible.
-                        />
+                        <Stack.Screen name="OnboardingComplete" component={OnboardingCompleteScreen} />
                     </Stack.Group>
                 )
             ) : (
-                // No user is signed in
                 <Stack.Group screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="Login" component={LoginScreen} />
                     <Stack.Screen name="SignUp" component={SignUpScreen} />
@@ -207,3 +298,7 @@ export default function AppNavigator() {
         </Stack.Navigator>
     );
 }
+
+const styles = StyleSheet.create({
+    // Add any necessary styles here
+});

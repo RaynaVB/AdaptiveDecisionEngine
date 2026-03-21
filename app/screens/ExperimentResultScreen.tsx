@@ -1,15 +1,13 @@
-// app/screens/ExperimentResultScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
-import { ArrowLeft, Beaker, CheckCircle2, TrendingUp, Info, AlertTriangle } from 'lucide-react-native';
+import { ArrowLeft, Beaker, CheckCircle2, TrendingUp, Info, AlertTriangle, RotateCcw, ChevronLeft } from 'lucide-react-native';
 import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
 import { ExperimentRun } from '../../src/models/healthlab';
-import { RotateCcw } from 'lucide-react-native';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 type ExperimentResultScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'ExperimentResult'>;
@@ -28,7 +26,7 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
     const loadRun = async () => {
         try {
             const runs = await ExperimentEngine.getExperimentRuns();
-            const found = runs.find(r => r.id === runId);
+            const found = runs.find(r => r.runId === runId || r.id === runId);
             setRun(found || null);
         } catch (e) {
             console.error(e);
@@ -41,11 +39,10 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
         if (!run) return;
         setLoading(true);
         try {
-            await ExperimentEngine.startExperiment(run.experimentId);
-            // After starting, go back to the dashboard
+            await ExperimentEngine.startExperiment(run.id);
             navigation.goBack();
         } catch (e) {
-            alert(e instanceof Error ? e.message : "Failed to retry experiment");
+            Alert.alert("Error", e instanceof Error ? e.message : "Failed to retry experiment");
         } finally {
             setLoading(false);
         }
@@ -53,44 +50,47 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.container}>
-                <ActivityIndicator size="large" color="#2563eb" />
-            </SafeAreaView>
+            <View style={[styles.container, styles.center]}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
         );
     }
 
     if (!run) return null;
-    const definition = EXPERIMENT_LIBRARY.find(e => e.id === run.experimentId);
+    const definition = EXPERIMENT_LIBRARY.find(e => e.id === run.id || e.id === run.experimentId);
     if (!definition) return null;
 
     const delta = run.resultDelta || 0;
     const isPositiveChange = delta > 0;
-    const confidenceColor = run.confidenceScore === 'high' ? '#16a34a' : run.confidenceScore === 'medium' ? '#f59e0b' : '#ef4444';
+    const confidenceColor = run.confidenceScore === 'high' ? Colors.primary : run.confidenceScore === 'medium' ? '#f59e0b' : Colors.error;
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.container}>
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ArrowLeft size={24} color="#000" />
+                    <ChevronLeft size={24} color={Colors.onSurface} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Experiment Result</Text>
+                <Text style={styles.headerTitle}>Results</Text>
+                <View style={{ width: 44 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.successIcon}>
-                    <CheckCircle2 size={60} color="#16a34a" />
+                    <CheckCircle2 size={60} color={Colors.secondary} />
                 </View>
 
                 <Text style={styles.experimentName}>{definition.name}</Text>
                 <Text style={styles.dateRange}>
-                    {new Date(run.startDate).toLocaleDateString()} — {new Date(run.endDate || '').toLocaleDateString()}
+                    {run.startDate ? new Date(run.startDate).toLocaleDateString() : 'Recent'} — {run.endDate ? new Date(run.endDate).toLocaleDateString() : 'Today'}
                 </Text>
 
-                <View style={[styles.resultCard, { borderColor: isPositiveChange ? '#bbf7d0' : '#fecaca' }]}>
+                <View style={[styles.resultCard, { borderColor: isPositiveChange ? Colors.secondary + '40' : Colors.error + '40' }]}>
                     <Text style={styles.resultLabel}>Impact on {definition.targetMetric.replace(/_/g, ' ')}</Text>
                     <View style={styles.deltaRow}>
-                        <TrendingUp size={32} color={isPositiveChange ? '#16a34a' : '#ef4444'} style={{ transform: [{ rotate: isPositiveChange ? '0deg' : '180deg' }] }} />
-                        <Text style={[styles.deltaValue, { color: isPositiveChange ? '#16a34a' : '#ef4444' }]}>
+                        <TrendingUp size={32} color={isPositiveChange ? Colors.secondary : Colors.error} style={{ transform: [{ rotate: isPositiveChange ? '0deg' : '180deg' }] }} />
+                        <Text style={[styles.deltaValue, { color: isPositiveChange ? Colors.secondary : Colors.error }]}>
                             {isPositiveChange ? '+' : ''}{Math.round(delta)}%
                         </Text>
                     </View>
@@ -102,12 +102,12 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
                 <View style={styles.infoSection}>
                     <View style={styles.infoItem}>
                         <View style={styles.infoHead}>
-                            <Info size={18} color="#2563eb" />
+                            <Info size={18} color={Colors.primary} />
                             <Text style={styles.infoTitle}>Confidence Score</Text>
                         </View>
-                        <View style={[styles.confidenceBadge, { backgroundColor: confidenceColor + '20' }]}>
+                        <View style={[styles.confidenceBadge, { backgroundColor: confidenceColor + '15' }]}>
                             <Text style={[styles.confidenceText, { color: confidenceColor }]}>
-                                {run.confidenceScore?.toUpperCase()}
+                                {run.confidenceScore?.toUpperCase() || 'N/A'}
                             </Text>
                         </View>
                         <Text style={styles.infoDesc}>
@@ -117,7 +117,7 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
 
                     <View style={styles.infoItem}>
                         <View style={styles.infoHead}>
-                            <AlertTriangle size={18} color="#2563eb" />
+                            <AlertTriangle size={18} color={Colors.primary} />
                             <Text style={styles.infoTitle}>Recommendation</Text>
                         </View>
                         <Text style={styles.recommendationText}>
@@ -128,119 +128,131 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
                     </View>
                 </View>
 
-                {run.confidenceScore === 'low' && (
-                    <TouchableOpacity 
-                        style={styles.retryButton} 
-                        onPress={handleRetry}
-                        disabled={loading}
-                    >
-                        <RotateCcw size={20} color="#2563eb" style={{ marginRight: 8 }} />
-                        <Text style={styles.retryButtonText}>Retry Experiment for More Data</Text>
-                    </TouchableOpacity>
-                )}
+                <View style={styles.actionContainer}>
+                    {run.confidenceScore === 'low' && (
+                        <TouchableOpacity 
+                            style={styles.retryButton} 
+                            onPress={handleRetry}
+                            disabled={loading}
+                        >
+                            <RotateCcw size={20} color={Colors.primary} style={{ marginRight: 8 }} />
+                            <Text style={styles.retryButtonText}>Repeat for More Data</Text>
+                        </TouchableOpacity>
+                    )}
 
-                <TouchableOpacity 
-                    style={styles.doneButton} 
-                    onPress={() => navigation.goBack()}
-                >
-                    <Text style={styles.doneButtonText}>Back to HealthLab</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.doneButton} 
+                        onPress={() => navigation.navigate('HealthLab')}
+                    >
+                        <Text style={styles.doneButtonText}>Finish Protocol</Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.background,
+    },
+    center: {
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.surfaceContainerLow,
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
-        marginRight: 12,
+        justifyContent: 'center',
     },
-    title: {
-        fontSize: 18,
+    headerTitle: {
+        ...Typography.label,
+        fontSize: 14,
+        color: Colors.onSurfaceVariant,
+        letterSpacing: 1,
         fontWeight: '800',
-        color: '#0f172a',
     },
     content: {
-        padding: 24,
+        paddingHorizontal: Spacing.s6,
+        paddingBottom: 40,
         alignItems: 'center',
     },
     successIcon: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#f0fdf4',
+        backgroundColor: 'rgba(7, 45, 34, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        marginTop: 24,
+        marginBottom: 24,
     },
     experimentName: {
+        ...Typography.title,
         fontSize: 26,
-        fontWeight: '800',
-        color: '#1e293b',
+        color: Colors.onSurface,
         textAlign: 'center',
         marginBottom: 8,
     },
     dateRange: {
+        ...Typography.body,
         fontSize: 14,
-        color: '#64748b',
+        color: Colors.onSurfaceVariant,
         marginBottom: 32,
         fontWeight: '500',
     },
     resultCard: {
         width: '100%',
-        backgroundColor: '#f8fafc',
+        backgroundColor: 'rgba(216, 230, 222, 0.1)',
         borderRadius: 24,
-        padding: 24,
+        padding: 32,
         alignItems: 'center',
-        borderWidth: 2,
+        borderWidth: 1,
         marginBottom: 32,
     },
     resultLabel: {
-        fontSize: 14,
-        color: '#64748b',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 12,
+        ...Typography.label,
+        fontSize: 12,
+        color: Colors.onSurfaceVariant,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+        marginBottom: 16,
     },
     deltaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 12,
+        gap: 16,
+        marginBottom: 16,
     },
     deltaValue: {
+        ...Typography.display,
         fontSize: 56,
         fontWeight: '900',
         letterSpacing: -2,
     },
     resultDetails: {
+        ...Typography.body,
         fontSize: 13,
-        color: '#94a3b8',
+        color: Colors.onSurfaceVariant,
         textAlign: 'center',
         fontWeight: '500',
     },
     infoSection: {
         width: '100%',
-        gap: 24,
+        gap: 32,
         marginBottom: 40,
+        paddingHorizontal: Spacing.s4,
     },
     infoItem: {
         width: '100%',
@@ -248,64 +260,73 @@ const styles = StyleSheet.create({
     infoHead: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginBottom: 8,
+        gap: 10,
+        marginBottom: 12,
     },
     infoTitle: {
+        ...Typography.title,
         fontSize: 16,
-        fontWeight: '700',
-        color: '#1e293b',
+        color: Colors.onSurface,
     },
     confidenceBadge: {
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 8,
         alignSelf: 'flex-start',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     confidenceText: {
-        fontSize: 12,
+        ...Typography.label,
+        fontSize: 11,
         fontWeight: '800',
         letterSpacing: 0.5,
     },
     infoDesc: {
+        ...Typography.body,
         fontSize: 14,
-        color: '#64748b',
+        color: Colors.onSurfaceVariant,
         lineHeight: 20,
     },
     recommendationText: {
+        ...Typography.body,
         fontSize: 15,
-        color: '#475569',
-        lineHeight: 22,
+        color: Colors.onSurface,
+        lineHeight: 24,
         fontStyle: 'italic',
+    },
+    actionContainer: {
+        width: '100%',
+        gap: 16,
     },
     doneButton: {
         width: '100%',
-        backgroundColor: '#0f172a',
-        borderRadius: 16,
-        padding: 18,
+        backgroundColor: Colors.primary,
+        borderRadius: Radii.xl,
+        padding: 20,
         alignItems: 'center',
+        ...Shadows.ambient,
     },
     doneButtonText: {
         color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
+        fontSize: 17,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     retryButton: {
         width: '100%',
-        backgroundColor: '#fff',
-        borderRadius: 16,
+        backgroundColor: 'transparent',
+        borderRadius: Radii.xl,
         padding: 18,
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#2563eb',
-        marginBottom: 12,
+        borderWidth: 1.5,
+        borderColor: Colors.primary,
         flexDirection: 'row',
         justifyContent: 'center',
     },
     retryButtonText: {
-        color: '#2563eb',
+        color: Colors.primary,
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
 });

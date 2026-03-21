@@ -1,15 +1,13 @@
-// app/screens/ExperimentDetailScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
-import { ArrowLeft, Beaker, Play, Info } from 'lucide-react-native';
+import { ArrowLeft, Beaker, Play, Info, CheckCircle, AlertTriangle, ChevronLeft } from 'lucide-react-native';
 import { HealthLabService } from '../../src/services/healthLabService';
 import { ExperimentDefinition, ExperimentRun } from '../../src/models/healthlab';
-import { CheckCircle, AlertTriangle } from 'lucide-react-native';
 import { MICRO_DISCLAIMER_EXPERIMENTS } from '../constants/legal';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 type ExperimentDetailScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'ExperimentDetail'>;
@@ -24,7 +22,6 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
 
     useEffect(() => {
         if (!definition && experimentId) {
-            // Fetch definition if not passed (though we prefer passing it)
             loadData();
         } else {
             loadRun();
@@ -33,13 +30,9 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
 
     const loadRun = async () => {
         try {
-            console.log(`[HealthLab] Loading run info for ${experimentId}`);
             const activeList = await HealthLabService.getActiveExperiments();
             const active = activeList.find(run => run.id === experimentId || (run as any).templateId === experimentId);
             setActiveRun(active || null);
-            if (active) {
-                console.log(`[HealthLab] Found active run: ${active.runId}`);
-            }
         } catch (e) {
             console.error('[HealthLab] loadRun error:', e);
         } finally {
@@ -50,31 +43,19 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
     const loadData = async () => {
         setLoading(true);
         try {
-            console.log(`[HealthLab] Loading data for experimentId: ${experimentId}`);
-            
-            // Check recommended first
             const recommended = await HealthLabService.getRecommendedExperiments();
             let found = recommended.find(r => r.template.id === experimentId)?.template;
-            
-            if (found) {
-                console.log(`[HealthLab] Found definition in recommended: ${found.name}`);
-            }
 
-            // If not found, check active runs
             if (!found) {
                 const actives = await HealthLabService.getActiveExperiments();
-                console.log(`[HealthLab] Checking ${actives.length} active experiments...`);
                 const activeMatch = actives.find(a => a.id === experimentId || (a as any).templateId === experimentId);
                 if (activeMatch?.template) {
                     found = activeMatch.template;
-                    console.log(`[HealthLab] Found definition in active: ${found.name}`);
                 }
             }
 
             if (found) {
                 setDefinition(found);
-            } else {
-                console.warn(`[HealthLab] Could not find definition for ${experimentId}`);
             }
             await loadRun();
         } catch (e) {
@@ -90,7 +71,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
         try {
             setLoading(true);
             await HealthLabService.startExperiment(tid);
-            Alert.alert("Success", "Experiment started! Track your progress daily.");
+            Alert.alert("Success", "Experiment started!");
             await loadRun();
         } catch (e) {
             Alert.alert("Error", e instanceof Error ? e.message : "Failed to start experiment");
@@ -101,20 +82,19 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
 
     const handleAbandon = async () => {
         if (!activeRun) return;
-        
+
         Alert.alert(
             "Abandon Experiment",
             "Are you sure you want to stop this experiment? Your progress will be lost.",
             [
                 { text: "Keep Going", style: "cancel" },
-                { 
-                    text: "Abandon", 
+                {
+                    text: "Abandon",
                     style: "destructive",
                     onPress: async () => {
                         try {
                             setLoading(true);
                             await HealthLabService.abandonExperiment(activeRun.runId || activeRun.id);
-                            Alert.alert("Abandoned", "Experiment has been stopped.");
                             navigation.goBack();
                         } catch (e) {
                             Alert.alert("Error", e instanceof Error ? e.message : "Failed to abandon experiment");
@@ -134,7 +114,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
             await HealthLabService.completeExperiment((activeRun as any).runId || activeRun.id);
             navigation.replace('ExperimentResult', { runId: (activeRun as any).runId || activeRun.id });
         } catch (e) {
-            alert(e instanceof Error ? e.message : "Failed to complete experiment");
+            Alert.alert("Error", e instanceof Error ? e.message : "Failed to complete experiment");
         } finally {
             setLoading(false);
         }
@@ -143,261 +123,268 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
     if (!definition && !loading) {
         return (
             <SafeAreaView style={styles.container}>
-                <Text>Experiment not found</Text>
+                <Text style={styles.emptyText}>Experiment not found</Text>
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.container}>
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ArrowLeft size={24} color="#000" />
+                    <ChevronLeft size={24} color={Colors.onSurface} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Experiment Details</Text>
+                <Text style={styles.headerTitle}>Details</Text>
+                <View style={{ width: 44 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
-                <View style={styles.iconCircle}>
-                    <Beaker size={40} color="#2563eb" />
-                </View>
-
-                <Text style={styles.experimentName}>{definition?.name}</Text>
-                <View style={styles.badgeRow}>
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{definition?.durationDays} DAYS</Text>
-                    </View>
-                    <View style={[styles.badge, { backgroundColor: '#f1f5f9' }]}>
-                        <Text style={[styles.badgeText, { color: '#475569' }]}>{definition?.category.toUpperCase()}</Text>
+                <View style={styles.heroSection}>
+                    <Text style={styles.experimentName}>{definition?.name}</Text>
+                    <View style={styles.badgeRow}>
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{definition?.durationDays} DAYS</Text>
+                        </View>
+                        <View style={[styles.badge, { backgroundColor: 'rgba(79, 99, 89, 0.1)' }]}>
+                            <Text style={[styles.badgeText, { color: Colors.primary }]}>{definition?.category.toUpperCase()}</Text>
+                        </View>
                     </View>
                 </View>
 
-                <View style={styles.infoCard}>
-                    <View style={styles.infoRow}>
-                        <Info size={18} color="#2563eb" />
-                        <Text style={styles.infoLabel}>Hypothesis</Text>
+                <View style={styles.infoSection}>
+                    <View style={styles.infoCard}>
+                        <View style={styles.infoRow}>
+                            <Info size={18} color={Colors.primary} />
+                            <Text style={styles.infoLabel}>Hypothesis</Text>
+                        </View>
+                        <Text style={styles.hypothesisText}>{definition?.hypothesis}</Text>
                     </View>
-                    <Text style={styles.hypothesisText}>{definition?.hypothesis}</Text>
-                </View>
 
-                <View style={styles.detailsList}>
-                    <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Target Metric</Text>
-                        <Text style={styles.detailValue}>{definition?.targetMetric?.replace(/_/g, ' ') || 'General'}</Text>
+                    <View style={styles.detailsList}>
+                        <View style={styles.detailItem}>
+                            <Text style={styles.detailLabel}>Target Metric</Text>
+                            <Text style={styles.detailValue}>{definition?.targetMetric?.replace(/_/g, ' ') || 'General'}</Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                            <Text style={styles.detailLabel}>Required Data</Text>
+                            <Text style={styles.detailValue}>{definition?.requiredEvents?.join(', ')}</Text>
+                        </View>
                     </View>
-                    <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Required Data</Text>
-                        <Text style={styles.detailValue}>{definition?.requiredEvents?.join(', ')}</Text>
-                    </View>
-                </View>
 
-                <View style={[styles.infoCard, { backgroundColor: '#fef2f2', borderColor: '#fee2e2' }]}>
-                    <View style={styles.infoRow}>
-                        <AlertTriangle size={18} color="#ef4444" />
-                        <Text style={[styles.infoLabel, { color: '#ef4444' }]}>Medical Disclaimer</Text>
+                    <View style={[styles.infoCard, { backgroundColor: 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                        <View style={styles.infoRow}>
+                            <AlertTriangle size={18} color={Colors.error} />
+                            <Text style={[styles.infoLabel, { color: Colors.error }]}>Medical Disclaimer</Text>
+                        </View>
+                        <Text style={[styles.hypothesisText, { color: Colors.error, fontSize: 13, opacity: 0.8 }]}>{MICRO_DISCLAIMER_EXPERIMENTS}</Text>
                     </View>
-                    <Text style={[styles.hypothesisText, { color: '#991b1b', fontSize: 13 }]}>{MICRO_DISCLAIMER_EXPERIMENTS}</Text>
                 </View>
 
                 <View style={styles.actionContainer}>
                     {loading ? (
-                        <ActivityIndicator color="#2563eb" />
+                        <ActivityIndicator color={Colors.primary} />
                     ) : activeRun ? (
-                        <View style={{ gap: 12 }}>
+                        <View style={{ gap: 16 }}>
                             <TouchableOpacity style={styles.completeButton} onPress={handleComplete}>
                                 <CheckCircle size={20} color="#fff" style={{ marginRight: 8 }} />
-                                <Text style={styles.completeButtonText}>Complete & View Results</Text>
+                                <Text style={styles.completeButtonText}>Complete Study</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.abandonButton} onPress={handleAbandon}>
-                                <Text style={styles.abandonButtonText}>Abandon Experiment</Text>
+                                <Text style={styles.abandonButtonText}>Stop Experiment</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
                         <TouchableOpacity style={styles.startButton} onPress={handleStart}>
                             <Play size={20} color="#fff" fill="#fff" style={{ marginRight: 8 }} />
-                            <Text style={styles.startButtonText}>Start 5-Day Experiment</Text>
+                            <Text style={styles.startButtonText}>Start Protocol</Text>
                         </TouchableOpacity>
                     )}
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.surfaceContainerLow,
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
-        marginRight: 12,
+        justifyContent: 'center',
     },
-    title: {
-        fontSize: 18,
+    headerTitle: {
+        ...Typography.label,
+        fontSize: 14,
+        color: Colors.onSurfaceVariant,
+        letterSpacing: 1,
         fontWeight: '800',
-        color: '#0f172a',
-        letterSpacing: -0.3,
     },
     content: {
-        padding: 24,
+        paddingHorizontal: Spacing.s6,
+        paddingBottom: 40,
         alignItems: 'center',
+    },
+    heroSection: {
+        alignItems: 'center',
+        paddingVertical: 20,
+        width: '100%',
     },
     iconCircle: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: '#eff6ff',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(79, 99, 89, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
-        shadowColor: '#2563eb',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 2,
+        marginBottom: 16,
     },
     experimentName: {
+        ...Typography.display,
         fontSize: 28,
-        fontWeight: '800',
-        color: '#1e293b',
+        color: Colors.onSurface,
         textAlign: 'center',
         marginBottom: 12,
-        letterSpacing: -0.5,
     },
     badgeRow: {
         flexDirection: 'row',
-        gap: 10,
-        marginBottom: 32,
+        gap: 12,
     },
     badge: {
-        backgroundColor: '#eff6ff',
+        backgroundColor: 'rgba(7, 45, 34, 0.05)',
         paddingHorizontal: 16,
         paddingVertical: 6,
-        borderRadius: 12,
+        borderRadius: Radii.md,
     },
     badgeText: {
-        fontSize: 13,
+        ...Typography.label,
+        fontSize: 11,
         fontWeight: '800',
-        color: '#2563eb',
+        color: Colors.primary,
         letterSpacing: 0.5,
     },
-    infoCard: {
-        backgroundColor: '#f8fafc',
-        borderRadius: 20,
-        padding: 20,
+    infoSection: {
         width: '100%',
-        marginBottom: 24,
+        marginTop: 8,
+    },
+    infoCard: {
+        backgroundColor: 'rgba(216, 230, 222, 0.1)',
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#f1f5f9',
+        borderColor: 'rgba(216, 230, 222, 0.3)',
     },
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        marginBottom: 10,
+        gap: Spacing.s3,
+        marginBottom: 8,
     },
     infoLabel: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#2563eb',
+        ...Typography.label,
+        fontSize: 14,
+        fontWeight: '800',
+        color: Colors.primary,
     },
     hypothesisText: {
-        fontSize: 16,
-        color: '#475569',
-        lineHeight: 24,
-        fontWeight: '400',
+        ...Typography.body,
+        fontSize: 15,
+        color: Colors.onSurface,
+        lineHeight: 22,
     },
     detailsList: {
         width: '100%',
-        gap: 16,
-        marginBottom: 40,
+        gap: 12,
+        marginBottom: 24,
+        paddingHorizontal: Spacing.s4,
     },
     detailItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
-        paddingBottom: 16,
+        borderBottomColor: Colors.surfaceContainer,
+        paddingBottom: 12,
     },
     detailLabel: {
-        fontSize: 15,
-        color: '#64748b',
+        ...Typography.body,
+        fontSize: 14,
+        color: Colors.onSurfaceVariant,
         fontWeight: '500',
     },
     detailValue: {
-        fontSize: 15,
+        ...Typography.body,
+        fontSize: 14,
         fontWeight: '700',
-        color: '#1e293b',
+        color: Colors.onSurface,
         textTransform: 'capitalize',
     },
     actionContainer: {
         width: '100%',
-        paddingBottom: 20,
+        marginTop: 16,
     },
     startButton: {
-        backgroundColor: '#2563eb',
-        borderRadius: 16,
+        backgroundColor: Colors.primary,
+        borderRadius: Radii.xl,
         padding: 20,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#2563eb',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 6,
+        ...Shadows.ambient,
     },
     startButtonText: {
         color: '#fff',
         fontSize: 17,
         fontWeight: '800',
-        letterSpacing: 0.3,
+        letterSpacing: 0.5,
     },
     completeButton: {
-        backgroundColor: '#16a34a',
-        borderRadius: 16,
+        backgroundColor: Colors.secondary,
+        borderRadius: Radii.xl,
         padding: 20,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#16a34a',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 6,
+        ...Shadows.ambient,
     },
     completeButtonText: {
         color: '#fff',
         fontSize: 17,
         fontWeight: '800',
-        letterSpacing: 0.3,
+        letterSpacing: 0.5,
     },
     abandonButton: {
-        backgroundColor: '#fff',
-        borderColor: '#ef4444',
+        backgroundColor: 'transparent',
+        borderColor: Colors.error,
         borderWidth: 1.5,
-        borderRadius: 16,
+        borderRadius: Radii.xl,
         padding: 18,
         justifyContent: 'center',
         alignItems: 'center',
     },
     abandonButtonText: {
-        color: '#ef4444',
-        fontSize: 16,
-        fontWeight: '700',
+        color: Colors.error,
+        fontSize: 15,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
+    emptyText: {
+        ...Typography.body,
+        textAlign: 'center',
+        marginTop: 40,
+    }
 });

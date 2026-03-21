@@ -4,6 +4,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { updateUserProfile } from '../../src/services/userProfile';
 import { auth } from '../../src/services/firebaseConfig';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 type OnboardingCompleteScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OnboardingComplete'>;
 
@@ -59,7 +60,7 @@ export default function OnboardingCompleteScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.background,
         padding: 24,
         justifyContent: 'space-between',
     },
@@ -69,38 +70,42 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     emoji: {
-        fontSize: 72,
-        marginBottom: 24,
+        fontSize: 80,
+        marginBottom: 32,
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...Typography.display,
+        fontSize: 36,
+        color: Colors.onSurface,
         textAlign: 'center',
         marginBottom: 16,
     },
     subtitle: {
-        fontSize: 16,
-        color: '#64748b',
+        ...Typography.body,
+        fontSize: 17,
+        color: Colors.onSurfaceVariant,
         textAlign: 'center',
-        lineHeight: 24,
-        paddingHorizontal: 16,
+        lineHeight: 26,
+        paddingHorizontal: 20,
     },
     button: {
-        backgroundColor: '#3b82f6',
-        borderRadius: 12,
-        padding: 16,
+        backgroundColor: Colors.primary,
+        borderRadius: Radii.full,
+        padding: 20,
         alignItems: 'center',
-        marginBottom: 24,
-        minHeight: 56,
+        marginBottom: 32,
+        minHeight: 64,
         justifyContent: 'center',
+        ...Shadows.ambient,
     },
     buttonDisabled: {
-        backgroundColor: '#93c5fd',
+        backgroundColor: Colors.surfaceContainerHighest,
+        opacity: 0.6,
     },
     buttonText: {
         color: '#ffffff',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
 });

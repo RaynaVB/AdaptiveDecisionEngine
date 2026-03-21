@@ -1,6 +1,7 @@
 import { MealEvent } from './types';
 
 export type RootStackParamList = {
+    Main: undefined;
     Timeline: undefined;
     LogMeal: undefined;
     LogMood: { mealId?: string; timestamp?: string }; // optional link back

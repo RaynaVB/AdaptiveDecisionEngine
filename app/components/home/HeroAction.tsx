@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Recommendation } from '../../../src/models/types';
-import { Target } from 'lucide-react-native';
+import { Target, Check, X, ShieldQuestion } from 'lucide-react-native';
 import { MICRO_DISCLAIMER_RECOMMENDATIONS } from '../../constants/legal';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../../constants/Theme';
 
 interface HeroActionProps {
   recommendation: Recommendation;
@@ -12,50 +13,46 @@ interface HeroActionProps {
 }
 
 export const HeroAction: React.FC<HeroActionProps> = ({ recommendation, onStart, onMaybe, onDismiss }) => {
-  const confidenceDots = () => {
-    const dots = [];
-    const count = recommendation.confidenceLevel === 'high' ? 5 : recommendation.confidenceLevel === 'medium' ? 3 : 1;
-    for (let i = 0; i < 5; i++) {
-      dots.push(
-        <View
-          key={i}
-          style={[
-            styles.dot,
-            { backgroundColor: i < count ? '#3b82f6' : '#e5e7eb' }
-          ]}
-        />
-      );
-    }
-    return dots;
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Target size={18} color="#3b82f6" />
+        <Target size={18} color={Colors.primary} />
         <Text style={styles.headerText}>TODAY’S FOCUS</Text>
       </View>
       
       <Text style={styles.title}>{recommendation.title}</Text>
       <Text style={styles.summary}>{recommendation.summary}</Text>
       
-      <View style={styles.confidenceRow}>
-        <Text style={styles.confidenceLabel}>Confidence: </Text>
-        <View style={styles.dotsContainer}>{confidenceDots()}</View>
-        <Text style={styles.confidenceText}>{recommendation.confidenceLevel === 'high' ? 'High' : recommendation.confidenceLevel === 'medium' ? 'Medium' : 'Low'}</Text>
+      <View style={styles.metaRow}>
+        <View style={styles.confidenceBadge}>
+          <Text style={styles.confidenceLabel}>Confidence: </Text>
+          <Text style={styles.confidenceValue}>{recommendation.confidenceLevel.toUpperCase()}</Text>
+        </View>
       </View>
       
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => onStart(recommendation)}>
+        <TouchableOpacity 
+          style={styles.primaryButton} 
+          onPress={() => onStart(recommendation)}
+        >
+          <Check size={20} color="#fff" />
           <Text style={styles.primaryButtonText}>
-            {recommendation.associatedExperimentId ? 'Start Now' : 'Try it now'}
+            {recommendation.associatedExperimentId ? 'Start' : 'Accept'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.maybeButton} onPress={() => onMaybe(recommendation)}>
-          <Text style={styles.maybeButtonText}>Maybe</Text>
+
+        <TouchableOpacity 
+          style={styles.outlineButton} 
+          onPress={() => onMaybe(recommendation)}
+        >
+          <ShieldQuestion size={20} color={Colors.primary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.dismissButton} onPress={() => onDismiss(recommendation)}>
-          <Text style={styles.dismissButtonText}>Dismiss</Text>
+
+        <TouchableOpacity 
+          style={styles.outlineButton} 
+          onPress={() => onDismiss(recommendation)}
+        >
+          <X size={20} color={Colors.onSurfaceVariant} />
         </TouchableOpacity>
       </View>
 
@@ -66,115 +63,96 @@ export const HeroAction: React.FC<HeroActionProps> = ({ recommendation, onStart,
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: Radii.xl,
+    padding: Spacing.s5,
+    marginBottom: Spacing.s4,
+    ...Shadows.ambient,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.s4,
     gap: 8,
   },
   headerText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#3b82f6',
+    ...Typography.label,
+    color: Colors.primary,
     letterSpacing: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 8,
+    ...Typography.title,
+    fontSize: 22,
+    color: Colors.onSurface,
+    marginBottom: Spacing.s2,
   },
   summary: {
-    fontSize: 15,
-    color: '#4b5563',
+    ...Typography.body,
+    color: Colors.onSurfaceVariant,
     lineHeight: 22,
-    marginBottom: 16,
+    marginBottom: Spacing.s6,
   },
-  confidenceRow: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: Spacing.s6,
+  },
+  confidenceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(79, 99, 89, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radii.full,
   },
   confidenceLabel: {
-    fontSize: 13,
-    color: '#6b7280',
+    ...Typography.label,
+    fontSize: 10,
+    color: Colors.onSurfaceVariant,
   },
-  dotsContainer: {
-    flexDirection: 'row',
-    gap: 4,
-    marginHorizontal: 8,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  confidenceText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#4b5563',
+  confidenceValue: {
+    ...Typography.label,
+    fontSize: 10,
+    color: Colors.primary,
+    fontWeight: '700',
   },
   buttonRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#3b82f6',
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: Radii.lg,
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   primaryButtonText: {
+    ...Typography.title,
+    fontSize: 16,
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
   },
-  maybeButton: {
-    backgroundColor: '#fff',
+  outlineButton: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    flex: 0.8,
+    borderColor: Colors.surfaceContainer,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  maybeButtonText: {
-    color: '#4b5563',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  dismissButton: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    flex: 0.8,
-    alignItems: 'center',
-  },
-  dismissButtonText: {
-    color: '#9ca3af',
-    fontWeight: '600',
-    fontSize: 14,
   },
   disclaimerText: {
+    ...Typography.label,
     fontSize: 10,
-    color: '#9ca3af',
-    marginTop: 16,
+    color: Colors.onSurfaceVariant,
+    marginTop: Spacing.s5,
     fontStyle: 'italic',
+    lineHeight: 14,
   },
 });

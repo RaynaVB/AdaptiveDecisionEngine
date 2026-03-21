@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, SafeAreaView } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { StorageService } from '../../src/services/storage';
 import { WeeklyPatternsService } from '../../src/services/weeklyPatternsService';
 import { WeeklyItem, WeeklyGeneration } from '../../src/models/types';
-import { ArrowLeft, TrendingUp, Trophy, AlertTriangle, FlaskConical, Info } from 'lucide-react-native';
+import { ArrowLeft, TrendingUp, Trophy, AlertTriangle, FlaskConical, Info, Sparkles } from 'lucide-react-native';
 import { MICRO_DISCLAIMER_WEEKLY } from '../constants/legal';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import { TopBar } from '../components/TopBar';
 
 type WeeklyPatternsScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'WeeklyPatterns'>;
@@ -29,14 +30,10 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
     const loadData = async () => {
         try {
             setLoading(true);
-            
-            // 1. Fetch from Service
             const response = await WeeklyPatternsService.getWeeklySummary();
             setGeneration(response.generation);
             setItems(response.items);
 
-            // 2. Fetch local data for charts (fallback for now, or use as primary visual)
-            // Backend currently doesn't provide full chart data arrays, just summaries.
             const moods = await StorageService.getMoodEvents();
             const symptoms = await StorageService.getSymptomEvents();
 
@@ -114,23 +111,22 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
 
     const getItemIcon = (type: WeeklyItem['type']) => {
         switch (type) {
-            case 'trend': return <TrendingUp size={20} color="#2563eb" />;
-            case 'win': return <Trophy size={20} color="#059669" />;
-            case 'regression': return <AlertTriangle size={20} color="#dc2626" />;
-            case 'experiment_update': return <FlaskConical size={20} color="#7c3aed" />;
-            case 'pattern': return <Info size={20} color="#2563eb" />;
-            default: return <Info size={20} color="#6b7280" />;
+            case 'trend': return <TrendingUp size={20} color={Colors.primary} />;
+            case 'win': return <Trophy size={20} color="#10b981" />;
+            case 'regression': return <AlertTriangle size={20} color="#ef4444" />;
+            case 'experiment_update': return <FlaskConical size={20} color="#8b5cf6" />;
+            default: return <Info size={20} color={Colors.outline} />;
         }
     };
 
     const renderItemCard = (item: WeeklyItem) => (
         <View key={item.id} style={styles.card}>
             <View style={styles.cardHeader}>
-                <View style={styles.iconContainer}>
+                <View style={styles.iconBox}>
                     {getItemIcon(item.type)}
                 </View>
                 <View style={styles.headerText}>
-                    <Text style={styles.categoryText}>{item.category.toUpperCase()}</Text>
+                    <Text style={styles.categoryLabel}>{item.category.replace('_', ' ').toUpperCase()}</Text>
                     <Text style={styles.cardTitle}>{item.title}</Text>
                 </View>
             </View>
@@ -147,27 +143,25 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
         </View>
     );
 
-    const chartWidth = Dimensions.get("window").width - 64;
+    const chartWidth = Dimensions.get("window").width - 96;
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ArrowLeft size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Weekly Story</Text>
-                <TouchableOpacity onPress={() => loadData()} style={styles.refreshButton}>
-                   <ActivityIndicator animating={loading} size="small" color="#2563eb" />
-                </TouchableOpacity>
-            </View>
+        <View style={styles.container}>
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            <TopBar />
 
             {loading && !generation ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#2563eb" />
+                    <ActivityIndicator size="large" color={Colors.primary} />
                     <Text style={styles.loadingText}>Assembling your weekly patterns...</Text>
                 </View>
             ) : (
-                <ScrollView contentContainerStyle={styles.content}>
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.pageHeader}>
+                        <Text style={styles.pageLabel}>LONG-TERM PATTERNS</Text>
+                        <Text style={styles.pageTitle}>Weekly Story</Text>
+                    </View>
+
                     {generation && (
                         <View style={styles.heroSection}>
                             <Text style={styles.heroTitle}>{generation.summary.title}</Text>
@@ -177,20 +171,20 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
 
                     {moodChartData && (
                         <View style={styles.chartCard}>
-                            <Text style={styles.chartTitle}>Mood Trend (7 Days)</Text>
+                            <Text style={styles.chartLabel}>MOOD TREND</Text>
                             <LineChart
                                 data={moodChartData}
                                 width={chartWidth}
                                 height={180}
                                 chartConfig={{
-                                    backgroundColor: "#ffffff",
-                                    backgroundGradientFrom: "#ffffff",
-                                    backgroundGradientTo: "#ffffff",
+                                    backgroundColor: Colors.surfaceLowest,
+                                    backgroundGradientFrom: Colors.surfaceLowest,
+                                    backgroundGradientTo: Colors.surfaceLowest,
                                     decimalPlaces: 1,
-                                    color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
-                                    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                                    color: (opacity = 1) => `rgba(79, 99, 89, ${opacity})`,
+                                    labelColor: (opacity = 1) => Colors.outline,
                                     style: { borderRadius: 16 },
-                                    propsForDots: { r: "4", strokeWidth: "2", stroke: "#2563eb" }
+                                    propsForDots: { r: "4", strokeWidth: "2", stroke: Colors.primary }
                                 }}
                                 bezier
                                 style={{ marginVertical: 8, borderRadius: 16 }}
@@ -202,20 +196,20 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
 
                     {symptomChartData && (
                         <View style={styles.chartCard}>
-                            <Text style={styles.chartTitle}>Symptom Load (7 Days)</Text>
+                            <Text style={styles.chartLabel}>SYMPTOM LOAD</Text>
                             <LineChart
                                 data={symptomChartData}
                                 width={chartWidth}
                                 height={180}
                                 chartConfig={{
-                                    backgroundColor: "#ffffff",
-                                    backgroundGradientFrom: "#ffffff",
-                                    backgroundGradientTo: "#ffffff",
+                                    backgroundColor: Colors.surfaceLowest,
+                                    backgroundGradientFrom: Colors.surfaceLowest,
+                                    backgroundGradientTo: Colors.surfaceLowest,
                                     decimalPlaces: 0,
-                                    color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`,
-                                    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                                    color: (opacity = 1) => `rgba(168, 56, 54, ${opacity})`,
+                                    labelColor: (opacity = 1) => Colors.outline,
                                     style: { borderRadius: 16 },
-                                    propsForDots: { r: "4", strokeWidth: "2", stroke: "#ef4444" }
+                                    propsForDots: { r: "4", strokeWidth: "2", stroke: "#a83836" }
                                 }}
                                 bezier
                                 style={{ marginVertical: 8, borderRadius: 16 }}
@@ -225,47 +219,152 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
 
                     {items.length === 0 && !loading && (
                         <View style={styles.emptyState}>
+                            <Sparkles size={48} color={Colors.surfaceContainer} style={{ marginBottom: 16 }} />
                             <Text style={styles.emptyText}>{message || "Not enough data for this week yet. Keep logging!"}</Text>
                         </View>
                     )}
                     <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_WEEKLY}</Text>
                 </ScrollView>
             )}
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f9fafb' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-    backButton: { padding: 4 },
-    refreshButton: { padding: 4 },
-    title: { fontSize: 18, fontWeight: '700', color: '#111827' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-    loadingText: { marginTop: 16, fontSize: 14, color: '#6b7280' },
-    content: { padding: 16 },
-    heroSection: { marginBottom: 24 },
-    heroTitle: { fontSize: 24, fontWeight: '800', color: '#111827', marginBottom: 4 },
-    heroSubtitle: { fontSize: 15, color: '#6b7280', lineHeight: 22 },
-    chartCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, alignItems: 'center', borderColor: '#f3f4f6', borderWidth: 1 },
-    chartTitle: { fontSize: 15, fontWeight: '600', color: '#374151', alignSelf: 'flex-start', marginBottom: 8 },
-    card: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, borderColor: '#f3f4f6', borderWidth: 1 },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    iconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-    headerText: { flex: 1 },
-    categoryText: { fontSize: 11, fontWeight: '700', color: '#9ca3af', marginBottom: 2 },
-    cardTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
-    cardDesc: { fontSize: 15, color: '#4b5563', lineHeight: 22 },
-    actionButton: { marginTop: 16, backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', borderWidth: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-    actionButtonText: { color: '#6d28d9', fontWeight: '700', fontSize: 14 },
-    emptyState: { padding: 48, alignItems: 'center' },
-    emptyText: { fontSize: 16, color: '#9ca3af', textAlign: 'center', lineHeight: 24 },
-    disclaimerText: {
-        fontSize: 12,
-        color: '#9ca3af',
+    container: {
+        flex: 1,
+        backgroundColor: Colors.background,
+    },
+    scrollContent: {
+        paddingHorizontal: Spacing.s6,
+        paddingTop: Spacing.s4,
+        paddingBottom: 120,
+    },
+    pageHeader: {
+        marginBottom: Spacing.s6,
+    },
+    pageLabel: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        marginBottom: 8,
+    },
+    pageTitle: {
+        ...Typography.display,
+        fontSize: 36,
+        color: Colors.onSurface,
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+    },
+    loadingText: {
+        ...Typography.body,
+        marginTop: 16,
+        color: Colors.outline,
+    },
+    heroSection: {
+        marginBottom: Spacing.s6,
+        backgroundColor: 'rgba(79, 99, 89, 0.05)',
+        padding: 24,
+        borderRadius: Radii.xl,
+    },
+    heroTitle: {
+        ...Typography.headline,
+        fontSize: 24,
+        color: Colors.primary,
+        marginBottom: 8,
+    },
+    heroSubtitle: {
+        ...Typography.body,
+        fontSize: 15,
+        color: Colors.onSurfaceVariant,
+        lineHeight: 22,
+    },
+    chartCard: {
+        backgroundColor: Colors.surfaceLowest,
+        borderRadius: Radii.xl,
+        padding: 24,
+        marginBottom: Spacing.s6,
+        alignItems: 'center',
+        ...Shadows.ambient,
+    },
+    chartLabel: {
+        ...Typography.label,
+        alignSelf: 'flex-start',
+        marginBottom: 16,
+        color: Colors.outline,
+    },
+    card: {
+        backgroundColor: Colors.surfaceLowest,
+        borderRadius: Radii.xl,
+        padding: 24,
+        marginBottom: Spacing.s4,
+        ...Shadows.ambient,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    iconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: Colors.surfaceContainerLow,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    headerText: {
+        flex: 1,
+    },
+    categoryLabel: {
+        ...Typography.label,
+        fontSize: 10,
+        color: Colors.outline,
+        marginBottom: 4,
+    },
+    cardTitle: {
+        ...Typography.title,
+        fontSize: 18,
+        color: Colors.onSurface,
+    },
+    cardDesc: {
+        ...Typography.body,
+        fontSize: 15,
+        color: Colors.onSurfaceVariant,
+        lineHeight: 22,
+    },
+    actionButton: {
+        marginTop: 20,
+        backgroundColor: Colors.primaryContainer,
+        paddingVertical: 12,
+        borderRadius: Radii.md,
+        alignItems: 'center',
+    },
+    actionButtonText: {
+        ...Typography.label,
+        color: Colors.onPrimaryContainer,
+        fontWeight: '700',
+    },
+    emptyState: {
+        paddingVertical: 80,
+        alignItems: 'center',
+    },
+    emptyText: {
+        ...Typography.body,
+        color: Colors.outline,
         textAlign: 'center',
-        marginTop: 24,
-        paddingHorizontal: 16,
+    },
+    disclaimerText: {
+        ...Typography.label,
+        fontSize: 11,
+        color: Colors.outline,
+        textAlign: 'center',
         lineHeight: 18,
+        paddingHorizontal: 16,
+        marginTop: 24,
     },
 });

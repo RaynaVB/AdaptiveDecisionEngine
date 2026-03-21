@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Insight } from '../../../src/models/types';
 import { Lightbulb } from 'lucide-react-native';
 import { MICRO_DISCLAIMER_INSIGHTS } from '../../constants/legal';
+import { Colors, Typography, Spacing, Radii } from '../../constants/Theme';
 
 interface MicroInsightCardProps {
   insight: Insight;
@@ -12,7 +13,7 @@ export const MicroInsightCard: React.FC<MicroInsightCardProps> = ({ insight }) =
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Lightbulb size={18} color="#f59e0b" fill="#f59e0b" />
+        <Lightbulb size={18} color={Colors.primary} fill={Colors.primary} />
         <Text style={styles.headerText}>Insight</Text>
       </View>
       
@@ -22,7 +23,7 @@ export const MicroInsightCard: React.FC<MicroInsightCardProps> = ({ insight }) =
         <Text style={styles.confidenceLabel}>Confidence: </Text>
         <Text style={[
           styles.confidenceValue,
-          { color: insight.confidenceLevel === 'high' ? '#10b981' : insight.confidenceLevel === 'medium' ? '#3b82f6' : '#6b7280' }
+          { color: insight.confidenceLevel === 'high' ? Colors.primary : Colors.onSurfaceVariant }
         ]}>
           {insight.confidenceLevel.charAt(0).toUpperCase() + insight.confidenceLevel.slice(1)}
         </Text>
@@ -35,42 +36,49 @@ export const MicroInsightCard: React.FC<MicroInsightCardProps> = ({ insight }) =
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 4,
-    marginBottom: 24,
+    paddingHorizontal: Spacing.s1,
+    marginBottom: Spacing.s6,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.s3,
     gap: 8,
   },
   headerText: {
+    ...Typography.title,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    color: Colors.onSurface,
   },
   title: {
+    ...Typography.body,
     fontSize: 15,
-    color: '#4b5563',
+    color: Colors.onSurfaceVariant,
     lineHeight: 22,
-    marginBottom: 12,
+    marginBottom: Spacing.s3,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   confidenceLabel: {
-    fontSize: 13,
-    color: '#6b7280',
+    ...Typography.label,
+    fontSize: 11,
+    color: Colors.onSurfaceVariant,
+    textTransform: 'none',
   },
   confidenceValue: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.label,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'none',
   },
   disclaimerText: {
+    ...Typography.label,
     fontSize: 10,
-    color: '#9ca3af',
-    marginTop: 12,
+    color: Colors.onSurfaceVariant,
+    marginTop: Spacing.s3,
     fontStyle: 'italic',
+    lineHeight: 14,
   },
 });

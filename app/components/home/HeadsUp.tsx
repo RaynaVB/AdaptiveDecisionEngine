@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Zap } from 'lucide-react-native';
+import { Colors, Typography, Spacing, Radii } from '../../constants/Theme';
 
 interface HeadsUpProps {
   items: string[];
@@ -12,7 +13,7 @@ export const HeadsUp: React.FC<HeadsUpProps> = ({ items }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Zap size={18} color="#f59e0b" fill="#f59e0b" />
+        <Zap size={18} color={Colors.primary} fill={Colors.primary} />
         <Text style={styles.headerText}>Heads Up</Text>
       </View>
       
@@ -30,19 +31,19 @@ export const HeadsUp: React.FC<HeadsUpProps> = ({ items }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 4,
-    marginBottom: 20,
+    paddingHorizontal: Spacing.s2,
+    marginBottom: Spacing.s5,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.s3,
     gap: 8,
   },
   headerText: {
+    ...Typography.title,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    color: Colors.onSurface,
   },
   itemsContainer: {
     gap: 8,
@@ -53,13 +54,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   bullet: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginTop: -1,
+    ...Typography.body,
+    color: Colors.primary,
+    fontWeight: '700',
+    marginTop: -2,
   },
   itemText: {
+    ...Typography.body,
     fontSize: 15,
-    color: '#4b5563',
+    color: Colors.onSurfaceVariant,
     lineHeight: 20,
     flex: 1,
   },

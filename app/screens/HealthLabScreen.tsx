@@ -1,7 +1,6 @@
 // app/screens/HealthLabScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, SafeAreaView } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -11,6 +10,8 @@ import { ExperimentRun, ExperimentDefinition } from '../../src/models/healthlab'
 import { StorageService } from '../../src/services/storage';
 import { auth } from '../../src/services/firebaseConfig';
 import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import { TopBar } from '../components/TopBar';
 
 type HealthLabScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'HealthLab'>;
@@ -52,7 +53,6 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
 
     const renderRecommendedCard = (scored: RecommendedExperiment) => {
         const { template: item, reason } = scored;
-        const isActive = activeExperiments.some(run => run.experimentId === item.id);
 
         return (
             <TouchableOpacity 
@@ -62,94 +62,72 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
             >
                 <View style={styles.recommendedContent}>
                     <View style={styles.recommendedIconContainer}>
-                        <Sparkles size={22} color="#f59e0b" />
+                        <Sparkles size={20} color={Colors.primary} />
                     </View>
                     <View style={styles.recommendedTextContainer}>
                         <Text style={styles.recommendedTitle}>{item.name}</Text>
                         <Text style={styles.recommendedHypothesis} numberOfLines={2}>{item.hypothesis}</Text>
                         <View style={styles.recommendedFooter}>
-                            <Text style={styles.durationTag}>{item.durationDays} Days</Text>
+                            <View style={styles.durationBadge}>
+                                <Text style={styles.durationBadgeText}>{item.durationDays} DAYS</Text>
+                            </View>
                             {reason ? (
-                                <Text style={styles.reasonTag}>{reason}</Text>
+                                <Text style={styles.reasonText} numberOfLines={1}>{reason}</Text>
                             ) : null}
                         </View>
                     </View>
-                    <ChevronRight size={20} color="#f59e0b" />
+                    <View style={styles.chevronContainer}>
+                        <ChevronRight size={18} color={Colors.onSurfaceVariant} />
+                    </View>
                 </View>
             </TouchableOpacity>
         );
-    };
-
-    const renderExperimentItem = ({ item }: { item: ExperimentDefinition }) => {
-        return (
-            <TouchableOpacity 
-                style={styles.card}
-                onPress={() => navigation.navigate('ExperimentDetail', { experimentId: item.id })}
-            >
-                <View style={styles.cardContent}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#f3f4f6' }]}>
-                        <Beaker size={20} color={'#6b7280'} />
-                    </View>
-                    <View style={styles.textContainer}>
-                        <Text style={styles.cardTitle}>{item.name}</Text>
-                        <Text style={styles.cardHypothesis} numberOfLines={2}>{item.hypothesis}</Text>
-                        <View style={styles.cardFooter}>
-                            <Text style={styles.durationTag}>{item.durationDays} Days</Text>
-                            <Text style={styles.categoryTag}>{item.category}</Text>
-                        </View>
-                    </View>
-                    <ChevronRight size={20} color="#9ca3af" />
-                </View>
-            </TouchableOpacity>
-        );
-    };
-
-    const handleSimulateTest = async () => {
-        // This was for local testing, can be removed or updated to use backend
-        setLoading(true);
-        try {
-            // navigation.navigate('ExperimentHistory');
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ArrowLeft size={24} color="#1e293b" />
-                </TouchableOpacity>
-                <Text style={styles.title}>HealthLab</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('ExperimentHistory')} style={styles.historyButton}>
-                    <History size={24} color="#2563eb" />
-                </TouchableOpacity>
-            </View>
+        <View style={styles.container}>
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            
+            <TopBar userProfile={userProfile} />
 
             {loading ? (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#2563eb" />
+                    <ActivityIndicator size="large" color={Colors.primary} />
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.pageHeader}>
+                        <Text style={styles.pageLabel}>SCIENTIFIC TESTING</Text>
+                        <View style={styles.titleRow}>
+                            <Text style={styles.pageTitle}>Health Lab</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('ExperimentHistory')} style={styles.historyButton}>
+                                <History size={20} color={Colors.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
                     {isInternalUser(userProfile) && (
                         <View style={styles.debugSection}>
-                            <TouchableOpacity style={styles.debugButton} onPress={handleSimulateTest}>
-                                <Beaker size={18} color="#2563eb" style={{ marginRight: 8 }} />
+                            <TouchableOpacity 
+                                style={styles.debugButton} 
+                                onPress={() => {}}
+                            >
+                                <Beaker size={18} color={Colors.primary} style={{ marginRight: 8 }} />
                                 <Text style={styles.debugButtonText}>Admin Simulation Mode</Text>
                             </TouchableOpacity>
                         </View>
                     )}
 
                     {activeExperiments.length > 0 && (
-                        <View style={styles.activeSection}>
-                            <Text style={styles.sectionTitle}>Active Experiments</Text>
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeaderRow}>
+                                <Text style={styles.sectionLabel}>ACTIVE NOW</Text>
+                                <View style={styles.sectionLine} />
+                            </View>
                             {activeExperiments.map(activeRun => (
                                 <TouchableOpacity 
                                     key={activeRun.id}
-                                    style={[styles.activeHighlightCard, { marginBottom: 16 }]}
+                                    style={styles.activeCard}
                                     onPress={() => navigation.navigate('ExperimentDetail', { experimentId: activeRun.id })}
                                 >
                                     <View style={styles.activeHeader}>
@@ -169,282 +147,202 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                         </View>
                     )}
 
-                    {/* Recommended For You section */}
                     {recommendedExperiments.length > 0 && (
-                        <View style={styles.recommendedSection}>
-                            <Text style={styles.sectionTitle}>✨ Recommended For You</Text>
-                            <Text style={styles.recommendedSubtitle}>Based on your symptoms, sensitivities, and goals</Text>
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeaderRow}>
+                                <Text style={styles.sectionLabel}>RECOMMENDED FOR YOU</Text>
+                                <View style={styles.sectionLine} />
+                            </View>
+                            <Text style={styles.sectionSubtitle}>Personalized protocols based on your patterns.</Text>
                             {recommendedExperiments.map(renderRecommendedCard)}
                         </View>
                     )}
                 </ScrollView>
             )}
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.background,
     },
-    header: {
+    scrollContent: {
+        paddingHorizontal: Spacing.s6,
+        paddingTop: Spacing.s4,
+        paddingBottom: 120,
+    },
+    pageHeader: {
+        marginBottom: Spacing.s6,
+    },
+    pageLabel: {
+        ...Typography.label,
+        color: Colors.onSurfaceVariant,
+        marginBottom: 8,
+    },
+    titleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        justifyContent: 'space-between',
     },
-    backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#f8fafc',
-        marginRight: 12,
+    pageTitle: {
+        ...Typography.display,
+        fontSize: 36,
+        color: Colors.onSurface,
     },
     historyButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.surfaceContainerLow,
         alignItems: 'center',
-        backgroundColor: '#eff6ff',
-        marginLeft: 'auto',
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: '800',
-        color: '#0f172a',
-        letterSpacing: -0.5,
+        justifyContent: 'center',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    scrollContent: {
-        padding: 20,
-        paddingBottom: 40,
+    section: {
+        marginBottom: Spacing.s6,
     },
-    sectionTitle: {
-        fontSize: 20,
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.s4,
+    },
+    sectionLabel: {
+        ...Typography.label,
+        color: Colors.primary,
         fontWeight: '800',
-        color: '#1e293b',
-        marginBottom: 16,
-        marginTop: 12,
-        letterSpacing: -0.4,
+        letterSpacing: 1.5,
     },
-    activeSection: {
-        marginBottom: 12,
+    sectionLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: Colors.surfaceContainer,
+        marginLeft: Spacing.s4,
     },
-    activeHighlightCard: {
-        backgroundColor: '#2563eb',
+    sectionSubtitle: {
+        ...Typography.body,
+        fontSize: 13,
+        color: Colors.onSurfaceVariant,
+        marginBottom: Spacing.s4,
+    },
+    activeCard: {
+        backgroundColor: Colors.primary,
         borderRadius: 20,
-        padding: 24,
-        shadowColor: '#2563eb',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 8,
+        padding: 16,
+        ...Shadows.ambient,
     },
     activeHeader: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     activeIconContainer: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16,
+        marginRight: 14,
     },
     activeTitle: {
+        ...Typography.title,
         color: '#fff',
-        fontSize: 20,
-        fontWeight: '800',
-        letterSpacing: -0.2,
+        fontSize: 18,
     },
     activeSub: {
-        color: 'rgba(255, 255, 255, 0.85)',
-        fontSize: 15,
-        fontWeight: '500',
-        marginTop: 4,
-    },
-
-    // Recommended For You section
-    recommendedSection: {
-        marginBottom: 24,
-    },
-    recommendedSubtitle: {
-        fontSize: 14,
-        color: '#64748b',
-        marginTop: -8,
-        marginBottom: 16,
+        ...Typography.body,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 13,
     },
     recommendedCard: {
-        backgroundColor: '#fffbeb',
-        borderRadius: 18,
-        marginBottom: 16,
-        padding: 20,
-        borderWidth: 2,
-        borderColor: '#fcd34d',
-        shadowColor: '#f59e0b',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        backgroundColor: 'rgba(216, 230, 222, 0.1)',
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: Spacing.s3,
+        ...Shadows.ambient,
+        borderWidth: 1,
+        borderColor: 'rgba(216, 230, 222, 0.4)',
     },
     recommendedContent: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
     },
     recommendedIconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
-        backgroundColor: '#fef3c7',
-        justifyContent: 'center',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(216, 230, 222, 0.3)',
         alignItems: 'center',
-        marginRight: 16,
+        justifyContent: 'center',
+        marginRight: 14,
     },
     recommendedTextContainer: {
         flex: 1,
     },
     recommendedTitle: {
+        ...Typography.title,
         fontSize: 17,
-        fontWeight: '700',
-        color: '#92400e',
-        marginBottom: 6,
-        letterSpacing: -0.2,
+        color: Colors.onSurface,
+        marginBottom: 2,
     },
     recommendedHypothesis: {
-        fontSize: 14,
-        color: '#78716c',
-        lineHeight: 20,
-        fontWeight: '400',
+        ...Typography.body,
+        fontSize: 13,
+        color: Colors.onSurfaceVariant,
+        lineHeight: 18,
+        marginBottom: 8,
     },
     recommendedFooter: {
         flexDirection: 'row',
-        marginTop: 12,
+        alignItems: 'center',
         gap: 8,
     },
-    reasonTag: {
+    durationBadge: {
+        backgroundColor: 'rgba(79, 99, 89, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    durationBadgeText: {
+        ...Typography.label,
+        fontSize: 9,
+        color: Colors.primary,
+        fontWeight: '800',
+    },
+    reasonText: {
+        ...Typography.body,
         fontSize: 12,
-        color: '#92400e',
-        backgroundColor: '#fef3c7',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-        fontWeight: '600',
+        color: Colors.primary,
         fontStyle: 'italic',
-    },
-
-    // Regular experiment cards
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 18,
-        marginBottom: 16,
-        padding: 20,
-        shadowColor: '#64748b',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-    },
-    activeCard: {
-        borderColor: '#bfdbfe',
-        backgroundColor: '#f0f7ff',
-    },
-    cardContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    textContainer: {
         flex: 1,
     },
-    cardTitle: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: '#1e293b',
-        marginBottom: 6,
-        letterSpacing: -0.2,
-    },
-    cardHypothesis: {
-        fontSize: 14,
-        color: '#64748b',
-        lineHeight: 20,
-        fontWeight: '400',
-    },
-    cardFooter: {
-        flexDirection: 'row',
-        marginTop: 12,
-        gap: 8,
-    },
-    durationTag: {
-        fontSize: 12,
-        color: '#2563eb',
-        backgroundColor: '#eff6ff',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-        fontWeight: '700',
-    },
-    categoryTag: {
-        fontSize: 12,
-        color: '#475569',
-        backgroundColor: '#f1f5f9',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-        fontWeight: '700',
-        textTransform: 'capitalize',
-    },
-    activeBadge: {
-        backgroundColor: '#2563eb',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
-    },
-    activeBadgeText: {
-        color: '#fff',
-        fontSize: 11,
-        fontWeight: '800',
-        letterSpacing: 0.5,
+    chevronContainer: {
+        height: 40,
+        justifyContent: 'center',
+        paddingLeft: 4,
     },
     debugSection: {
-        marginBottom: 20,
-        backgroundColor: '#f1f5f9',
-        padding: 12,
-        borderRadius: 16,
+        marginBottom: Spacing.s6,
+        padding: 16,
+        borderRadius: Radii.lg,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
+        borderColor: Colors.surfaceContainer,
         borderStyle: 'dashed',
+        backgroundColor: Colors.surfaceContainerLow,
     },
     debugButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 8,
     },
     debugButtonText: {
-        fontSize: 13,
+        ...Typography.label,
+        color: Colors.primary,
         fontWeight: '700',
-        color: '#2563eb',
     },
 });

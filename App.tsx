@@ -5,18 +5,37 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './app/AppNavigator';
 import { NotificationService } from './src/services/NotificationService';
 
+import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
+
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'Manrope': Manrope_400Regular,
+    'Manrope-Medium': Manrope_500Medium,
+    'Manrope-SemiBold': Manrope_600SemiBold,
+    'Manrope-Bold': Manrope_700Bold,
+  });
+
   useEffect(() => {
-    async function initNotifications() {
+    async function init() {
+      if (fontsLoaded) {
+        await SplashScreen.hideAsync();
+      }
+      
       const hasPermission = await NotificationService.requestPermissions();
       if (hasPermission) {
-        // Schedule default / dynamic reminders initially
         await NotificationService.scheduleDynamicMealReminders();
         await NotificationService.scheduleDynamicMoodReminder();
       }
     }
-    initNotifications();
-  }, []);
+    init();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>

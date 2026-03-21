@@ -102,7 +102,7 @@ export const SmartFAB: React.FC<SmartFABProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 110,
     right: 30,
     alignItems: 'flex-end',
   },

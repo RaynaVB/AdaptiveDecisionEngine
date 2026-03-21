@@ -1,13 +1,12 @@
-// app/screens/ExperimentHistoryScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
-import { ArrowLeft, Beaker, ChevronRight, XCircle, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, Beaker, ChevronRight, XCircle, CheckCircle, ChevronLeft } from 'lucide-react-native';
 import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
 import { ExperimentRun } from '../../src/models/healthlab';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 type ExperimentHistoryScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'ExperimentHistory'>;
@@ -25,8 +24,6 @@ export default function ExperimentHistoryScreen({ navigation }: ExperimentHistor
         setLoading(true);
         try {
             const runs = await ExperimentEngine.getExperimentRuns();
-            // Filter out the active one, or show it at top if desired. 
-            // In a "History" context, usually we show non-active ones.
             setHistory(runs.filter(r => r.status !== 'active'));
         } catch (e) {
             console.error(e);
@@ -36,22 +33,22 @@ export default function ExperimentHistoryScreen({ navigation }: ExperimentHistor
     };
 
     const renderRunItem = ({ item }: { item: ExperimentRun }) => {
-        const definition = EXPERIMENT_LIBRARY.find(e => e.id === item.experimentId);
+        const definition = EXPERIMENT_LIBRARY.find(e => e.id === item.id);
         const isCompleted = item.status === 'completed';
 
         return (
             <TouchableOpacity 
                 style={styles.card}
-                onPress={() => navigation.navigate('ExperimentDetail', { experimentId: item.experimentId })}
+                onPress={() => navigation.navigate('ExperimentDetail', { experimentId: item.id })}
             >
                 <View style={styles.cardHeader}>
-                    <View style={[styles.statusBadge, { backgroundColor: isCompleted ? '#dcfce7' : '#fee2e2' }]}>
-                        {isCompleted ? <CheckCircle size={14} color="#16a34a" /> : <XCircle size={14} color="#dc2626" />}
-                        <Text style={[styles.statusText, { color: isCompleted ? '#16a34a' : '#dc2626' }]}>
+                    <View style={[styles.statusBadge, { backgroundColor: isCompleted ? 'rgba(79, 99, 89, 0.1)' : 'rgba(239, 68, 68, 0.05)' }]}>
+                        {isCompleted ? <CheckCircle size={14} color={Colors.primary} /> : <XCircle size={14} color={Colors.error} />}
+                        <Text style={[styles.statusText, { color: isCompleted ? Colors.primary : Colors.error }]}>
                             {item.status.toUpperCase()}
                         </Text>
                     </View>
-                    <Text style={styles.dateText}>{new Date(item.startDate).toLocaleDateString()}</Text>
+                    <Text style={styles.dateText}>{item.startDate ? new Date(item.startDate).toLocaleDateString() : 'Recent'}</Text>
                 </View>
 
                 <Text style={styles.cardTitle}>{definition?.name || 'Unknown Experiment'}</Text>
@@ -67,71 +64,73 @@ export default function ExperimentHistoryScreen({ navigation }: ExperimentHistor
 
                 <View style={styles.cardFooter}>
                     <Text style={styles.confidenceText}>Confidence: {item.confidenceScore || 'N/A'}</Text>
-                    <ChevronRight size={18} color="#9ca3af" />
+                    <ChevronRight size={18} color={Colors.onSurfaceVariant} />
                 </View>
             </TouchableOpacity>
         );
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.container}>
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ArrowLeft size={24} color="#000" />
+                    <ChevronLeft size={24} color={Colors.onSurface} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Experiment History</Text>
+                <Text style={styles.headerTitle}>History</Text>
+                <View style={{ width: 44 }} />
             </View>
 
             {loading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#2563eb" />
+                    <ActivityIndicator size="large" color={Colors.primary} />
                 </View>
             ) : (
                 <FlatList
                     data={history}
                     renderItem={renderRunItem}
-                    keyExtractor={item => item.id}
+                    keyExtractor={item => item.runId || item.id || Math.random().toString()}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
-                            <Beaker size={48} color="#e2e8f0" style={{ marginBottom: 16 }} />
-                            <Text style={styles.emptyText}>No past experiments yet.</Text>
-                            <Text style={styles.emptySub}>Your results will appear here once you finish or abandon a study.</Text>
+                            <Beaker size={48} color={Colors.surfaceContainer} style={{ marginBottom: 16 }} />
+                            <Text style={styles.emptyText}>No past studies yet.</Text>
+                            <Text style={styles.emptySub}>Your results will appear here once you finish a protocol.</Text>
                         </View>
                     }
                 />
             )}
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.surfaceContainerLow,
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
-        marginRight: 12,
+        justifyContent: 'center',
     },
-    title: {
-        fontSize: 20,
+    headerTitle: {
+        ...Typography.label,
+        fontSize: 14,
+        color: Colors.onSurfaceVariant,
+        letterSpacing: 1,
         fontWeight: '800',
-        color: '#0f172a',
     },
     center: {
         flex: 1,
@@ -139,68 +138,66 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     listContent: {
-        padding: 20,
+        paddingHorizontal: Spacing.s6,
+        paddingTop: Spacing.s4,
+        paddingBottom: 40,
     },
     card: {
-        backgroundColor: '#fff',
-        borderRadius: 18,
-        padding: 16,
+        backgroundColor: 'rgba(216, 230, 222, 0.05)',
+        borderRadius: 24,
+        padding: 24,
         marginBottom: 16,
-        shadowColor: '#64748b',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
+        ...Shadows.ambient,
         borderWidth: 1,
-        borderColor: '#f1f5f9',
+        borderColor: 'rgba(216, 230, 222, 0.3)',
     },
     cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
     },
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
+        gap: 6,
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: 8,
     },
     statusText: {
+        ...Typography.label,
         fontSize: 10,
         fontWeight: '800',
     },
     dateText: {
+        ...Typography.body,
         fontSize: 12,
-        color: '#94a3b8',
+        color: Colors.onSurfaceVariant,
         fontWeight: '500',
     },
     cardTitle: {
+        ...Typography.title,
         fontSize: 18,
-        fontWeight: '700',
-        color: '#1e293b',
-        marginBottom: 8,
+        color: Colors.onSurface,
+        marginBottom: 12,
     },
     resultContainer: {
-        backgroundColor: '#f8fafc',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
+        backgroundColor: 'rgba(79, 99, 89, 0.05)',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
     },
     resultValue: {
-        fontSize: 22,
-        fontWeight: '800',
-        color: '#2563eb',
+        ...Typography.display,
+        fontSize: 24,
+        color: Colors.primary,
     },
     resultLabel: {
+        ...Typography.body,
         fontSize: 12,
-        color: '#64748b',
-        fontWeight: '500',
-        marginTop: 2,
+        color: Colors.onSurfaceVariant,
+        marginTop: 4,
     },
     cardFooter: {
         flexDirection: 'row',
@@ -208,24 +205,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     confidenceText: {
+        ...Typography.body,
         fontSize: 12,
-        color: '#64748b',
+        color: Colors.onSurfaceVariant,
         fontWeight: '600',
     },
     emptyState: {
         alignItems: 'center',
-        marginTop: 60,
+        marginTop: 80,
         paddingHorizontal: 40,
     },
     emptyText: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#475569',
+        ...Typography.title,
+        color: Colors.onSurface,
         marginBottom: 8,
     },
     emptySub: {
-        fontSize: 14,
-        color: '#94a3b8',
+        ...Typography.body,
+        color: Colors.onSurfaceVariant,
         textAlign: 'center',
         lineHeight: 20,
     },
