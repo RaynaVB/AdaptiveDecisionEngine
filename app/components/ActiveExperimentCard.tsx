@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { ExperimentRun } from '../../../src/models/healthlab';
-import { EXPERIMENT_LIBRARY } from '../../../src/services/healthlab/definitions';
+import { ExperimentRun } from '../../src/models/healthlab';
+import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
 import { Beaker, ChevronRight } from 'lucide-react-native';
-import { Colors, Typography, Spacing, Radii, Shadows } from '../../constants/Theme';
+import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 interface ActiveExperimentCardProps {
   experiment: ExperimentRun;
@@ -12,7 +12,7 @@ interface ActiveExperimentCardProps {
 }
 
 export const ActiveExperimentCard: React.FC<ActiveExperimentCardProps> = ({ experiment, onPress, onLogProgress }) => {
-  const definition = EXPERIMENT_LIBRARY.find(e => e.id === experiment.experimentId || e.id === experiment.id);
+  const definition = EXPERIMENT_LIBRARY.find((e: any) => e.id === experiment.experimentId || e.id === experiment.id);
   const startedAtStr = experiment.startedAt || experiment.startDate || new Date().toISOString();
   const dayNumber = Math.floor((Date.now() - new Date(startedAtStr).getTime()) / (1000 * 60 * 60 * 24)) + 1;
   const totalDays = definition?.durationDays || 5;
@@ -21,13 +21,13 @@ export const ActiveExperimentCard: React.FC<ActiveExperimentCardProps> = ({ expe
     <TouchableOpacity style={styles.container} onPress={() => onPress(experiment)}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <Beaker size={20} color="#fff" />
+          <Beaker size={20} color={Colors.onPrimaryContrast} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerLabel}>ACTIVE EXPERIMENT</Text>
           <Text style={styles.title}>{experiment.template?.name || definition?.name || 'Active Experiment'}</Text>
         </View>
-        <ChevronRight size={20} color="rgba(255, 255, 255, 0.5)" />
+        <ChevronRight size={20} color={Colors.onPrimaryAlpha50} />
       </View>
       
       <View style={styles.content}>
@@ -43,48 +43,50 @@ export const ActiveExperimentCard: React.FC<ActiveExperimentCardProps> = ({ expe
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.primary,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: Radii.xl,
+    padding: Spacing.s4,
+    marginBottom: Spacing.s4,
     ...Shadows.ambient,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.s3,
   },
   iconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: Radii.md,
+    backgroundColor: Colors.onPrimaryAlpha15,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
   },
   headerLabel: {
     ...Typography.label,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.onPrimaryAlpha70,
     fontSize: 10,
     marginBottom: 2,
+    textTransform: 'none',
   },
   title: {
     ...Typography.title,
-    color: '#fff',
+    color: Colors.onPrimaryContrast,
     fontSize: 18,
   },
   content: {
-    marginBottom: 16,
+    marginBottom: Spacing.s4,
   },
   dayText: {
     ...Typography.label,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.onPrimaryAlpha90,
     fontSize: 12,
     marginBottom: 4,
+    textTransform: 'none',
   },
   motivation: {
     ...Typography.body,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.onPrimaryAlpha70,
     fontSize: 14,
     lineHeight: 20,
   },

@@ -12,6 +12,7 @@ import { auth } from '../../src/services/firebaseConfig';
 import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 import { TopBar } from '../components/TopBar';
+import { ActiveExperimentCard } from '../components/ActiveExperimentCard';
 
 type HealthLabScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'HealthLab'>;
@@ -125,24 +126,11 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                                 <View style={styles.sectionLine} />
                             </View>
                             {activeExperiments.map(activeRun => (
-                                <TouchableOpacity 
+                                <ActiveExperimentCard
                                     key={activeRun.id}
-                                    style={styles.activeCard}
-                                    onPress={() => navigation.navigate('ExperimentDetail', { experimentId: activeRun.id })}
-                                >
-                                    <View style={styles.activeHeader}>
-                                        <View style={styles.activeIconContainer}>
-                                            <Play size={24} color="#fff" fill="#fff" />
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.activeTitle}>
-                                                {activeRun.template?.name || 'Active Experiment'}
-                                            </Text>
-                                            <Text style={styles.activeSub}>Track your progress daily</Text>
-                                        </View>
-                                        <ChevronRight size={24} color="#fff" />
-                                    </View>
-                                </TouchableOpacity>
+                                    experiment={activeRun}
+                                    onPress={(run) => navigation.navigate('ExperimentDetail', { experimentId: run.id })}
+                                />
                             ))}
                         </View>
                     )}

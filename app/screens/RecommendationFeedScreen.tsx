@@ -17,6 +17,7 @@ import { RecommendationService } from '../../src/services/recommendationService'
 import { MICRO_DISCLAIMER_RECOMMENDATIONS } from '../constants/legal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 import { TopBar } from '../components/TopBar';
+import { RecommendationCard } from '../components/RecommendationCard';
 
 type RecsScreenProp = StackNavigationProp<RootStackParamList, 'Recommendations'>;
 
@@ -111,66 +112,16 @@ export default function RecommendationFeedScreen() {
     };
 
     const renderCard = (rec: Recommendation, tier: RecTier) => {
-        const isActed = feedbacks[rec.id] !== null;
-        const badgeBg = tier === 'preventive' ? '#d8e6de' : '#d1e8db';
-        const badgeColor = tier === 'preventive' ? '#48554f' : '#42564c';
-
         return (
-            <View key={rec.id} style={[styles.card, isActed && styles.actedCard]}>
-                <Text style={styles.cardTitle}>{rec.title}</Text>
-                <Text style={styles.cardSummary}>{rec.summary}</Text>
-
-                <View style={styles.whySection}>
-                    <Text style={styles.whyHeader}>WHY THIS?</Text>
-                    <Text style={styles.whyText}>
-                        {rec.whyThis.map(w => w.label).join('. ')}
-                    </Text>
-                </View>
-
-                <View style={styles.cardActions}>
-                    <TouchableOpacity
-                        style={[
-                            styles.actionButton,
-                            feedbacks[rec.id] === 'accepted' ? styles.acceptedButtonPressed : styles.actionButtonOutline
-                        ]}
-                        onPress={() => handleFeedback(rec, 'accepted')}
-                    >
-                        <Check size={20} color={feedbacks[rec.id] === 'accepted' ? '#fff' : Colors.primary} />
-                        <Text style={[
-                            styles.actionButtonLabel,
-                            { color: feedbacks[rec.id] === 'accepted' ? '#fff' : Colors.onSurfaceVariant }
-                        ]}>CHECK</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.actionButton,
-                            feedbacks[rec.id] === 'maybe' ? styles.maybeButtonPressed : styles.actionButtonOutline
-                        ]}
-                        onPress={() => handleFeedback(rec, 'maybe')}
-                    >
-                        <History size={20} color={feedbacks[rec.id] === 'maybe' ? '#fff' : Colors.secondary} />
-                        <Text style={[
-                            styles.actionButtonLabel,
-                            { color: feedbacks[rec.id] === 'maybe' ? '#fff' : Colors.onSurfaceVariant }
-                        ]}>MAYBE</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.actionButton,
-                            feedbacks[rec.id] === 'rejected' ? styles.rejectedButtonPressed : styles.actionButtonOutline
-                        ]}
-                        onPress={() => handleFeedback(rec, 'rejected')}
-                    >
-                        <X size={20} color={feedbacks[rec.id] === 'rejected' ? '#fff' : Colors.error} />
-                        <Text style={[
-                            styles.actionButtonLabel,
-                            { color: feedbacks[rec.id] === 'rejected' ? '#fff' : Colors.onSurfaceVariant }
-                        ]}>DISMISS</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+            <RecommendationCard
+                key={rec.id}
+                recommendation={rec}
+                onAccept={(r) => handleFeedback(r, 'accepted')}
+                onMaybe={(r) => handleFeedback(r, 'maybe')}
+                onDismiss={(r) => handleFeedback(r, 'rejected')}
+                actionState={feedbacks[rec.id]}
+                isActed={feedbacks[rec.id] !== null}
+            />
         );
     };
 
@@ -270,102 +221,6 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: Colors.surfaceContainer,
         marginLeft: Spacing.s4,
-    },
-    card: {
-        backgroundColor: Colors.surfaceLowest,
-        borderRadius: 24,
-        padding: 28,
-        marginBottom: Spacing.s4,
-        ...Shadows.ambient,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.02)',
-    },
-    actedCard: {
-        opacity: 0.6,
-    },
-    cardTopRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 16,
-    },
-    iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        backgroundColor: Colors.surfaceContainerLow,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    badge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 20,
-    },
-    badgeText: {
-        ...Typography.label,
-        fontSize: 10,
-        fontWeight: '800',
-    },
-    cardTitle: {
-        ...Typography.title,
-        fontSize: 20,
-        marginBottom: 8,
-        color: Colors.onSurface,
-    },
-    cardSummary: {
-        ...Typography.body,
-        color: Colors.onSurfaceVariant,
-        marginBottom: 24,
-        lineHeight: 24,
-    },
-    whySection: {
-        marginBottom: 32,
-    },
-    whyHeader: {
-        ...Typography.label,
-        fontSize: 11,
-        color: Colors.onSurfaceVariant,
-        fontStyle: 'italic',
-        marginBottom: 8,
-    },
-    whyText: {
-        ...Typography.body,
-        fontSize: 14,
-        color: 'rgba(45, 52, 51, 0.8)',
-        lineHeight: 20,
-    },
-    cardActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-        marginTop: 12,
-    },
-    actionButton: {
-        flex: 1,
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        borderRadius: Radii.lg,
-        borderWidth: 1.5,
-    },
-    actionButtonOutline: {
-        backgroundColor: 'transparent',
-        borderColor: Colors.surfaceContainer,
-    },
-    acceptedButtonPressed: {
-        backgroundColor: Colors.primary,
-        borderColor: Colors.primary,
-    },
-    maybeButtonPressed: {
-        backgroundColor: Colors.secondary,
-        borderColor: Colors.secondary,
-    },
-    rejectedButtonPressed: {
-        backgroundColor: Colors.error,
-        borderColor: Colors.error,
     },
     actionButtonLabel: {
         ...Typography.label,

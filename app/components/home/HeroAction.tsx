@@ -4,6 +4,7 @@ import { Recommendation } from '../../../src/models/types';
 import { Target, Check, X, ShieldQuestion } from 'lucide-react-native';
 import { MICRO_DISCLAIMER_RECOMMENDATIONS } from '../../constants/legal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../constants/Theme';
+import { RecommendationCard } from '../RecommendationCard';
 
 interface HeroActionProps {
   recommendation: Recommendation;
@@ -14,48 +15,15 @@ interface HeroActionProps {
 
 export const HeroAction: React.FC<HeroActionProps> = ({ recommendation, onStart, onMaybe, onDismiss }) => {
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Target size={18} color={Colors.primary} />
-        <Text style={styles.headerText}>TODAY’S FOCUS</Text>
-      </View>
-      
-      <Text style={styles.title}>{recommendation.title}</Text>
-      <Text style={styles.summary}>{recommendation.summary}</Text>
-      
-      <View style={styles.metaRow}>
-        <View style={styles.confidenceBadge}>
-          <Text style={styles.confidenceLabel}>Confidence: </Text>
-          <Text style={styles.confidenceValue}>{recommendation.confidenceLevel.toUpperCase()}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.buttonRow}>
-        <TouchableOpacity 
-          style={styles.primaryButton} 
-          onPress={() => onStart(recommendation)}
-        >
-          <Check size={20} color="#fff" />
-          <Text style={styles.primaryButtonText}>
-            {recommendation.associatedExperimentId ? 'Start' : 'Accept'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.outlineButton} 
-          onPress={() => onMaybe(recommendation)}
-        >
-          <ShieldQuestion size={20} color={Colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.outlineButton} 
-          onPress={() => onDismiss(recommendation)}
-        >
-          <X size={20} color={Colors.onSurfaceVariant} />
-        </TouchableOpacity>
-      </View>
-
+    <View style={styles.outerContainer}>
+      <RecommendationCard
+        recommendation={recommendation}
+        variant="hero"
+        onAccept={onStart}
+        onMaybe={onMaybe}
+        onDismiss={onDismiss}
+        showWhyThis={false}
+      />
       <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_RECOMMENDATIONS}</Text>
     </View>
   );
@@ -154,5 +122,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.s5,
     fontStyle: 'italic',
     lineHeight: 14,
+  },
+  outerContainer: {
+    marginBottom: Spacing.s4,
   },
 });

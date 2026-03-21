@@ -40,6 +40,19 @@ export const Colors = {
   error: '#a83836',
   errorContainer: '#fa746f',
   
+  // Semantic UI
+  onPrimaryContrast: '#ffffff',
+  primaryMuted: 'rgba(79, 99, 89, 0.08)', // primary + 8% alpha
+  onSurfaceMuted: 'rgba(45, 52, 51, 0.8)', // onSurface + 80% alpha
+  borderSubtle: 'rgba(0,0,0,0.02)',
+  surfaceSubtle: 'rgba(0,0,0,0.01)',
+  
+  // High-contrast translucent (for use on primary/colored backgrounds)
+  onPrimaryAlpha70: 'rgba(255, 255, 255, 0.7)',
+  onPrimaryAlpha50: 'rgba(255, 255, 255, 0.5)',
+  onPrimaryAlpha15: 'rgba(255, 255, 255, 0.15)',
+  onPrimaryAlpha90: 'rgba(255, 255, 255, 0.9)',
+  
   // Glassmorphism
   glassBackground: 'rgba(248, 250, 249, 0.8)',
 };

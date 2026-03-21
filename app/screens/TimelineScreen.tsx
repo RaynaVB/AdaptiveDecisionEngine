@@ -26,7 +26,7 @@ import { Recommendation, WeeklyItem } from '../../src/models/types';
 // New Homepage Components
 import { HeroAction } from '../components/home/HeroAction';
 import { HeadsUp } from '../components/home/HeadsUp';
-import { ActiveExperimentCard } from '../components/home/ActiveExperimentCard';
+import { ActiveExperimentCard } from '../components/ActiveExperimentCard';
 import { WeeklyIntelligence } from '../components/home/WeeklyIntelligence';
 import { WeekAtAGlance, WeekAtGlanceData } from '../components/home/WeekAtAGlance';
 import { MicroInsightCard } from '../components/home/MicroInsightCard';

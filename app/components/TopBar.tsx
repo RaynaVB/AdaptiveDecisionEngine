@@ -37,12 +37,6 @@ export const TopBar: React.FC<TopBarProps> = ({
     return (
         <View style={styles.container}>
             <View style={styles.leftSection}>
-                <TouchableOpacity 
-                    onPress={() => navigation.navigate('Timeline')}
-                    style={{ marginRight: Spacing.s3 }}
-                >
-                    <Home color={Colors.primary} size={24} />
-                </TouchableOpacity>
                 <Text style={styles.title}>{title}</Text>
             </View>
 
