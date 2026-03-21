@@ -10,6 +10,7 @@ import { getUserProfile, UserProfile } from '../../src/services/userProfile';
 import { MICRO_DISCLAIMER_INSIGHTS } from '../constants/legal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 import { TopBar } from '../components/TopBar';
+import { InsightCard } from '../components/InsightCard';
 
 export default function InsightFeedScreen() {
     const [insights, setInsights] = useState<Insight[]>([]);
@@ -77,56 +78,7 @@ export default function InsightFeedScreen() {
         );
     }
 
-    const renderInsightCard = (insight: Insight) => {
-        const isPrediction = insight.type === 'prediction';
-        const isTrigger = insight.type === 'correlation' || insight.type === 'trigger_pattern' || insight.type === 'mood_trigger';
-        const isProtective = insight.type === 'protective';
-        
-        let iconColor = Colors.primary;
-        let badgeBg = Colors.surfaceContainerLow;
-        let badgeColor = Colors.onSurfaceVariant;
 
-        if (isPrediction) {
-            iconColor = '#ef4444';
-            badgeBg = '#fee2e2';
-            badgeColor = '#991b1b';
-        } else if (isTrigger) {
-            iconColor = '#f59e0b';
-            badgeBg = '#fef3c7';
-            badgeColor = '#92400e';
-        } else if (isProtective) {
-            iconColor = '#10b981';
-            badgeBg = '#d1fae5';
-            badgeColor = '#065f46';
-        }
-
-        const Icon = isPrediction ? AlertTriangle 
-            : isTrigger ? Sparkles 
-            : isProtective ? Shield 
-            : TrendingUp;
-        
-        return (
-            <View key={insight.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                    <View style={styles.iconBox}>
-                        <Icon color={iconColor} size={20} />
-                    </View>
-                    <View style={[styles.typeBadge, { backgroundColor: badgeBg }]}>
-                        <Text style={[styles.typeBadgeText, { color: badgeColor }]}>
-                            {insight.type.replace('_', ' ').toUpperCase()}
-                        </Text>
-                    </View>
-                </View>
-                <Text style={styles.cardTitle}>{insight.title}</Text>
-                <Text style={styles.cardDescription}>{insight.summary}</Text>
-                <View style={styles.footer}>
-                    <Text style={styles.confidenceText}>
-                        CONFIDENCE: {insight.confidenceLevel.toUpperCase()}
-                    </Text>
-                </View>
-            </View>
-        );
-    };
 
     const triggers = insights.filter(i => i.type === 'trigger_pattern' || i.type === 'mood_trigger' || i.type === 'correlation');
     const protectors = insights.filter(i => i.type === 'protective');
@@ -180,7 +132,7 @@ export default function InsightFeedScreen() {
                             <Text style={styles.sectionLabel}>PREDICTIONS</Text>
                             <View style={styles.sectionLine} />
                         </View>
-                        {predictions.map(renderInsightCard)}
+                        {predictions.map(i => <InsightCard key={i.id} insight={i} />)}
                     </View>
                 )}
 
@@ -190,7 +142,7 @@ export default function InsightFeedScreen() {
                             <Text style={styles.sectionLabel}>TRIGGERS</Text>
                             <View style={styles.sectionLine} />
                         </View>
-                        {triggers.map(renderInsightCard)}
+                        {triggers.map(i => <InsightCard key={i.id} insight={i} />)}
                     </View>
                 )}
 
@@ -200,7 +152,7 @@ export default function InsightFeedScreen() {
                             <Text style={styles.sectionLabel}>PROTECTORS</Text>
                             <View style={styles.sectionLine} />
                         </View>
-                        {protectors.map(renderInsightCard)}
+                        {protectors.map(i => <InsightCard key={i.id} insight={i} />)}
                     </View>
                 )}
 
@@ -210,7 +162,7 @@ export default function InsightFeedScreen() {
                             <Text style={styles.sectionLabel}>EMERGING</Text>
                             <View style={styles.sectionLine} />
                         </View>
-                        {emerging.map(renderInsightCard)}
+                        {emerging.map(i => <InsightCard key={i.id} insight={i} />)}
                     </View>
                 )}
 
@@ -276,7 +228,7 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.s4,
         ...Shadows.ambient,
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.02)',
+        borderColor: Colors.borderSubtle,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -327,12 +279,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     sensitivityCard: {
-        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+        backgroundColor: Colors.accentMuted,
         borderRadius: Radii.lg,
         padding: 24,
         marginBottom: Spacing.s6,
         borderWidth: 1,
-        borderColor: 'rgba(99, 102, 241, 0.1)',
+        borderColor: Colors.accentIcon,
     },
     sensitivityHeader: {
         flexDirection: 'row',
@@ -352,7 +304,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     sensitivityChip: {
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        backgroundColor: Colors.accentIcon,
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 6,

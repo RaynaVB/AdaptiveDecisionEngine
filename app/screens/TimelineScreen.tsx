@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform, Animated, LayoutAnimation, UIManager, PanResponder, Image, Modal, ScrollView } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform, LayoutAnimation, UIManager, Image, Modal, ScrollView } from 'react-native';
 
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -7,7 +7,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { SymptomEvent } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
-import { Plus, X, Sparkles, TrendingUp, Trash2, LogOut, Beaker, Lightbulb, Menu, Settings, ShieldCheck, Utensils, Zap, Smile, CheckCircle2 } from 'lucide-react-native';
+import { Plus, X, Sparkles, TrendingUp, LogOut, Beaker, Lightbulb, Menu, Settings, ShieldCheck, Utensils, Zap, Smile, CheckCircle2 } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 import { Insight } from '../../src/models/types';
 import { InsightService } from '../../src/services/insightService';
@@ -36,84 +36,6 @@ import { SmartFAB } from '../components/home/SmartFAB';
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-const SCREEN_WIDTH = Dimensions.get('window').width;
-
-type SwipeToDeleteProps = {
-    onDelete: () => void;
-    children: React.ReactNode;
-};
-
-function SwipeToDeleteCard({ onDelete, children }: SwipeToDeleteProps) {
-    const translateX = useRef(new Animated.Value(0)).current;
-    const THRESHOLD = SCREEN_WIDTH * 0.50;
-    const deleteTriggered = useRef(false);
-
-    const panResponder = useRef(
-        PanResponder.create({
-            onMoveShouldSetPanResponder: (_, { dx, dy }) => dx > 8 && Math.abs(dx) > Math.abs(dy) * 1.5,
-            onPanResponderMove: (_, { dx }) => {
-                if (dx > 0) translateX.setValue(dx);
-            },
-            onPanResponderRelease: (_, { dx, vx }) => {
-                if (dx > THRESHOLD || vx > 1.0) {
-                    Animated.timing(translateX, {
-                        toValue: SCREEN_WIDTH,
-                        duration: 250,
-                        useNativeDriver: true,
-                    }).start(() => {
-                        if (!deleteTriggered.current) {
-                            deleteTriggered.current = true;
-                            onDelete();
-                        }
-                    });
-                } else {
-                    Animated.spring(translateX, {
-                        toValue: 0,
-                        useNativeDriver: true,
-                        bounciness: 6,
-                    }).start();
-                }
-            },
-            onPanResponderTerminate: () => {
-                Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
-            },
-        })
-    ).current;
-
-    const bgOpacity = translateX.interpolate({
-        inputRange: [0, THRESHOLD * 0.3, THRESHOLD],
-        outputRange: [0, 0.3, 1],
-        extrapolate: 'clamp',
-    });
-
-    return (
-        <View>
-            <Animated.View
-                style={{
-                    ...StyleSheet.absoluteFillObject,
-                    backgroundColor: '#ef4444',
-                    borderRadius: 12,
-                    opacity: bgOpacity,
-                    justifyContent: 'center',
-                    alignItems: 'flex-start',
-                    paddingLeft: 20,
-                    flexDirection: 'row',
-                    gap: 8,
-                    paddingTop: 0,
-                }}
-            >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center' }}>
-                    <Trash2 color="#fff" size={26} />
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Delete</Text>
-                </View>
-            </Animated.View>
-            <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
-                {children}
-            </Animated.View>
-        </View>
-    );
 }
 
 type TimelineScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timeline'>;
@@ -341,15 +263,7 @@ export default function TimelineScreen() {
         }, [])
     );
 
-    const deleteWithAnimation = useCallback(async (deleteOp: () => Promise<void>) => {
-        LayoutAnimation.configureNext({
-            duration: 300,
-            update: { type: LayoutAnimation.Types.easeInEaseOut },
-            delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-        });
-        await deleteOp();
-        await loadData();
-    }, [loadData]);
+
 
     const getMoodForMeal = (meal: MealEvent) => {
         const linkedMood = moods.find(m => m.linkedMealEventId === meal.id);
@@ -371,40 +285,38 @@ export default function TimelineScreen() {
         const mood = getMoodForMeal(item);
 
         return (
-            <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteMealEvent(item.id))}>
-                <View style={styles.timelineRow}>
-                    <View style={styles.leftColumn}>
-                        <View style={styles.timelineLine} />
-                        <View style={[styles.iconCircle, { backgroundColor: '#f3e8ff' }]}>
-                            <Utensils size={16} color="#9333ea" />
-                        </View>
+            <View style={styles.timelineRow}>
+                <View style={styles.leftColumn}>
+                    <View style={styles.timelineLine} />
+                    <View style={[styles.iconCircle, { backgroundColor: Colors.mealMuted }]}>
+                        <Utensils size={16} color={Colors.mealIcon} />
                     </View>
-                    
-                    <TouchableOpacity
-                        style={[styles.card, styles.cardColumn]}
-                        onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
-                    >
-                        {item.photoUri ? (
-                            <Image source={{ uri: item.photoUri }} style={[styles.mealImage, { marginBottom: Spacing.s3 }] as any} resizeMode="cover" />
+                </View>
+                
+                <TouchableOpacity
+                    style={[styles.card, styles.cardColumn]}
+                    onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
+                >
+                    {item.photoUri ? (
+                        <Image source={{ uri: item.photoUri }} style={[styles.mealImage, { marginBottom: Spacing.s3 }] as any} resizeMode="cover" />
+                    ) : null}
+
+                    <View style={{ paddingHorizontal: 4 }}>
+                        <Text style={[styles.summaryText, { fontSize: 18, marginBottom: 4 }]}>{formatMealSummary(item)}</Text>
+                        <Text style={styles.timeColumnText}>
+                            {timeString} • {item.mealSlot.charAt(0).toUpperCase() + item.mealSlot.slice(1)}
+                        </Text>
+
+                        {item.textDescription ? (
+                            <Text style={[styles.description, { marginTop: 8 }]} numberOfLines={2}>{item.textDescription}</Text>
                         ) : null}
 
-                        <View style={{ paddingHorizontal: 4 }}>
-                            <Text style={[styles.summaryText, { fontSize: 18, marginBottom: 4 }]}>{formatMealSummary(item)}</Text>
-                            <Text style={styles.timeColumnText}>
-                                {timeString} • {item.mealSlot.charAt(0).toUpperCase() + item.mealSlot.slice(1)}
-                            </Text>
-
-                            {item.textDescription ? (
-                                <Text style={[styles.description, { marginTop: 8 }]} numberOfLines={2}>{item.textDescription}</Text>
-                            ) : null}
-
-                            <View style={styles.checkmarkContainer}>
-                                <CheckCircle2 size={20} color={Colors.primary} />
-                            </View>
+                        <View style={styles.checkmarkContainer}>
+                            <CheckCircle2 size={20} color={Colors.primary} />
                         </View>
-                    </TouchableOpacity>
-                </View>
-            </SwipeToDeleteCard>
+                    </View>
+                </TouchableOpacity>
+            </View>
         );
     };
 
@@ -417,30 +329,28 @@ export default function TimelineScreen() {
         else if (item.valence === 'negative') emoji = '😟';
 
         return (
-            <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteMoodEvent(item.id))}>
-                <View style={styles.timelineRow}>
-                    <View style={styles.leftColumn}>
-                        <View style={styles.timelineLine} />
-                        <View style={[styles.iconCircle, { backgroundColor: '#dcfce7' }]}>
-                            <Smile size={18} color="#22c55e" />
-                        </View>
-                    </View>
-                    
-                    <View style={[styles.card, styles.cardColumn, { flexDirection: 'row', alignItems: 'center', padding: Spacing.s4 }]}>
-                        <Text style={{ fontSize: 32, marginRight: Spacing.s4 }}>{emoji}</Text>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.summaryText, { fontSize: 17, marginBottom: 2 }]}>
-                                {typeof item.valence === 'string' 
-                                    ? item.valence.charAt(0).toUpperCase() + item.valence.slice(1) 
-                                    : 'Mood'} & {item.energy} Energy
-                            </Text>
-                            <Text style={styles.timeColumnText}>
-                                {timeString} {item.tag ? `• ${item.tag}` : ''}
-                            </Text>
-                        </View>
+            <View style={styles.timelineRow}>
+                <View style={styles.leftColumn}>
+                    <View style={styles.timelineLine} />
+                    <View style={[styles.iconCircle, { backgroundColor: Colors.moodMuted }]}>
+                        <Smile size={18} color={Colors.moodIcon} />
                     </View>
                 </View>
-            </SwipeToDeleteCard>
+                
+                <View style={[styles.card, styles.cardColumn, { flexDirection: 'row', alignItems: 'center', padding: Spacing.s4 }]}>
+                    <Text style={{ fontSize: 32, marginRight: Spacing.s4 }}>{emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={[styles.summaryText, { fontSize: 17, marginBottom: 2 }]}>
+                            {typeof item.valence === 'string' 
+                                ? item.valence.charAt(0).toUpperCase() + item.valence.slice(1) 
+                                : 'Mood'} & {item.energy} Energy
+                        </Text>
+                        <Text style={styles.timeColumnText}>
+                            {timeString} {item.tag ? `• ${item.tag}` : ''}
+                        </Text>
+                    </View>
+                </View>
+            </View>
         );
     };
 
@@ -449,33 +359,31 @@ export default function TimelineScreen() {
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         return (
-            <SwipeToDeleteCard onDelete={() => deleteWithAnimation(() => StorageService.deleteSymptomEvent(item.id))}>
-                <View style={styles.timelineRow}>
-                    <View style={styles.leftColumn}>
-                        <View style={styles.timelineLine} />
-                        <View style={[styles.iconCircle, { backgroundColor: '#fee2e2' }]}>
-                            <Zap size={16} color="#ef4444" fill="#ef4444" />
-                        </View>
-                    </View>
-                    
-                    <View style={[styles.card, styles.cardColumn, { padding: Spacing.s4 }]}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                            <Text style={[styles.summaryText, { fontSize: 18, flex: 1, marginRight: 8 }]}>
-                                {item.symptomType.charAt(0).toUpperCase() + item.symptomType.slice(1)}
-                            </Text>
-                            <View style={styles.intensityBadge}>
-                                <Text style={styles.intensityText}>Intensity {item.severity}</Text>
-                            </View>
-                        </View>
-                        <Text style={styles.timeColumnText}>
-                            {timeString} {item.durationMinutes ? `• ${item.durationMinutes}m duration` : ''}
-                        </Text>
-                        {item.notes ? (
-                            <Text style={[styles.description, { marginTop: 8 }]} numberOfLines={2}>{item.notes}</Text>
-                        ) : null}
+            <View style={styles.timelineRow}>
+                <View style={styles.leftColumn}>
+                    <View style={styles.timelineLine} />
+                    <View style={[styles.iconCircle, { backgroundColor: Colors.symptomMuted }]}>
+                        <Zap size={16} color={Colors.symptomIcon} fill={Colors.symptomIcon} />
                     </View>
                 </View>
-            </SwipeToDeleteCard>
+                
+                <View style={[styles.card, styles.cardColumn, { padding: Spacing.s4 }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                        <Text style={[styles.summaryText, { fontSize: 18, flex: 1, marginRight: 8 }]}>
+                            {item.symptomType.charAt(0).toUpperCase() + item.symptomType.slice(1)}
+                        </Text>
+                        <View style={styles.intensityBadge}>
+                            <Text style={styles.intensityText}>Intensity {item.severity}</Text>
+                        </View>
+                    </View>
+                    <Text style={styles.timeColumnText}>
+                        {timeString} {item.durationMinutes ? `• ${item.durationMinutes}m duration` : ''}
+                    </Text>
+                    {item.notes ? (
+                        <Text style={[styles.description, { marginTop: 8 }]} numberOfLines={2}>{item.notes}</Text>
+                    ) : null}
+                </View>
+            </View>
         );
     };
 
@@ -616,7 +524,7 @@ export default function TimelineScreen() {
                                 if (item.type === 'symptom') {
                                     const sym = item.data;
                                     let severityColor = Colors.primary;
-                                    if (sym.severity >= 4) severityColor = '#ef4444';
+                                    if (sym.severity >= 4) severityColor = Colors.symptomIcon;
                                     
                                     return (
                                         <View style={[styles.timelineRow, { marginBottom: 2 }]}>
@@ -865,7 +773,7 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(23, 31, 28, 0.4)',
+        backgroundColor: Colors.scrim,
         justifyContent: 'center',
         alignItems: 'center',
         padding: Spacing.s4,
@@ -926,14 +834,14 @@ const styles = StyleSheet.create({
         textTransform: 'none',
     },
     intensityBadge: {
-        backgroundColor: '#fee2e2',
+        backgroundColor: Colors.symptomMuted,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: Radii.md,
     },
     intensityText: {
         ...Typography.label,
-        color: '#ef4444',
+        color: Colors.symptomIcon,
         fontSize: 10,
         fontWeight: '800',
         textTransform: 'uppercase',
@@ -945,7 +853,7 @@ const styles = StyleSheet.create({
     },
     menuBackdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.1)',
+        backgroundColor: Colors.scrimLight,
     },
     menuContent: {
         position: 'absolute',

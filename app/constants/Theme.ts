@@ -43,6 +43,35 @@ export const Colors = {
   
   // Glassmorphism
   glassBackground: 'rgba(248, 250, 249, 0.8)',
+
+  // Event Types (Timeline)
+  mealMuted: '#f3e8ff',
+  mealIcon: '#9333ea',
+  moodMuted: '#dcfce7',
+  moodIcon: '#22c55e',
+  symptomMuted: '#fee2e2',
+  symptomIcon: '#ef4444',
+  
+  // Overlays
+  scrim: 'rgba(23, 31, 28, 0.4)',
+  scrimLight: 'rgba(0,0,0,0.1)',
+
+  // Insight Types
+  predictionMuted: '#fee2e2',
+  predictionIcon: '#ef4444',
+  predictionOnMuted: '#991b1b',
+  
+  triggerMuted: '#fef3c7',
+  triggerIcon: '#f59e0b',
+  triggerOnMuted: '#92400e',
+  
+  protectiveMuted: '#d1fae5',
+  protectiveIcon: '#10b981',
+  protectiveOnMuted: '#065f46',
+  
+  // Accents / Indigo (for Profile/Sensitivity sections)
+  accentMuted: 'rgba(99, 102, 241, 0.05)',
+  accentIcon: 'rgba(99, 102, 241, 0.1)',
 };
 
 export const Typography = {
