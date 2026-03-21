@@ -49,7 +49,7 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
                     activeOpacity={0.7}
                 >
                     {accepted ? (
-                        <CheckCircle2 size={24} color={Colors.info} />
+                        <CheckCircle2 size={24} color={Colors.interactive} />
                     ) : (
                         <Circle size={24} color={Colors.outline} />
                     )}

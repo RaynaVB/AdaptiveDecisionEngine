@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
     },
     cameraButtonText: { marginLeft: 6, color: Colors.primary, fontWeight: '500' },
     textInput: {
-        borderWidth: 1, borderColor: Colors.divider, borderRadius: Radii.md,
+        borderWidth: 1, borderColor: Colors.surfaceContainerLow, borderRadius: Radii.md,
         padding: 12, fontSize: 16, minHeight: 48, color: Colors.onSurface
     },
     photoPreviewContainer: { marginBottom: 12, position: 'relative', width: '100%' },
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Colors.onPrimaryAlpha70,
+        backgroundColor: Colors.onPrimaryAlphaMedium,
         borderRadius: Radii.lg,
     },
     analyzingText: { color: Colors.primary, fontWeight: 'bold', fontSize: 16, marginTop: 12 },
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     },
     addChipText: { color: Colors.primary, fontSize: 14, fontWeight: '500', marginLeft: 4 },
 
-    questionCard: { backgroundColor: Colors.surface, padding: 16, borderRadius: Radii.lg, borderWidth: 1, borderColor: Colors.surfaceContainer, marginBottom: 12 },
+    questionCard: { backgroundColor: Colors.background, padding: 16, borderRadius: Radii.lg, borderWidth: 1, borderColor: Colors.surfaceContainer, marginBottom: 12 },
     questionText: { ...Typography.title, fontSize: 15, color: Colors.onSurface, marginBottom: 12 },
     questionOptions: { flexDirection: 'row', gap: 8 },
     optionChip: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.md },

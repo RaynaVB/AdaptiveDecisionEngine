@@ -44,7 +44,7 @@ export default function FeedbackHistoryScreen() {
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color={Colors.info} />
+                <ActivityIndicator size="large" color={Colors.interactive} />
             </View>
         );
     }
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: Colors.border,
+        borderColor: Colors.surfaceContainerHighest,
         shadowColor: Colors.onSurface,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
         color: Colors.outline,
     },
     outcomeContainer: {
-        backgroundColor: Colors.divider,
+        backgroundColor: Colors.surfaceContainerLow,
         padding: 10,
         borderRadius: 8,
     },

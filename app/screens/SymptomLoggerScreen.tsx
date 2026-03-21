@@ -98,7 +98,7 @@ export default function SymptomLoggerScreen() {
             case 3: return Colors.warning;
             case 4: return Colors.error;
             case 5: return Colors.error;
-            default: return Colors.divider;
+            default: return Colors.surfaceContainerLow;
         }
     };
 
@@ -247,7 +247,7 @@ export default function SymptomLoggerScreen() {
                                         value={entry.severity}
                                         onValueChange={(val) => updateSeverity(index, val)}
                                         minimumTrackTintColor={entry.severity > 0 ? getSeverityColor(entry.severity) : Colors.error}
-                                        maximumTrackTintColor={Colors.divider}
+                                        maximumTrackTintColor={Colors.surfaceContainerLow}
                                         thumbTintColor={entry.severity > 0 ? getSeverityColor(entry.severity) : Colors.outline}
                                     />
                                 </View>
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottomWidth: 1,
-        borderBottomColor: Colors.divider
+        borderBottomColor: Colors.surfaceContainerLow
     },
     headerTitle: { fontSize: 18, fontWeight: '700', color: Colors.onSurface },
     headerButton: { fontSize: 16, color: Colors.interactive },
@@ -351,24 +351,24 @@ const styles = StyleSheet.create({
         paddingVertical: 14, 
         paddingHorizontal: 20,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.divider,
+        borderBottomColor: Colors.surfaceContainerLow,
         alignItems: 'center',
         justifyContent: 'space-between'
     },
     dateTimeButton: { flexDirection: 'row', alignItems: 'center' },
     dateTimeText: { color: Colors.onSurfaceVariant, fontSize: 16, fontWeight: '500' },
     
-    iosPickerContainer: { backgroundColor: Colors.surfaceContainerLow, overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: Colors.border },
-    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: Colors.border },
+    iosPickerContainer: { backgroundColor: Colors.surfaceContainerLow, overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: Colors.surfaceContainerHighest },
+    iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: Colors.surfaceContainerHighest },
     iosPickerDoneText: { color: Colors.interactive, fontSize: 16, fontWeight: '600' },
 
     listContainer: {
         marginTop: 24,
         backgroundColor: Colors.surfaceLowest,
         borderTopWidth: 1,
-        borderTopColor: Colors.divider,
+        borderTopColor: Colors.surfaceContainerLow,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.divider,
+        borderBottomColor: Colors.surfaceContainerLow,
     },
     listHeaderRow: {
         flexDirection: 'row',
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         backgroundColor: Colors.background,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.divider
+        borderBottomColor: Colors.surfaceContainerLow
     },
     listHeaderLabel: {
         fontSize: 12,
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 20,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.divider
+        borderBottomColor: Colors.surfaceContainerLow
     },
     rowLeft: {
         width: '25%',
@@ -482,14 +482,14 @@ const styles = StyleSheet.create({
     presetTag: {
         paddingHorizontal: 18,
         paddingVertical: 10,
-        backgroundColor: Colors.divider,
+        backgroundColor: Colors.surfaceContainerLow,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: Colors.border
+        borderColor: Colors.surfaceContainerHighest
     },
     presetTagSelected: {
-        backgroundColor: Colors.info + '1A', // info muted
-        borderColor: Colors.info
+        backgroundColor: Colors.interactive + '1A', // interactive muted
+        borderColor: Colors.interactive
     },
     presetTagText: {
         fontSize: 15,
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
         padding: 16,
         backgroundColor: Colors.surfaceLowest,
         borderTopWidth: 1,
-        borderTopColor: Colors.divider,
+        borderTopColor: Colors.surfaceContainerLow,
         paddingBottom: Platform.OS === 'ios' ? 32 : 16 // Account for safe area
     }
 });

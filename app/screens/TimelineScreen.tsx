@@ -362,8 +362,8 @@ export default function TimelineScreen() {
             <View style={styles.timelineRow}>
                 <View style={styles.leftColumn}>
                     <View style={styles.timelineLine} />
-                    <View style={[styles.iconCircle, { backgroundColor: Colors.symptomMuted }]}>
-                        <Zap size={16} color={Colors.symptomIcon} fill={Colors.symptomIcon} />
+                    <View style={[styles.iconCircle, { backgroundColor: Colors.errorMuted }]}>
+                        <Zap size={16} color={Colors.error} fill={Colors.error} />
                     </View>
                 </View>
                 
@@ -524,7 +524,7 @@ export default function TimelineScreen() {
                                 if (item.type === 'symptom') {
                                     const sym = item.data;
                                     let severityColor = Colors.primary;
-                                    if (sym.severity >= 4) severityColor = Colors.symptomIcon;
+                                    if (sym.severity >= 4) severityColor = Colors.error;
                                     
                                     return (
                                         <View style={[styles.timelineRow, { marginBottom: 2 }]}>
@@ -569,7 +569,7 @@ export default function TimelineScreen() {
                                             <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
                                                 <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
                                             </View>
-                                            <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: Colors.surface, shadowOpacity: 0, elevation: 0 }]}>
+                                            <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: Colors.background, shadowOpacity: 0, elevation: 0 }]}>
                                                 <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
                                                     <Text style={{fontSize: 16, marginRight: 6}}>{emoji}</Text>
                                                     <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]}>Mood</Text>
@@ -834,14 +834,14 @@ const styles = StyleSheet.create({
         textTransform: 'none',
     },
     intensityBadge: {
-        backgroundColor: Colors.symptomMuted,
+        backgroundColor: Colors.errorMuted,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: Radii.md,
     },
     intensityText: {
         ...Typography.label,
-        color: Colors.symptomIcon,
+        color: Colors.error,
         fontSize: 10,
         fontWeight: '800',
         textTransform: 'uppercase',

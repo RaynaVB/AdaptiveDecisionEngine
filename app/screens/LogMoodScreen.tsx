@@ -207,7 +207,7 @@ export default function LogMoodScreen() {
                         value={valence}
                         onValueChange={handleValenceChange}
                         minimumTrackTintColor={Colors.primary}
-                        maximumTrackTintColor={Colors.divider}
+                        maximumTrackTintColor={Colors.surfaceContainerLow}
                     />
                     <View style={styles.sliderTicks}>
                         <Text style={styles.tickText}>Negative</Text>
@@ -226,7 +226,7 @@ export default function LogMoodScreen() {
                         value={energy}
                         onValueChange={handleEnergyChange}
                         minimumTrackTintColor={Colors.primary}
-                        maximumTrackTintColor={Colors.divider}
+                        maximumTrackTintColor={Colors.surfaceContainerLow}
                     />
                     <View style={styles.sliderTicks}>
                         <Text style={styles.tickText}>Low</Text>
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     segmentLabel: { ...Typography.label, fontSize: 14, color: Colors.onSurface, marginBottom: 8, textTransform: 'uppercase' },
     segmentRow: { flexDirection: 'row', backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.md, padding: 4 },
     segmentBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 6 },
-    segmentBtnSelected: { backgroundColor: Colors.surface, ...Shadows.ambient },
+    segmentBtnSelected: { backgroundColor: Colors.background, ...Shadows.ambient },
     segmentBtnText: { ...Typography.body, color: Colors.onSurfaceVariant, textTransform: 'capitalize' },
     segmentBtnTextSelected: { color: Colors.onSurface, fontWeight: '700' },
 

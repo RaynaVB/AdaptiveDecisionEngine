@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     color: Colors.onSurface,
   },
   content: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.background,
     borderRadius: Radii.xl,
     padding: 20,
     borderWidth: 1,

@@ -18,17 +18,17 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
   let badgeColor = Colors.onSurfaceVariant;
 
   if (isPrediction) {
-    iconColor = Colors.predictionIcon;
-    badgeBg = Colors.predictionMuted;
-    badgeColor = Colors.predictionOnMuted;
+    iconColor = Colors.error;
+    badgeBg = Colors.errorMuted;
+    badgeColor = Colors.onErrorContainer;
   } else if (isTrigger) {
-    iconColor = Colors.triggerIcon;
-    badgeBg = Colors.triggerMuted;
-    badgeColor = Colors.triggerOnMuted;
+    iconColor = Colors.warning;
+    badgeBg = Colors.warningMuted;
+    badgeColor = Colors.onWarningContainer;
   } else if (isProtective) {
-    iconColor = Colors.protectiveIcon;
-    badgeBg = Colors.protectiveMuted;
-    badgeColor = Colors.protectiveOnMuted;
+    iconColor = Colors.success;
+    badgeBg = Colors.successMuted;
+    badgeColor = Colors.onSuccessContainer;
   }
 
   const Icon = isPrediction ? AlertTriangle 

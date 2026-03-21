@@ -6,7 +6,6 @@
 export const Colors = {
   // Tonal Architecture
   background: '#f8faf9',
-  surface: '#f8faf9',
   surfaceLowest: '#ffffff',
   surfaceContainerLow: '#f0f4f3',
   surfaceContainer: '#eaefee',
@@ -25,68 +24,47 @@ export const Colors = {
   onSurfaceVariant: '#596060', // Label-md
   outline: '#757c7b',
   
-  // Semantic UI (Extended)
+  // Semantic UI
   onPrimaryContrast: '#ffffff',
-  primaryMuted: 'rgba(79, 99, 89, 0.08)', // primary + 8% alpha
-  onSurfaceMuted: 'rgba(45, 52, 51, 0.8)', // onSurface + 80% alpha
+  primaryMuted: 'rgba(79, 99, 89, 0.08)',
+  onSurfaceMuted: 'rgba(45, 52, 51, 0.8)',
   borderSubtle: 'rgba(0,0,0,0.02)',
   surfaceSubtle: 'rgba(0,0,0,0.01)',
   
   success: '#10b981',
   successMuted: 'rgba(16, 185, 129, 0.1)',
+  onSuccessContainer: '#065f46',
+  
   warning: '#fbbf24',
   warningMuted: 'rgba(251, 191, 36, 0.1)',
+  onWarningContainer: '#92400e',
+  
   error: '#a83836',
   errorMuted: 'rgba(168, 56, 54, 0.1)',
+  onErrorContainer: '#991b1b',
+  
   info: '#3b82f6',
   infoMuted: 'rgba(59, 130, 246, 0.1)',
   
   // Interaction and Specific Brands
-  interactive: '#2563eb', // Standard blue for buttons/links
-  experiment: '#8b5cf6',   // Purple for experiments
+  interactive: '#2563eb',
+  experiment: '#8b5cf6',
   experimentMuted: 'rgba(139, 92, 246, 0.1)',
   
-  // Additional Tonal Layers
-  border: '#e5e7eb',
-  divider: '#f1f5f9',
-  
-  // High-contrast translucent (for use on primary/colored backgrounds)
-  onPrimaryAlpha70: 'rgba(255, 255, 255, 0.7)',
-  onPrimaryAlpha50: 'rgba(255, 255, 255, 0.5)',
-  onPrimaryAlpha15: 'rgba(255, 255, 255, 0.15)',
-  onPrimaryAlpha90: 'rgba(255, 255, 255, 0.9)',
-  
-  // Glassmorphism
-  glassBackground: 'rgba(248, 250, 249, 0.8)',
-
   // Event Types (Timeline)
-  mealMuted: '#f3e8ff',
   mealIcon: '#9333ea',
-  moodMuted: '#dcfce7',
+  mealMuted: '#f3e8ff',
   moodIcon: '#22c55e',
-  symptomMuted: '#fee2e2',
-  symptomIcon: '#ef4444',
+  moodMuted: '#dcfce7',
   
-  // Overlays
+  // Overlays & Glass
   scrim: 'rgba(23, 31, 28, 0.4)',
   scrimLight: 'rgba(0,0,0,0.1)',
+  glassBackground: 'rgba(248, 250, 249, 0.8)',
 
-  // Insight Types
-  predictionMuted: '#fee2e2',
-  predictionIcon: '#ef4444',
-  predictionOnMuted: '#991b1b',
-  
-  triggerMuted: '#fef3c7',
-  triggerIcon: '#f59e0b',
-  triggerOnMuted: '#92400e',
-  
-  protectiveMuted: '#d1fae5',
-  protectiveIcon: '#10b981',
-  protectiveOnMuted: '#065f46',
-  
-  // Accents / Indigo (for Profile/Sensitivity sections)
-  accentMuted: 'rgba(99, 102, 241, 0.05)',
-  accentIcon: 'rgba(99, 102, 241, 0.1)',
+  // High-contrast translucent (for use on primary/colored backgrounds)
+  onPrimaryAlphaMedium: 'rgba(255, 255, 255, 0.7)',
+  onPrimaryAlphaLow: 'rgba(255, 255, 255, 0.15)',
 };
 
 export const Typography = {

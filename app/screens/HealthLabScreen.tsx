@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 12,
-        backgroundColor: Colors.onPrimaryAlpha15,
+        backgroundColor: Colors.onPrimaryAlphaLow,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 14,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     },
     activeSub: {
         ...Typography.body,
-        color: Colors.onPrimaryAlpha70,
+        color: Colors.onPrimaryAlphaMedium,
         fontSize: 13,
     },
     recommendedCard: {

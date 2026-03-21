@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1,
     borderColor: Colors.surfaceContainer,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

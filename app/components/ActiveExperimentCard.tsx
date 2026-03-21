@@ -27,7 +27,7 @@ export const ActiveExperimentCard: React.FC<ActiveExperimentCardProps> = ({ expe
           <Text style={styles.headerLabel}>ACTIVE EXPERIMENT</Text>
           <Text style={styles.title}>{experiment.template?.name || definition?.name || 'Active Experiment'}</Text>
         </View>
-        <ChevronRight size={20} color={Colors.onPrimaryAlpha50} />
+        <ChevronRight size={20} color={Colors.onPrimaryAlphaMedium} />
       </View>
       
       <View style={styles.content}>
@@ -57,14 +57,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: Radii.md,
-    backgroundColor: Colors.onPrimaryAlpha15,
+    backgroundColor: Colors.onPrimaryAlphaLow,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
   },
   headerLabel: {
     ...Typography.label,
-    color: Colors.onPrimaryAlpha70,
+    color: Colors.onPrimaryAlphaMedium,
     fontSize: 10,
     marginBottom: 2,
     textTransform: 'none',
@@ -79,14 +79,14 @@ const styles = StyleSheet.create({
   },
   dayText: {
     ...Typography.label,
-    color: Colors.onPrimaryAlpha90,
+    color: Colors.onPrimaryContrast,
     fontSize: 12,
     marginBottom: 4,
     textTransform: 'none',
   },
   motivation: {
     ...Typography.body,
-    color: Colors.onPrimaryAlpha70,
+    color: Colors.onPrimaryAlphaMedium,
     fontSize: 14,
     lineHeight: 20,
   },

@@ -10,6 +10,8 @@ import { ArrowLeft, TrendingUp, Trophy, AlertTriangle, FlaskConical, Info, Spark
 import { MICRO_DISCLAIMER_WEEKLY } from '../constants/legal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 import { TopBar } from '../components/TopBar';
+import { auth } from '../../src/services/firebaseConfig';
+import { getUserProfile, UserProfile } from '../../src/services/userProfile';
 
 type WeeklyPatternsScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'WeeklyPatterns'>;
@@ -22,6 +24,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
     const [message, setMessage] = useState('');
     const [moodChartData, setMoodChartData] = useState<{ labels: string[], datasets: [{ data: number[] }] } | null>(null);
     const [symptomChartData, setSymptomChartData] = useState<{ labels: string[], datasets: [{ data: number[] }] } | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
     useEffect(() => {
         loadData();
@@ -30,6 +33,12 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
     const loadData = async () => {
         try {
             setLoading(true);
+            
+            if (auth.currentUser) {
+                const profile = await getUserProfile(auth.currentUser.uid);
+                setUserProfile(profile);
+            }
+
             const response = await WeeklyPatternsService.getWeeklySummary();
             setGeneration(response.generation);
             setItems(response.items);
@@ -131,9 +140,9 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                 </View>
             </View>
             <Text style={styles.cardDesc}>{item.summary}</Text>
-            
+
             {item.type === 'experiment_update' && item.metadata?.experimentId && (
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.actionButton}
                     onPress={() => navigation.navigate('ExperimentDetail', { experimentId: item.metadata?.experimentId })}
                 >
@@ -148,7 +157,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
     return (
         <View style={styles.container}>
             <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
-            <TopBar />
+            <TopBar userProfile={userProfile} />
 
             {loading && !generation ? (
                 <View style={styles.center}>

@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     section: { marginBottom: 24 },
     label: { ...Typography.label, fontSize: 14, color: Colors.onSurfaceVariant, marginBottom: 6 },
     textInput: {
-        borderWidth: 1, borderColor: Colors.divider, borderRadius: Radii.md,
+        borderWidth: 1, borderColor: Colors.surfaceContainerLow, borderRadius: Radii.md,
         padding: 12, fontSize: 16, color: Colors.onSurface
     },
 
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     },
     addChipText: { color: Colors.primary, fontSize: 14, fontWeight: '500', marginLeft: 4 },
 
-    questionCard: { backgroundColor: Colors.surface, padding: 16, borderRadius: Radii.lg, borderWidth: 1, borderColor: Colors.surfaceContainer, marginBottom: 12 },
+    questionCard: { backgroundColor: Colors.background, padding: 16, borderRadius: Radii.lg, borderWidth: 1, borderColor: Colors.surfaceContainer, marginBottom: 12 },
     questionText: { ...Typography.title, fontSize: 15, color: Colors.onSurface, marginBottom: 12 },
     questionOptions: { flexDirection: 'row', gap: 8 },
     optionChip: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.md },

@@ -97,7 +97,7 @@ function MainTabNavigator() {
                 },
                 tabBarBackground: () => (
                     <View
-                        style={[StyleSheet.absoluteFill, { backgroundColor: Colors.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', borderTopWidth: 1, borderTopColor: Colors.surfaceContainer }]}
+                        style={[StyleSheet.absoluteFill, { backgroundColor: Colors.background, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', borderTopWidth: 1, borderTopColor: Colors.surfaceContainer }]}
                     />
                 ),
                 tabBarActiveTintColor: Colors.onSurface,
