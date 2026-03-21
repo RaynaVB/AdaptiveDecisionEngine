@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
 import { RecommendationService } from '../../src/services/recommendationService';
+import { Check } from 'lucide-react-native';
 import { Colors, Typography, Radii, Shadows, Spacing } from '../constants/Theme';
 
 type LogMoodScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMood'>;
@@ -208,6 +209,7 @@ export default function LogMoodScreen() {
                         onValueChange={handleValenceChange}
                         minimumTrackTintColor={Colors.primary}
                         maximumTrackTintColor={Colors.surfaceContainerLow}
+                        thumbTintColor={Colors.primary}
                     />
                     <View style={styles.sliderTicks}>
                         <Text style={styles.tickText}>Negative</Text>
@@ -227,6 +229,7 @@ export default function LogMoodScreen() {
                         onValueChange={handleEnergyChange}
                         minimumTrackTintColor={Colors.primary}
                         maximumTrackTintColor={Colors.surfaceContainerLow}
+                        thumbTintColor={Colors.primary}
                     />
                     <View style={styles.sliderTicks}>
                         <Text style={styles.tickText}>Low</Text>
@@ -258,8 +261,14 @@ export default function LogMoodScreen() {
                     </View>
                 </View>
 
-                <TouchableOpacity style={[styles.saveButton, { marginTop: 16 }]} onPress={handleSave}>
-                    <Text style={styles.saveButtonText}>Finish</Text>
+                <TouchableOpacity 
+                    style={[styles.saveButton, { marginTop: 24 }]} 
+                    onPress={handleSave}
+                >
+                    <View style={styles.saveButtonContent}>
+                        <Check color={Colors.onPrimaryContrast} size={20} style={{ marginRight: 8 }} />
+                        <Text style={styles.saveButtonText}>CONFIRM MOOD</Text>
+                    </View>
                 </TouchableOpacity>
             </ScrollView>
         </View>
@@ -315,6 +324,26 @@ const styles = StyleSheet.create({
     iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: Colors.surfaceContainer, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
     iosPickerDoneText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
 
-    saveButton: { backgroundColor: Colors.primary, borderRadius: Radii.lg, paddingVertical: 16, alignItems: 'center' },
-    saveButtonText: { color: Colors.onPrimaryContrast, fontSize: 16, fontWeight: '700' },
+    saveButton: {
+        backgroundColor: Colors.primary, 
+        borderRadius: Radii.lg, 
+        paddingVertical: 18,
+        alignItems: 'center',
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    saveButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    saveButtonText: { 
+        color: Colors.onPrimaryContrast, 
+        fontSize: 16, 
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
 });

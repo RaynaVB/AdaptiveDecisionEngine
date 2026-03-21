@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { v4 as uuidv4 } from 'uuid';
-import { Camera, X, Check, Plus, ChevronDown, Search } from 'lucide-react-native';
+import { Camera, X, Check, Plus, ChevronDown, Search, Image as ImageIcon, Utensils, Clock, Users, Moon, Meh, Zap } from 'lucide-react-native';
 import { Modal } from 'react-native';
 import { useEffect } from 'react';
 import { Ingredient } from '../../src/models/Ingredient';
@@ -44,7 +44,7 @@ export default function LogMealScreen() {
 
     const [textDescription, setTextDescription] = useState('');
     const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
-    const [selectedSlot, setSelectedSlot] = useState<MealSlot>(determineMealSlot(new Date())); 
+    const [selectedSlot, setSelectedSlot] = useState<MealSlot>(determineMealSlot(new Date()));
     const [selectedReason, setSelectedReason] = useState<MealReason | undefined>(undefined);
 
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
@@ -58,10 +58,10 @@ export default function LogMealScreen() {
     const [isSaving, setIsSaving] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
 
-    const isSaveDisabled = isSaving || 
-                           loggingState === 'analyzing' || 
-                           (photoUri && loggingState !== 'review_ready') || 
-                           (!photoUri && !textDescription.trim());
+    const isSaveDisabled = isSaving ||
+        loggingState === 'analyzing' ||
+        (photoUri && loggingState !== 'review_ready') ||
+        (!photoUri && !textDescription.trim());
 
 
     const [showSearchModal, setShowSearchModal] = useState(false);
@@ -119,14 +119,14 @@ export default function LogMealScreen() {
                 {/* Ingredients */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Ingredients</Text>
-                    
+
                     {confirmedIngs.length > 0 && (
                         <>
                             <Text style={styles.subTitle}>Confirmed</Text>
                             <View style={styles.ingredientsRow}>
                                 {confirmedIngs.map(ing => (
-                                    <TouchableOpacity 
-                                        key={ing.ingredientId} 
+                                    <TouchableOpacity
+                                        key={ing.ingredientId}
                                         style={styles.ingredientChipConfirmed}
                                         onPress={() => toggleIngredient(ing.ingredientId)}
                                     >
@@ -147,8 +147,8 @@ export default function LogMealScreen() {
                             <Text style={[styles.subTitle, { marginTop: 12 }]}>Check these (likely present)</Text>
                             <View style={styles.ingredientsRow}>
                                 {suggestedIngs.map(ing => (
-                                    <TouchableOpacity 
-                                        key={ing.ingredientId} 
+                                    <TouchableOpacity
+                                        key={ing.ingredientId}
                                         style={styles.ingredientChipSuggested}
                                         onPress={() => toggleIngredient(ing.ingredientId)}
                                     >
@@ -170,7 +170,7 @@ export default function LogMealScreen() {
                                 <Text style={styles.questionText}>{q.text || "Unknown Question"}</Text>
                                 <View style={styles.questionOptions}>
                                     {['Yes', 'No', 'Not sure'].map(opt => (
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             key={opt}
                                             style={[styles.optionChip, q.answer === opt && styles.optionChipSelected]}
                                             onPress={() => updateQuestionAnswer(q.questionId, opt)}
@@ -197,7 +197,7 @@ export default function LogMealScreen() {
                     <Text style={styles.modalTitle}>Add Ingredient</Text>
                     <View style={{ width: 24 }} />
                 </View>
-                
+
                 <View style={styles.searchBarContainer}>
                     <Search color={Colors.onSurfaceVariant} size={20} style={{ marginLeft: 12 }} />
                     <TextInput
@@ -211,8 +211,8 @@ export default function LogMealScreen() {
 
                 <ScrollView style={styles.resultsList}>
                     {searchResults.map(ing => (
-                        <TouchableOpacity 
-                            key={ing.ingredient_id} 
+                        <TouchableOpacity
+                            key={ing.ingredient_id}
                             style={styles.resultItem}
                             onPress={() => addIngredient(ing)}
                         >
@@ -295,7 +295,7 @@ export default function LogMealScreen() {
                     try {
                         setLoggingState('analyzing');
                         setStatusMessage('Identifying dish...');
-                        
+
                         const analysis = await analyzeFoodImage(selectedAsset.base64, 'image/jpeg');
 
                         if (!analysis.isFood) {
@@ -307,11 +307,11 @@ export default function LogMealScreen() {
 
                         setStatusMessage('Extracting ingredients...');
                         setAnalysisResult(analysis);
-                        
+
                         if (analysis.description && !selectedAsset.uri) {
                             setTextDescription(prev => prev ? `${prev}\n${analysis.description}` : analysis.description);
                         }
-                        
+
                         // Map Dish
                         const resolvedDish = ingredientService.resolveDish(analysis.dishName);
                         setConfirmedDish(resolvedDish ? { id: resolvedDish.dishId, label: resolvedDish.dishLabel } : { label: analysis.dishName });
@@ -323,7 +323,7 @@ export default function LogMealScreen() {
                         const suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients);
 
                         const initialIngredients: ConfirmedIngredient[] = [];
-                        
+
                         visibleIngs.forEach(ing => {
                             initialIngredients.push({
                                 ingredientId: ing.ingredient_id,
@@ -386,9 +386,9 @@ export default function LogMealScreen() {
             mealSlot: selectedSlot,
             inputMode: photoUri ? 'photo' : 'text',
             mealReason: selectedReason,
-            mealTypeTags: [], 
-            tags: [], 
-            
+            mealTypeTags: [],
+            tags: [],
+
             // Canonical data
             dishId: confirmedDish?.id,
             dishLabel: confirmedDish?.label,
@@ -412,7 +412,7 @@ export default function LogMealScreen() {
 
             await StorageService.addMealEvent(newMeal);
             await NotificationService.handleUserLoggedActivity('meal');
-            
+
             // Trigger recommendation recompute in background
             RecommendationService.recomputeRecommendations('meal_logged')
                 .catch(err => console.error("Failed to recompute recommendations:", err));
@@ -449,26 +449,70 @@ export default function LogMealScreen() {
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
             >
+                {/* Header */}
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Log your meal</Text>
+                    <Text style={styles.headerSubtitle}>
+                        Take a picture of your meal or upload an image and we'll help you identify it.
+                    </Text>
+                </View>
 
-                {/* Photo / Text Section */}
+                {/* Photo Section */}
                 <View style={styles.inputSection}>
-                    <View style={styles.imageRow}>
-                        <TouchableOpacity style={styles.cameraButton} onPress={() => pickImage(true)}>
-                            <Camera color={Colors.primary} size={24} />
-                            <Text style={styles.cameraButtonText}>Camera</Text>
+                    {!photoUri ? (
+                        <TouchableOpacity
+                            style={styles.imagePlaceholder}
+                            onPress={() => pickImage(true)}
+                        >
+                            <Image
+                                source={require('../../assets/meal_placeholder_bg.png')}
+                                style={styles.placeholderBg}
+                            />
+                            <View style={styles.placeholderOverlay} />
+                            <View style={styles.placeholderContent}>
+                                <Camera color={Colors.onPrimaryContrast} size={48} strokeWidth={1} />
+                                <Text style={styles.placeholderText}>Tap to capture or select meal photo</Text>
+                            </View>
+                            <View style={styles.pillToggleContainer}>
+                                <View style={styles.pillToggle}>
+                                    <View style={[styles.pillIcon, { backgroundColor: Colors.primary }]}>
+                                        <Camera color={Colors.onPrimaryContrast} size={20} />
+                                    </View>
+                                    <TouchableOpacity style={styles.pillIcon} onPress={() => pickImage(false)}>
+                                        <ImageIcon color={Colors.onSurfaceVariant} size={20} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.cameraButton} onPress={() => pickImage(false)}>
-                            <Text style={styles.cameraButtonText}>Library</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {photoUri && (
+                    ) : (
                         <View style={styles.photoPreviewContainer}>
                             <Image source={{ uri: photoUri }} style={[styles.photoPreview, loggingState === 'analyzing' && { opacity: 0.5 }]} />
+
+                            {/* Focus Corners Overlay */}
+                            <View style={styles.focusCorners}>
+                                <View style={[styles.corner, styles.topLeft]} />
+                                <View style={[styles.corner, styles.topRight]} />
+                                <View style={[styles.corner, styles.bottomLeft]} />
+                                <View style={[styles.corner, styles.bottomRight]} />
+                            </View>
+
+                            <View style={styles.pillToggleContainer}>
+                                <View style={styles.pillToggle}>
+                                    <TouchableOpacity style={styles.pillIcon} onPress={() => pickImage(true)}>
+                                        <Camera color={Colors.onSurfaceVariant} size={20} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.pillIcon} onPress={() => pickImage(false)}>
+                                        <ImageIcon color={Colors.onSurfaceVariant} size={20} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
                             <TouchableOpacity style={styles.removePhoto} onPress={() => setPhotoUri(undefined)}>
                                 <X color={Colors.onPrimaryContrast} size={16} />
                             </TouchableOpacity>
+
                             {loggingState === 'analyzing' && (
                                 <View style={styles.analyzingOverlay}>
                                     <ActivityIndicator size="large" color={Colors.primary} />
@@ -478,54 +522,47 @@ export default function LogMealScreen() {
                         </View>
                     )}
 
-                    {!photoUri ? (
-                        <TextInput
-                            style={[styles.textInput, { minHeight: 80, textAlignVertical: 'top' }, loggingState === 'analyzing' && { backgroundColor: Colors.surfaceContainerLow }]}
-                            placeholder={loggingState === 'analyzing' ? "AI is describing your food..." : "What did you eat?"}
-                            value={textDescription}
-                            onChangeText={setTextDescription}
-                            multiline={true}
-                            editable={loggingState !== 'analyzing'}
-                        />
-                    ) : (
-                        loggingState === 'review_ready' && confirmedDish && (
-                            <View style={styles.dishNameContainer}>
-                                <Text style={styles.dishNameLabel}>Dish Name</Text>
-                                <TextInput
-                                    style={styles.dishNameInput}
-                                    value={confirmedDish.label}
-                                    onChangeText={(newLabel) => setConfirmedDish({ ...confirmedDish, label: newLabel })}
-                                />
-                            </View>
-                        )
+                    {/* Dish Name (Adjustable during review) */}
+                    {loggingState === 'review_ready' && confirmedDish && (
+                        <View style={styles.dishNameContainer}>
+                            <Text style={styles.dishNameLabel}>Detected Dish</Text>
+                            <TextInput
+                                style={styles.dishNameInput}
+                                value={confirmedDish.label}
+                                onChangeText={(newLabel) => setConfirmedDish({ ...confirmedDish, label: newLabel })}
+                            />
+                        </View>
                     )}
                 </View>
 
                 {renderReviewSection()}
 
 
-                {/* Why are you eating? */}
+                {/* Why are you eating? / Emotional Driver */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Why are you eating?</Text>
-                    <View style={styles.tagsRow}>
+                    <Text style={styles.sectionTitle}>Emotional Driver</Text>
+                    <View style={styles.emotionalGrid}>
                         {[
                             { id: 'hungry', label: 'Hungry' },
-                            { id: 'meal_time', label: "It's Meal Time" },
+                            { id: 'meal_time', label: "Meal Time" },
                             { id: 'social', label: 'Social' },
-                            { id: 'late_night', label: 'Late Night Stay' },
+                            { id: 'late_night', label: 'Late Night' },
                             { id: 'boredom', label: 'Boredom' },
                             { id: 'craving', label: 'Craving' },
-                        ].map(reason => (
-                            <TouchableOpacity
-                                key={reason.id}
-                                style={[styles.tagChip, selectedReason === reason.id && styles.tagChipSelected]}
-                                onPress={() => setSelectedReason(reason.id as MealReason)}
-                            >
-                                <Text style={[styles.tagText, selectedReason === reason.id && styles.tagTextSelected]}>
-                                    {reason.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                        ].map(reason => {
+                            const isSelected = selectedReason === reason.id;
+                            return (
+                                <TouchableOpacity
+                                    key={reason.id}
+                                    style={[styles.emotionalCard, isSelected && styles.emotionalCardSelected]}
+                                    onPress={() => setSelectedReason(reason.id as MealReason)}
+                                >
+                                    <Text style={[styles.emotionalText, isSelected && styles.emotionalTextSelected]}>
+                                        {reason.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 </View>
 
@@ -564,7 +601,7 @@ export default function LogMealScreen() {
                         </View>
                     )}
                     {(Platform.OS === 'ios' || showTimePicker) && (
-                         <View style={[
+                        <View style={[
                             Platform.OS === 'ios' ? styles.iosPickerContainer : {},
                             Platform.OS === 'ios' && !showTimePicker ? { height: 0, marginTop: 0, overflow: 'hidden' } : {}
                         ]}>
@@ -588,13 +625,15 @@ export default function LogMealScreen() {
             {renderSearchModal()}
 
             <View style={styles.footer}>
-
-                <TouchableOpacity 
-                    style={[styles.saveButton, isSaveDisabled && { backgroundColor: Colors.outline }]} 
-                    onPress={handleSave} 
+                <TouchableOpacity
+                    style={[styles.saveButton, isSaveDisabled && { backgroundColor: Colors.outline }]}
+                    onPress={handleSave}
                     disabled={isSaveDisabled}
                 >
-                    <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save Meal'}</Text>
+                    <View style={styles.saveButtonContent}>
+                        {!isSaving && <Check color={Colors.onPrimaryContrast} size={20} strokeWidth={3} style={{ marginRight: 8 }} />}
+                        <Text style={styles.saveButtonText}>{isSaving ? 'SAVING...' : 'CONFIRM LOG'}</Text>
+                    </View>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
@@ -604,34 +643,103 @@ export default function LogMealScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     scrollContent: { padding: 16, paddingBottom: 100 },
-    section: { marginBottom: 24 },
-    sectionTitle: { ...Typography.title, fontSize: 16, marginBottom: 12, color: Colors.onSurface },
+    header: { marginBottom: 24, marginTop: 8 },
+    headerTitle: { ...Typography.headline, fontSize: 32, marginBottom: 8, color: Colors.onSurface },
+    headerSubtitle: { ...Typography.body, fontSize: 16, color: Colors.onSurfaceVariant, lineHeight: 22 },
+
+    section: { marginBottom: 32 },
+    sectionTitle: { ...Typography.label, fontSize: 12, marginBottom: 16, color: Colors.onSurfaceVariant, letterSpacing: 1 },
     subTitle: { ...Typography.label, fontSize: 14, marginBottom: 8, color: Colors.onSurfaceVariant },
 
-    inputSection: { marginBottom: 24 },
-    imageRow: { flexDirection: 'row', marginBottom: 12 },
-    cameraButton: {
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: Colors.primaryMuted, padding: 8, borderRadius: Radii.md, marginRight: 12
+    inputSection: { marginBottom: 32 },
+    imagePlaceholder: {
+        width: '100%',
+        height: 240,
+        backgroundColor: Colors.surfaceContainerLow,
+        borderRadius: Radii.xl,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.surfaceContainer,
+        overflow: 'hidden',
+        position: 'relative',
     },
-    cameraButtonText: { marginLeft: 6, color: Colors.primary, fontWeight: '500' },
+    placeholderBg: {
+        ...StyleSheet.absoluteFillObject,
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    placeholderOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    placeholderContent: { alignItems: 'center', gap: 12, zIndex: 1 },
+    placeholderText: { color: Colors.onPrimaryContrast, fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 40, zIndex: 1 },
     textInput: {
-        borderWidth: 1, borderColor: Colors.surfaceContainerLow, borderRadius: Radii.md,
-        padding: 12, fontSize: 16, minHeight: 48, color: Colors.onSurface
+        borderWidth: 1, borderColor: Colors.surfaceContainer, borderRadius: Radii.md,
+        padding: 12, fontSize: 16, minHeight: 48, color: Colors.onSurface,
+        backgroundColor: Colors.surfaceLowest
     },
-    photoPreviewContainer: { marginBottom: 12, position: 'relative', width: '100%' },
-    photoPreview: { width: '100%', height: 200, borderRadius: Radii.lg },
+
+    photoPreviewContainer: {
+        width: '100%',
+        height: 240,
+        borderRadius: Radii.xl,
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: Colors.surfaceContainerLow,
+    },
+    photoPreview: { width: '100%', height: '100%' },
+
+    focusCorners: { ...StyleSheet.absoluteFillObject, padding: 20 },
+    corner: { position: 'absolute', width: 24, height: 24, borderColor: Colors.primary, opacity: 0.5 },
+    topLeft: { top: 20, left: 20, borderLeftWidth: 2, borderTopWidth: 2 },
+    topRight: { top: 20, right: 20, borderRightWidth: 2, borderTopWidth: 2 },
+    bottomLeft: { bottom: 20, left: 20, borderLeftWidth: 2, borderBottomWidth: 2 },
+    bottomRight: { bottom: 20, right: 20, borderRightWidth: 2, borderBottomWidth: 2 },
+
+    pillToggleContainer: {
+        position: 'absolute',
+        bottom: 20,
+        width: '100%',
+        alignItems: 'center',
+    },
+    pillToggle: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 4,
+        borderRadius: 30,
+        gap: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    pillIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
     analyzingOverlay: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Colors.onPrimaryAlphaMedium,
-        borderRadius: Radii.lg,
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
     },
     analyzingText: { color: Colors.primary, fontWeight: 'bold', fontSize: 16, marginTop: 12 },
     removePhoto: {
-        position: 'absolute', top: -6, right: -6, backgroundColor: Colors.error,
-        borderRadius: 12, padding: 4
+        position: 'absolute', top: 12, right: 12, backgroundColor: Colors.error,
+        borderRadius: 12, padding: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
     },
 
 
@@ -649,6 +757,42 @@ const styles = StyleSheet.create({
     iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: Colors.surfaceContainer, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
     iosPickerDoneText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
 
+    emotionalGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        justifyContent: 'space-between'
+    },
+    emotionalCard: {
+        width: '31%',
+        height: 60,
+        backgroundColor: Colors.surfaceLowest,
+        borderRadius: Radii.lg,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.surfaceContainer,
+        paddingHorizontal: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    emotionalCardSelected: {
+        backgroundColor: Colors.primaryContainer,
+        borderColor: Colors.primary,
+    },
+    emotionalText: {
+        fontSize: 12,
+        color: Colors.onSurfaceVariant,
+        fontWeight: '600',
+        textAlign: 'center'
+    },
+    emotionalTextSelected: {
+        color: Colors.primary,
+    },
+
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap' },
     tagChip: {
         paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
@@ -660,13 +804,42 @@ const styles = StyleSheet.create({
     tagTextSelected: { color: Colors.primary, fontWeight: '500' },
 
     footer: {
-        padding: 16, borderTopWidth: 1, borderTopColor: Colors.surfaceContainer, backgroundColor: Colors.background
+        padding: 20,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+        borderTopWidth: 1,
+        borderTopColor: Colors.surfaceContainer,
+        backgroundColor: Colors.surfaceLowest,
     },
     saveButton: {
-        backgroundColor: Colors.primary, borderRadius: Radii.lg, paddingVertical: 16,
-        alignItems: 'center'
+        backgroundColor: Colors.primary,
+        borderRadius: Radii.lg,
+        paddingVertical: 18,
+        alignItems: 'center',
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    saveButtonText: { color: Colors.onPrimaryContrast, fontSize: 16, fontWeight: '700' },
+    saveButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    saveButtonText: {
+        color: Colors.onPrimaryContrast,
+        fontSize: 16,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
+    hipaaText: {
+        marginTop: 16,
+        textAlign: 'center',
+        fontSize: 10,
+        color: Colors.outline,
+        fontWeight: '600',
+        letterSpacing: 0.5,
+    },
 
     dishNameContainer: { marginTop: 12 },
     dishNameLabel: { ...Typography.label, fontSize: 12, color: Colors.onSurfaceVariant, textTransform: 'uppercase', marginBottom: 4 },
@@ -676,32 +849,57 @@ const styles = StyleSheet.create({
     reviewContainer: { marginTop: 16, borderTopWidth: 1, borderTopColor: Colors.surfaceContainer, paddingTop: 16 },
     dishCard: { backgroundColor: Colors.surfaceContainerLow, padding: 16, borderRadius: Radii.lg, borderWidth: 1, borderColor: Colors.surfaceContainer },
     dishLabel: { ...Typography.title, fontSize: 18, color: Colors.onSurface },
-    
-    ingredientsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    ingredientChipConfirmed: { 
-        flexDirection: 'row', alignItems: 'center', 
-        backgroundColor: Colors.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 
-    },
-    ingredientTextConfirmed: { color: Colors.onPrimaryContrast, fontSize: 14, fontWeight: '500' },
-    ingredientChipSuggested: { 
-        flexDirection: 'row', alignItems: 'center', 
-        backgroundColor: Colors.surfaceContainerLow, borderWidth: 1, borderColor: Colors.primary,
-        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 
-    },
-    ingredientTextSuggested: { color: Colors.primary, fontSize: 14, fontWeight: '500' },
-    addChip: { 
-        flexDirection: 'row', alignItems: 'center', 
-        backgroundColor: Colors.primaryMuted, borderStyle: 'dashed', borderWidth: 1, borderColor: Colors.primary,
-        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 
-    },
-    addChipText: { color: Colors.primary, fontSize: 14, fontWeight: '500', marginLeft: 4 },
 
-    questionCard: { backgroundColor: Colors.background, padding: 16, borderRadius: Radii.lg, borderWidth: 1, borderColor: Colors.surfaceContainer, marginBottom: 12 },
-    questionText: { ...Typography.title, fontSize: 15, color: Colors.onSurface, marginBottom: 12 },
-    questionOptions: { flexDirection: 'row', gap: 8 },
-    optionChip: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.md },
-    optionChipSelected: { backgroundColor: Colors.primaryMuted },
-    optionText: { color: Colors.onSurfaceVariant, fontWeight: '500' },
+    ingredientsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    ingredientChipConfirmed: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: Colors.primaryContainer,
+        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+        borderWidth: 1, borderColor: Colors.primary,
+    },
+    ingredientTextConfirmed: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
+    ingredientChipSuggested: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: Colors.surfaceLowest, borderWidth: 1, borderColor: Colors.surfaceContainer,
+        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20
+    },
+    ingredientTextSuggested: { color: Colors.onSurfaceVariant, fontSize: 13, fontWeight: '500' },
+    addChip: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: Colors.surfaceLowest, borderStyle: 'dashed', borderWidth: 1, borderColor: Colors.primary,
+        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20
+    },
+    addChipText: { color: Colors.primary, fontSize: 13, fontWeight: '700', marginLeft: 4 },
+
+    questionCard: {
+        backgroundColor: Colors.surfaceLowest,
+        padding: 20,
+        borderRadius: Radii.xl,
+        borderWidth: 1,
+        borderColor: Colors.surfaceContainer,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 4,
+        elevation: 1,
+    },
+    questionText: { ...Typography.title, fontSize: 15, color: Colors.onSurface, marginBottom: 16, lineHeight: 20 },
+    questionOptions: { flexDirection: 'row', gap: 10 },
+    optionChip: {
+        flex: 1,
+        paddingVertical: 12,
+        alignItems: 'center',
+        backgroundColor: Colors.surfaceContainerLow,
+        borderRadius: Radii.lg,
+        borderWidth: 1,
+        borderColor: 'transparent'
+    },
+    optionChipSelected: {
+        backgroundColor: Colors.primaryContainer,
+        borderColor: Colors.primary
+    },
+    optionText: { color: Colors.onSurfaceVariant, fontWeight: '600', fontSize: 13 },
     optionTextSelected: { color: Colors.primary, fontWeight: '700' },
 
     modalContainer: { flex: 1, backgroundColor: Colors.background, paddingTop: Platform.OS === 'ios' ? 40 : 0 },

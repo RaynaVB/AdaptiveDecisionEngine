@@ -9,9 +9,9 @@ import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
 import { NotificationService } from '../../src/services/NotificationService';
-import { Clock } from 'lucide-react-native';
+import { Clock, Check } from 'lucide-react-native';
 import { RecommendationService } from '../../src/services/recommendationService';
-import { Colors, Shadows, Radii } from '../constants/Theme';
+import { Colors, Shadows, Radii, Typography } from '../constants/Theme';
 
 type SymptomLoggerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SymptomLogger'>;
 type SymptomLoggerScreenRouteProp = RouteProp<RootStackParamList, 'SymptomLogger'>;
@@ -69,10 +69,10 @@ export default function SymptomLoggerScreen() {
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
-    
-    const [entries, setEntries] = useState<SymptomEntry[]>(mode === 'mood' ? [...DEFAULT_MOODS.map(m => ({...m}))] : [...DEFAULT_SYMPTOMS.map(s => ({...s}))]);
+
+    const [entries, setEntries] = useState<SymptomEntry[]>(mode === 'mood' ? [...DEFAULT_MOODS.map(m => ({ ...m }))] : [...DEFAULT_SYMPTOMS.map(s => ({ ...s }))]);
     const [customSymptom, setCustomSymptom] = useState('');
-    
+
     const [activeDurationIndex, setActiveDurationIndex] = useState<number | null>(null);
 
     const toggleDatePicker = (show: boolean) => {
@@ -104,7 +104,7 @@ export default function SymptomLoggerScreen() {
 
     const handleSave = async () => {
         const activeEntries = entries.filter(e => e.severity > 0);
-        
+
         let customEntryObj = null;
         if (customSymptom.trim() !== '') {
             customEntryObj = {
@@ -153,12 +153,12 @@ export default function SymptomLoggerScreen() {
 
     const formatDuration = (mins: number | null) => {
         if (!mins) return null;
-        if (mins >= 60) return `${Math.floor(mins/60)}h${mins%60 > 0 ? ` ${mins%60}m` : ''}`;
+        if (mins >= 60) return `${Math.floor(mins / 60)}h${mins % 60 > 0 ? ` ${mins % 60}m` : ''}`;
         return `${mins}m`;
     };
 
     return (
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
@@ -198,7 +198,7 @@ export default function SymptomLoggerScreen() {
                     </View>
                 )}
                 {(Platform.OS === 'ios' || showTimePicker) && (
-                        <View style={[
+                    <View style={[
                         Platform.OS === 'ios' ? styles.iosPickerContainer : {},
                         Platform.OS === 'ios' && !showTimePicker ? { height: 0, marginTop: 0, overflow: 'hidden' } : {}
                     ]}>
@@ -227,13 +227,13 @@ export default function SymptomLoggerScreen() {
                             <View style={styles.rowLeft}>
                                 <Text style={styles.rowName}>{entry.name}</Text>
                             </View>
-                            
+
                             <View style={styles.rowRight}>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.durationBadge}
                                     onPress={() => setActiveDurationIndex(index)}
                                 >
-                                    <Clock size={16} color={entry.durationMinutes ? Colors.interactive : Colors.outline} />
+                                    <Clock size={16} color={entry.durationMinutes ? Colors.primary : Colors.outline} />
                                     {entry.durationMinutes && (
                                         <Text style={styles.durationText}>{formatDuration(entry.durationMinutes)}</Text>
                                     )}
@@ -271,11 +271,14 @@ export default function SymptomLoggerScreen() {
             </ScrollView>
 
             <View style={styles.stickyFooter}>
-                <TouchableOpacity 
-                    style={styles.saveButton} 
+                <TouchableOpacity
+                    style={styles.saveButton}
                     onPress={handleSave}
                 >
-                    <Text style={styles.saveButtonText}>Save & Exit</Text>
+                    <View style={styles.saveButtonContent}>
+                        <Check color={Colors.onPrimaryContrast} size={20} style={{ marginRight: 8 }} />
+                        <Text style={styles.saveButtonText}>{mode === 'mood' ? 'CONFIRM MOOD' : 'CONFIRM SYMPTOMS'}</Text>
+                    </View>
                 </TouchableOpacity>
             </View>
 
@@ -329,10 +332,10 @@ export default function SymptomLoggerScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
-    header: { 
+    header: {
         backgroundColor: Colors.surfaceLowest,
-        paddingTop: Platform.OS === 'ios' ? 50 : 20, 
-        paddingBottom: 16, 
+        paddingTop: Platform.OS === 'ios' ? 50 : 20,
+        paddingBottom: 16,
         paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center',
@@ -341,14 +344,14 @@ const styles = StyleSheet.create({
         borderBottomColor: Colors.surfaceContainerLow
     },
     headerTitle: { fontSize: 18, fontWeight: '700', color: Colors.onSurface },
-    headerButton: { fontSize: 16, color: Colors.interactive },
-    
+    headerButton: { fontSize: 16, color: Colors.primary },
+
     contentContainer: { paddingBottom: 40 },
-    
-    dateTimeRow: { 
-        flexDirection: 'row', 
-        backgroundColor: Colors.surfaceLowest, 
-        paddingVertical: 14, 
+
+    dateTimeRow: {
+        flexDirection: 'row',
+        backgroundColor: Colors.surfaceLowest,
+        paddingVertical: 14,
         paddingHorizontal: 20,
         borderBottomWidth: 1,
         borderBottomColor: Colors.surfaceContainerLow,
@@ -357,10 +360,10 @@ const styles = StyleSheet.create({
     },
     dateTimeButton: { flexDirection: 'row', alignItems: 'center' },
     dateTimeText: { color: Colors.onSurfaceVariant, fontSize: 16, fontWeight: '500' },
-    
+
     iosPickerContainer: { backgroundColor: Colors.surfaceContainerLow, overflow: 'hidden', borderBottomWidth: 1, borderBottomColor: Colors.surfaceContainerHighest },
     iosPickerDoneButton: { padding: 12, alignItems: 'center', backgroundColor: Colors.surfaceContainerHighest },
-    iosPickerDoneText: { color: Colors.interactive, fontSize: 16, fontWeight: '600' },
+    iosPickerDoneText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
 
     listContainer: {
         marginTop: 24,
@@ -385,7 +388,7 @@ const styles = StyleSheet.create({
         color: Colors.onSurfaceVariant,
         letterSpacing: 0.5
     },
-    
+
     row: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -415,10 +418,10 @@ const styles = StyleSheet.create({
     },
     durationText: {
         fontSize: 12,
-        color: Colors.interactive,
+        color: Colors.primary,
         fontWeight: '600'
     },
-    
+
     rowRight: {
         flex: 1,
         flexDirection: 'row',
@@ -488,8 +491,8 @@ const styles = StyleSheet.create({
         borderColor: Colors.surfaceContainerHighest
     },
     presetTagSelected: {
-        backgroundColor: Colors.interactive + '1A', // interactive muted
-        borderColor: Colors.interactive
+        backgroundColor: Colors.primaryMuted,
+        borderColor: Colors.primary
     },
     presetTagText: {
         fontSize: 15,
@@ -497,7 +500,7 @@ const styles = StyleSheet.create({
         color: Colors.onSurfaceVariant
     },
     presetTagTextSelected: {
-        color: Colors.interactive
+        color: Colors.primary
     },
     modalClearButton: {
         paddingVertical: 10
@@ -507,16 +510,27 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600'
     },
-    saveButton: { 
-        backgroundColor: Colors.interactive, 
-        borderRadius: 12, 
-        paddingVertical: 16, 
-        alignItems: 'center' 
+    saveButton: {
+        backgroundColor: Colors.primary,
+        borderRadius: Radii.lg,
+        paddingVertical: 18,
+        alignItems: 'center',
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    saveButtonText: { 
-        color: Colors.onPrimaryContrast, 
-        fontSize: 16, 
-        fontWeight: '700' 
+    saveButtonText: {
+        color: Colors.onPrimaryContrast,
+        fontSize: 16,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
+    saveButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     stickyFooter: {
         padding: 16,
