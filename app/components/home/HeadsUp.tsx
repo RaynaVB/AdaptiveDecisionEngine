@@ -13,7 +13,7 @@ export const HeadsUp: React.FC<HeadsUpProps> = ({ items }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Zap size={18} color={Colors.primary} fill={Colors.primary} />
+        <Zap size={18} color={Colors.accent} fill={Colors.accent} />
         <Text style={styles.headerText}>Heads Up</Text>
       </View>
       
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   },
   bullet: {
     ...Typography.body,
-    color: Colors.primary,
+    color: Colors.accent,
     fontWeight: '700',
     marginTop: -2,
   },

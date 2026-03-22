@@ -41,8 +41,8 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
     ]}>
       {(headerLabel || headerIcon) && (
         <View style={styles.header}>
-          {headerIcon || (isHero && <Target size={18} color={Colors.primary} />)}
-          <Text style={styles.headerText}>{headerLabel || (isHero ? 'TODAY’S FOCUS' : '')}</Text>
+          {headerIcon || (isHero && <Target size={18} color={Colors.accent} />)}
+          <Text style={[styles.headerText, isHero && { color: Colors.accent }]}>{headerLabel || (isHero ? 'TODAY’S FOCUS' : '')}</Text>
         </View>
       )}
 
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     ...Typography.label,
-    color: Colors.primary,
+    color: Colors.onSurfaceVariant,
     letterSpacing: 1,
   },
   title: {
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   confidenceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primarySubtle,
+    backgroundColor: Colors.accentContainer,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radii.full,
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   confidenceValue: {
     ...Typography.label,
     fontSize: 10,
-    color: Colors.primary,
+    color: Colors.accent,
     fontWeight: '700',
   },
   whySection: {

@@ -4,72 +4,63 @@
  */
 
 export const Colors = {
-  // Tonal Architecture (Clinical Precision)
-  background: '#f6f8f7',
+  // Tonal Architecture
+  background: '#f8faf9',
   surfaceLowest: '#ffffff',
-  surfaceContainerLow: '#eef2f1',
-  surfaceContainer: '#e3e9e7',
-  surfaceContainerHighest: '#cfd8d5',
+  surfaceContainerLow: '#f0f4f3',
+  surfaceContainer: '#eaefee',
+  surfaceContainerHighest: '#dde4e3',
   
-  // Primary Palette (Authority Green)
-  primary: '#1f3a34',
-  primaryContainer: '#c7f0e2',
-  onPrimaryContainer: '#0f2a24',
-  primarySubtle: 'rgba(31, 58, 52, 0.06)',
-  
-  // Accent Palette (Intelligence Indigo - NEW)
-  accent: '#6366f1',
-  accentContainer: '#e0e7ff',
-  onAccentContainer: '#1e1b4b',
+  // Primary Palette (Botanical Sage)
+  primary: '#4f6359',
+  primaryContainer: '#d1e8db',
+  onPrimaryContainer: '#42564c',
   
   // Secondary / Tertiary
-  secondary: '#5f6b68',
+  secondary: '#55625c',
   
-  // Text and UI hierarchy
-  onSurface: '#1c2322',
-  onSurfaceVariant: '#5f6b68', // Label-md
-  onSurfaceSubtle: 'rgba(28, 35, 34, 0.65)',
+  // Text and UI
+  onSurface: '#2d3433',
+  onSurfaceVariant: '#596060', // Label-md
   outline: '#757c7b',
   
-  // Semantic UI (Controlled Vibrancy)
+  // Semantic UI
   onPrimaryContrast: '#ffffff',
+  primarySubtle: 'rgba(79, 99, 89, 0.08)',
+  onSurfaceSubtle: 'rgba(45, 52, 51, 0.8)',
   borderSubtle: 'rgba(0,0,0,0.02)',
   surfaceSubtle: 'rgba(0,0,0,0.01)',
   
-  success: '#059669',
-  successContainer: 'rgba(5, 150, 105, 0.1)',
-  onSuccessContainer: '#064e3b',
+  success: '#10b981',
+  successContainer: 'rgba(16, 185, 129, 0.1)',
+  onSuccessContainer: '#065f46',
   
-  warning: '#f59e0b',
-  warningContainer: 'rgba(245, 158, 11, 0.1)',
-  onWarningContainer: '#78350f',
+  warning: '#fbbf24',
+  warningContainer: 'rgba(251, 191, 36, 0.1)',
+  onWarningContainer: '#92400e',
   
-  error: '#dc2626',
-  errorContainer: 'rgba(220, 38, 38, 0.1)',
-  onErrorContainer: '#7f1d1d',
+  error: '#a83836',
+  errorContainer: 'rgba(168, 56, 54, 0.1)',
+  onErrorContainer: '#991b1b',
   
-  info: '#2563eb',
-  infoContainer: 'rgba(37, 99, 235, 0.1)',
+  info: '#3b82f6',
+  infoContainer: 'rgba(59, 130, 246, 0.1)',
   
   // Interaction and Specific Brands
   interactive: '#2563eb',
-  experiment: '#6366f1', // Aligned with Intelligence Accent
-  experimentContainer: 'rgba(99, 102, 241, 0.1)',
+  experiment: '#8b5cf6',
+  experimentContainer: 'rgba(139, 92, 246, 0.1)',
   
-  // Event Types (Timeline - Semantic Mapping)
-  mealIcon: '#7c3aed',
-  mealContainer: '#f5f3ff', // Very subtle purple
-  moodIcon: '#16a34a',
-  moodContainer: '#f0fdf4', // Very subtle green
+  // Event Types (Timeline)
+  mealIcon: '#9333ea',
+  mealContainer: '#f3e8ff',
+  moodIcon: '#22c55e',
+  moodContainer: '#dcfce7',
   
   // Overlays & Glass
   scrim: 'rgba(23, 31, 28, 0.4)',
-  scrimLight: 'rgba(0,0,0,0.05)',
-  glassBackground: 'rgba(246, 248, 247, 0.8)',
-
-  // Gradients (NEW)
-  gradientPrimary: ['#1f3a34', '#2f5d52'],
-  gradientAccent: ['#6366f1', '#8b5cf6'],
+  scrimLight: 'rgba(0,0,0,0.1)',
+  glassBackground: 'rgba(248, 250, 249, 0.8)',
 
   // High-contrast translucent (for use on primary/colored backgrounds)
   onPrimaryAlphaMedium: 'rgba(255, 255, 255, 0.7)',

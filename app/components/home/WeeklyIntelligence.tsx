@@ -18,7 +18,7 @@ export const WeeklyIntelligence: React.FC<WeeklyIntelligenceProps> = ({ items, o
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Brain size={18} color={Colors.primary} />
+        <Brain size={18} color={Colors.accent} />
         <Text style={styles.headerText}>This Week</Text>
       </View>
       
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant,
   },
   actionButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

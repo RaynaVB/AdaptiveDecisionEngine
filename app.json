@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AdaptiveDecisionEngine",
-    "slug": "AdaptiveDecisionEngine",
+    "name": "Veyra",
+    "slug": "veyra",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,13 +14,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.raynab.AdaptiveDecisionEngine",
+      "bundleIdentifier": "com.raynab.Veyra",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.raynab.AdaptiveDecisionEngine",
+      "package": "com.raynab.Veyra",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

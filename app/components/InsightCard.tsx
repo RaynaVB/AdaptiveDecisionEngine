@@ -13,14 +13,14 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
   const isTrigger = insight.type === 'correlation' || insight.type === 'trigger_pattern' || insight.type === 'mood_trigger';
   const isProtective = insight.type === 'protective';
   
-  let iconColor = Colors.primary;
+  let iconColor = Colors.accent;
   let badgeBg = Colors.surfaceContainerLow;
   let badgeColor = Colors.onSurfaceVariant;
 
   if (isPrediction) {
-    iconColor = Colors.error;
-    badgeBg = Colors.errorContainer;
-    badgeColor = Colors.onErrorContainer;
+    iconColor = Colors.accent;
+    badgeBg = Colors.accentContainer;
+    badgeColor = Colors.onAccentContainer;
   } else if (isTrigger) {
     iconColor = Colors.warning;
     badgeBg = Colors.warningContainer;
