@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   confidenceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryMuted,
+    backgroundColor: Colors.primarySubtle,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radii.full,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   whyText: {
     ...Typography.body,
     fontSize: 14,
-    color: Colors.onSurfaceMuted,
+    color: Colors.onSurfaceSubtle,
     lineHeight: 20,
   },
   buttonRow: {

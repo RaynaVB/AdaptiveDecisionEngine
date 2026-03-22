@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.surfaceContainerLow, marginRight: 8, marginBottom: 8,
         borderWidth: 1, borderColor: 'transparent'
     },
-    tagChipSelected: { backgroundColor: Colors.primaryMuted, borderColor: Colors.primary },
+    tagChipSelected: { backgroundColor: Colors.primarySubtle, borderColor: Colors.primary },
     tagText: { fontSize: 14, color: Colors.onSurface, textTransform: 'capitalize' },
     tagTextSelected: { color: Colors.primary, fontWeight: '500' },
 
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     ingredientTextSuggested: { color: Colors.primary, fontSize: 14, fontWeight: '500' },
     addChip: { 
         flexDirection: 'row', alignItems: 'center', 
-        backgroundColor: Colors.primaryMuted, borderStyle: 'dashed', borderWidth: 1, borderColor: Colors.primary,
+        backgroundColor: Colors.primarySubtle, borderStyle: 'dashed', borderWidth: 1, borderColor: Colors.primary,
         paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
         marginBottom: 6
     },
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     questionText: { ...Typography.title, fontSize: 15, color: Colors.onSurface, marginBottom: 12 },
     questionOptions: { flexDirection: 'row', gap: 8 },
     optionChip: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.md },
-    optionChipSelected: { backgroundColor: Colors.primaryMuted },
+    optionChipSelected: { backgroundColor: Colors.primarySubtle },
     optionText: { color: Colors.onSurfaceVariant, fontWeight: '500' },
     optionTextSelected: { color: Colors.primary, fontWeight: '700' },
 

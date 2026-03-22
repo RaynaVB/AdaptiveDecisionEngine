@@ -19,15 +19,15 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
 
   if (isPrediction) {
     iconColor = Colors.error;
-    badgeBg = Colors.errorMuted;
+    badgeBg = Colors.errorContainer;
     badgeColor = Colors.onErrorContainer;
   } else if (isTrigger) {
     iconColor = Colors.warning;
-    badgeBg = Colors.warningMuted;
+    badgeBg = Colors.warningContainer;
     badgeColor = Colors.onWarningContainer;
   } else if (isProtective) {
     iconColor = Colors.success;
-    badgeBg = Colors.successMuted;
+    badgeBg = Colors.successContainer;
     badgeColor = Colors.onSuccessContainer;
   }
 

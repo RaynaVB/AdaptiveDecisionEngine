@@ -154,7 +154,7 @@ export default function AdminScreen({ navigation }: Props) {
                         </View>
                         
                         <TouchableOpacity 
-                            style={[styles.adminButton, { borderLeftColor: Colors.error, backgroundColor: Colors.errorMuted }]} 
+                            style={[styles.adminButton, { borderLeftColor: Colors.error, backgroundColor: Colors.errorContainer }]} 
                             onPress={handleClearSystemLogs}
                             disabled={saving}
                         >
@@ -257,10 +257,10 @@ const styles = StyleSheet.create({
     dangerZone: {
         marginTop: 16,
         padding: 16,
-        backgroundColor: Colors.errorMuted,
+        backgroundColor: Colors.errorContainer,
         borderRadius: Radii.xl,
         borderWidth: 1,
-        borderColor: Colors.errorMuted,
+        borderColor: Colors.errorContainer,
         borderStyle: 'dashed',
     },
     dangerHeader: {

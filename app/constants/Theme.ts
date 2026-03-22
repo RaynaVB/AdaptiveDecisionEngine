@@ -26,36 +26,36 @@ export const Colors = {
   
   // Semantic UI
   onPrimaryContrast: '#ffffff',
-  primaryMuted: 'rgba(79, 99, 89, 0.08)',
-  onSurfaceMuted: 'rgba(45, 52, 51, 0.8)',
+  primarySubtle: 'rgba(79, 99, 89, 0.08)',
+  onSurfaceSubtle: 'rgba(45, 52, 51, 0.8)',
   borderSubtle: 'rgba(0,0,0,0.02)',
   surfaceSubtle: 'rgba(0,0,0,0.01)',
   
   success: '#10b981',
-  successMuted: 'rgba(16, 185, 129, 0.1)',
+  successContainer: 'rgba(16, 185, 129, 0.1)',
   onSuccessContainer: '#065f46',
   
   warning: '#fbbf24',
-  warningMuted: 'rgba(251, 191, 36, 0.1)',
+  warningContainer: 'rgba(251, 191, 36, 0.1)',
   onWarningContainer: '#92400e',
   
   error: '#a83836',
-  errorMuted: 'rgba(168, 56, 54, 0.1)',
+  errorContainer: 'rgba(168, 56, 54, 0.1)',
   onErrorContainer: '#991b1b',
   
   info: '#3b82f6',
-  infoMuted: 'rgba(59, 130, 246, 0.1)',
+  infoContainer: 'rgba(59, 130, 246, 0.1)',
   
   // Interaction and Specific Brands
   interactive: '#2563eb',
   experiment: '#8b5cf6',
-  experimentMuted: 'rgba(139, 92, 246, 0.1)',
+  experimentContainer: 'rgba(139, 92, 246, 0.1)',
   
   // Event Types (Timeline)
   mealIcon: '#9333ea',
-  mealMuted: '#f3e8ff',
+  mealContainer: '#f3e8ff',
   moodIcon: '#22c55e',
-  moodMuted: '#dcfce7',
+  moodContainer: '#dcfce7',
   
   // Overlays & Glass
   scrim: 'rgba(23, 31, 28, 0.4)',

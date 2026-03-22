@@ -147,7 +147,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                         <View style={styles.badge}>
                             <Text style={styles.badgeText}>{definition?.durationDays} DAYS</Text>
                         </View>
-                        <View style={[styles.badge, { backgroundColor: Colors.primaryMuted }]}>
+                        <View style={[styles.badge, { backgroundColor: Colors.primarySubtle }]}>
                             <Text style={[styles.badgeText, { color: Colors.primary }]}>{definition?.category.toUpperCase()}</Text>
                         </View>
                     </View>
@@ -173,7 +173,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                         </View>
                     </View>
 
-                    <View style={[styles.infoCard, { backgroundColor: Colors.errorMuted, borderColor: Colors.errorMuted }]}>
+                    <View style={[styles.infoCard, { backgroundColor: Colors.errorContainer, borderColor: Colors.errorContainer }]}>
                         <View style={styles.infoRow}>
                             <AlertTriangle size={18} color={Colors.error} />
                             <Text style={[styles.infoLabel, { color: Colors.error }]}>Medical Disclaimer</Text>
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     badge: {
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: Radii.md,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     infoCard: {
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         borderRadius: 20,
         padding: 16,
         marginBottom: 16,

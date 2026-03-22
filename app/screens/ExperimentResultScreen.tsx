@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 24,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     },
     resultCard: {
         width: '100%',
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         borderRadius: 24,
         padding: 32,
         alignItems: 'center',

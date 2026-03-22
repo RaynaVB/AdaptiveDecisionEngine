@@ -435,7 +435,7 @@ export default function LogMealScreen() {
                 },
                 {
                     text: 'Log Mood',
-                    onPress: () => navigation.navigate('LogMood', { mealId: newMeal.id, timestamp: newMeal.occurredAt })
+                    onPress: () => navigation.navigate('SymptomLogger', { mode: 'mood' })
                 }
             ]
         );
@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.surfaceContainerLow, marginRight: 8, marginBottom: 8,
         borderWidth: 1, borderColor: 'transparent'
     },
-    tagChipSelected: { backgroundColor: Colors.primaryMuted, borderColor: Colors.primary },
+    tagChipSelected: { backgroundColor: Colors.primarySubtle, borderColor: Colors.primary },
     tagText: { fontSize: 14, color: Colors.onSurface, textTransform: 'capitalize' },
     tagTextSelected: { color: Colors.primary, fontWeight: '500' },
 

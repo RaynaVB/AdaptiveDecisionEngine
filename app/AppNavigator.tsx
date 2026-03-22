@@ -4,7 +4,7 @@ import { RootStackParamList } from '../src/models/navigation';
 
 import TimelineScreen from './screens/TimelineScreen';
 import LogMealScreen from './screens/LogMealScreen';
-import LogMoodScreen from './screens/LogMoodScreen';
+
 import SymptomLoggerScreen from './screens/SymptomLoggerScreen';
 import MealDetailScreen from './screens/MealDetailScreen';
 import WeeklyPatternsScreen from './screens/WeeklyPatternsScreen';
@@ -213,11 +213,7 @@ export default function AppNavigator() {
                                 )
                             })}
                         />
-                        <Stack.Screen
-                            name="LogMood"
-                            component={LogMoodScreen}
-                            options={{ headerShown: true, title: 'Log Mood' }}
-                        />
+
                         <Stack.Screen
                             name="SymptomLogger"
                             component={SymptomLoggerScreen}

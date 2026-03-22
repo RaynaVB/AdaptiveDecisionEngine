@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
         marginVertical: 32,
         padding: 32,
         borderRadius: 32,
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: Colors.primaryContainer,

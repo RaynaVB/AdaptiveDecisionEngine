@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.surfaceContainerHighest
     },
     presetTagSelected: {
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         borderColor: Colors.primary
     },
     presetTagText: {

@@ -288,7 +288,7 @@ export default function TimelineScreen() {
             <View style={styles.timelineRow}>
                 <View style={styles.leftColumn}>
                     <View style={styles.timelineLine} />
-                    <View style={[styles.iconCircle, { backgroundColor: Colors.mealMuted }]}>
+                    <View style={[styles.iconCircle, { backgroundColor: Colors.mealContainer }]}>
                         <Utensils size={16} color={Colors.mealIcon} />
                     </View>
                 </View>
@@ -332,7 +332,7 @@ export default function TimelineScreen() {
             <View style={styles.timelineRow}>
                 <View style={styles.leftColumn}>
                     <View style={styles.timelineLine} />
-                    <View style={[styles.iconCircle, { backgroundColor: Colors.moodMuted }]}>
+                    <View style={[styles.iconCircle, { backgroundColor: Colors.moodContainer }]}>
                         <Smile size={18} color={Colors.moodIcon} />
                     </View>
                 </View>
@@ -362,7 +362,7 @@ export default function TimelineScreen() {
             <View style={styles.timelineRow}>
                 <View style={styles.leftColumn}>
                     <View style={styles.timelineLine} />
-                    <View style={[styles.iconCircle, { backgroundColor: Colors.errorMuted }]}>
+                    <View style={[styles.iconCircle, { backgroundColor: Colors.errorContainer }]}>
                         <Zap size={16} color={Colors.error} fill={Colors.error} />
                     </View>
                 </View>
@@ -408,7 +408,7 @@ export default function TimelineScreen() {
                         <View style={styles.sectionDivider} />
                     </View>
                 )}
-                keyExtractor={item => item.data.id}
+                keyExtractor={item => `${item.type}-${item.data.id}`}
                 contentContainerStyle={styles.listContent}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={Colors.primary} />}
                 ListHeaderComponent={
@@ -433,7 +433,7 @@ export default function TimelineScreen() {
                         {/* 3. Active Experiment */}
                         {activeExperiments.map(run => (
                             <ActiveExperimentCard 
-                                key={run.runId || run.id}
+                                key={`active-exp-${run.runId || run.id}`}
                                 experiment={run}
                                 onPress={() => navigation.navigate('ExperimentDetail', { experimentId: run.id })}
                             />
@@ -470,8 +470,8 @@ export default function TimelineScreen() {
                         )}
 
                         {/* 6. Micro Insight */}
-                        {microInsights.map(insight => (
-                            <MicroInsightCard key={insight.id} insight={insight} />
+                        {microInsights.map((insight, index) => (
+                            <MicroInsightCard key={`insight-${insight.id || index}`} insight={insight} />
                         ))}
 
                         <View style={styles.recentActivityHeader}>
@@ -580,7 +580,7 @@ export default function TimelineScreen() {
                                     );
                                 }
                             }}
-                            keyExtractor={(item) => item.data.id}
+                            keyExtractor={(item) => `${item.type}-modal-${item.data.id}`}
                         />
                         
                         <TouchableOpacity 
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
         textTransform: 'none',
     },
     intensityBadge: {
-        backgroundColor: Colors.errorMuted,
+        backgroundColor: Colors.errorContainer,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: Radii.md,

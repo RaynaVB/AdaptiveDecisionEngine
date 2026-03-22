@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     },
     frequencyItemSelected: {
         borderColor: Colors.primary,
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
     },
     frequencyText: {
         ...Typography.body,
@@ -519,11 +519,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: Colors.errorMuted,
+        backgroundColor: Colors.errorContainer,
         borderRadius: Radii.xl,
         padding: 20,
         borderWidth: 1,
-        borderColor: Colors.errorMuted,
+        borderColor: Colors.errorContainer,
     },
     logoutButtonText: {
         color: Colors.error,

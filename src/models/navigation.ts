@@ -4,7 +4,7 @@ export type RootStackParamList = {
     Main: undefined;
     Timeline: undefined;
     LogMeal: undefined;
-    LogMood: { mealId?: string; timestamp?: string }; // optional link back
+
     SymptomLogger: { mode: 'symptom' | 'mood' };
     MealDetail: { mealId: string };
     WeeklyPatterns: undefined;

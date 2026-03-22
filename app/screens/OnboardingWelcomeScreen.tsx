@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     disclaimerContainer: {
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         padding: 20,
         borderRadius: Radii.lg,
         marginTop: 24,

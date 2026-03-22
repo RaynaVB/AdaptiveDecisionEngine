@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     },
     heroSection: {
         marginBottom: Spacing.s6,
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         padding: 24,
         borderRadius: Radii.xl,
     },

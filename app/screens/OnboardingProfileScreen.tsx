@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     },
     frequencyItemSelected: {
         borderColor: Colors.primary,
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
     },
     frequencyText: {
         ...Typography.body,

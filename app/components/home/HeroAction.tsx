@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   confidenceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryMuted,
+    backgroundColor: Colors.primarySubtle,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radii.full,

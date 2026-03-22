@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
     recommendedCard: {
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         borderRadius: 20,
         padding: 16,
         marginBottom: Spacing.s3,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     durationBadge: {
-        backgroundColor: Colors.primaryMuted,
+        backgroundColor: Colors.primarySubtle,
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
