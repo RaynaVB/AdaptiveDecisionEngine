@@ -417,28 +417,15 @@ export default function LogMealScreen() {
             RecommendationService.recomputeRecommendations('meal_logged')
                 .catch(err => console.error("Failed to recompute recommendations:", err));
 
+            // Navigate back immediately without prompt
+            navigation.popToTop();
+
         } catch (error) {
             console.error("Save Error", error);
             Alert.alert("Error", "Failed to clear the save process to server.")
         } finally {
             setIsSaving(false);
         }
-
-        Alert.alert(
-            'Meal Saved',
-            'Log mood now?',
-            [
-                {
-                    text: 'Not Now',
-                    style: 'cancel',
-                    onPress: () => navigation.popToTop()
-                },
-                {
-                    text: 'Log Mood',
-                    onPress: () => navigation.navigate('SymptomLogger', { mode: 'mood' })
-                }
-            ]
-        );
     };
 
     return (

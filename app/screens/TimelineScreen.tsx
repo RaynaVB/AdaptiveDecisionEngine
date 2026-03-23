@@ -509,9 +509,21 @@ export default function TimelineScreen() {
                                     <Text style={styles.modalSubtitle}>{selectedDayEvents?.dateStr}</Text>
                                 </View>
                             </View>
-                            <TouchableOpacity onPress={() => setSelectedDayEvents(null)} style={{ padding: 4 }}>
-                                <X color={Colors.onSurfaceVariant} size={24} />
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <TouchableOpacity 
+                                    onPress={() => {
+                                        setSelectedDayEvents(null);
+                                        navigation.navigate('LogMeal');
+                                    }} 
+                                    style={{ marginRight: Spacing.s4, flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryContainer, paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radii.full }}
+                                >
+                                    <Utensils color={Colors.primary} size={16} style={{ marginRight: 6 }} />
+                                    <Text style={{ color: Colors.primary, fontWeight: '700', fontSize: 13 }}>Log Meal</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setSelectedDayEvents(null)} style={{ padding: 4 }}>
+                                    <X color={Colors.onSurfaceVariant} size={24} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                         
                         <SectionList
