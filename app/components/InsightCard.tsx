@@ -44,7 +44,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </View>
         <View style={[styles.typeBadge, { backgroundColor: badgeBg }]}>
           <Text style={[styles.typeBadgeText, { color: badgeColor }]}>
-            {insight.type.replace('_', ' ').toUpperCase()}
+            {(insight.type || 'insight').replace(/_/g, ' ').toUpperCase()}
           </Text>
         </View>
       </View>
@@ -52,7 +52,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
       <Text style={styles.cardDescription}>{insight.summary}</Text>
       <View style={styles.footer}>
         <Text style={styles.confidenceText}>
-          CONFIDENCE: {insight.confidenceLevel.toUpperCase()}
+          CONFIDENCE: {(insight.confidenceLevel || 'medium').toUpperCase()}
         </Text>
       </View>
     </View>

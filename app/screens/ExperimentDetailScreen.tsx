@@ -148,7 +148,7 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
                             <Text style={styles.badgeText}>{definition?.durationDays} DAYS</Text>
                         </View>
                         <View style={[styles.badge, { backgroundColor: Colors.primarySubtle }]}>
-                            <Text style={[styles.badgeText, { color: Colors.primary }]}>{definition?.category.toUpperCase()}</Text>
+                            <Text style={[styles.badgeText, { color: Colors.primary }]}>{(definition?.category || 'general').toUpperCase()}</Text>
                         </View>
                     </View>
                 </View>

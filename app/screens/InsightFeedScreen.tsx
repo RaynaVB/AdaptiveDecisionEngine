@@ -115,7 +115,7 @@ export default function InsightFeedScreen() {
                             {sensitivityItems.map(item => (
                                 <View key={item} style={styles.sensitivityChip}>
                                     <Text style={styles.sensitivityChipText}>
-                                        {item.replace(/_/g, ' ').replace(/sensitive|allergy/g, '').trim()}
+                                        {(item || 'item').replace(/_/g, ' ').replace(/sensitive|allergy/g, '').trim()}
                                     </Text>
                                 </View>
                             ))}
@@ -168,8 +168,17 @@ export default function InsightFeedScreen() {
 
                 {insights.length === 0 && !loading && (
                     <View style={styles.emptyState}>
-                        <Sparkles size={48} color={Colors.surfaceContainer} style={{ marginBottom: 16 }} />
-                        <Text style={styles.emptyText}>Analyzing your data for patterns...</Text>
+                        <View style={styles.emptyIconContainer}>
+                             <Sparkles size={32} color={Colors.primary} />
+                        </View>
+                        <Text style={styles.emptyTitle}>Your AI is Learning</Text>
+                        <Text style={styles.emptyText}>
+                            Log your meals and symptoms for a few more days to unlock specialized health insights and predictions.
+                        </Text>
+                        <View style={styles.emptyHint}>
+                            <Activity size={16} color={Colors.accent} />
+                            <Text style={styles.emptyHintText}>Next milestone: 5 logs</Text>
+                        </View>
                     </View>
                 )}
 
@@ -279,12 +288,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     sensitivityCard: {
-        backgroundColor: Colors.accentMuted,
+        backgroundColor: Colors.accentContainer,
         borderRadius: Radii.lg,
         padding: 24,
         marginBottom: Spacing.s6,
         borderWidth: 1,
-        borderColor: Colors.accentIcon,
+        borderColor: Colors.accent,
     },
     sensitivityHeader: {
         flexDirection: 'row',
@@ -304,7 +313,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     sensitivityChip: {
-        backgroundColor: Colors.accentIcon,
+        backgroundColor: Colors.accent,
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 6,
@@ -323,12 +332,47 @@ const styles = StyleSheet.create({
         opacity: 0.8,
     },
     emptyState: {
-        paddingVertical: 80,
+        paddingVertical: 100,
         alignItems: 'center',
+        paddingHorizontal: 40,
+    },
+    emptyIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: Colors.primaryContainer,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 24,
+    },
+    emptyTitle: {
+        ...Typography.title,
+        color: Colors.onSurface,
+        marginBottom: 12,
     },
     emptyText: {
         ...Typography.body,
-        color: Colors.outline,
+        fontSize: 15,
+        color: Colors.onSurfaceVariant,
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 32,
+    },
+    emptyHint: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: Colors.surfaceContainerLow,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: Radii.full,
+    },
+    emptyHintText: {
+        ...Typography.label,
+        fontSize: 11,
+        color: Colors.accent,
+        textTransform: 'none',
+        fontWeight: '700',
     },
     disclaimerText: {
         ...Typography.label,

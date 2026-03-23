@@ -135,7 +135,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                     {getItemIcon(item.type)}
                 </View>
                 <View style={styles.headerText}>
-                    <Text style={styles.categoryLabel}>{item.category.replace('_', ' ').toUpperCase()}</Text>
+                    <Text style={styles.categoryLabel}>{(item.category || 'general').replace(/_/g, ' ').toUpperCase()}</Text>
                     <Text style={styles.cardTitle}>{item.title}</Text>
                 </View>
             </View>

@@ -77,7 +77,18 @@ def run_weekly_generator(user_id: str, data: Dict[str, List[Dict[str, Any]]], in
             "rank": 10
         })
 
-    # 5. Narrative Title
+    # 5. Welcome Item for New Users
+    if not sufficiency["isSufficientOverall"] and not items:
+        items.append({
+            "type": "welcome",
+            "category": "onboarding",
+            "title": "Welcome to Veyra",
+            "summary": "You're in the 'Discovery' phase. Log your first 5 meals to unlock your first trend analysis.",
+            "confidenceScore": 1.0,
+            "rank": 0
+        })
+
+    # 6. Narrative Title
     title = "Your Weekly Health Story"
     if not sufficiency["isSufficientOverall"]:
         title = "Weekly Overview (Low Data)"

@@ -13,7 +13,22 @@ export const WeeklyIntelligence: React.FC<WeeklyIntelligenceProps> = ({ items, o
   // Focus on the top causal insight (pattern or trend)
   const mainInsight = items.find(item => item.type === 'pattern' || item.type === 'trend');
   
-  if (!mainInsight) return null;
+  if (!mainInsight) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Brain size={18} color={Colors.surfaceContainerHighest} />
+          <Text style={[styles.headerText, { color: Colors.onSurfaceVariant }]}>Weekly Intelligence</Text>
+        </View>
+        <View style={[styles.content, { backgroundColor: Colors.surfaceLowest, borderStyle: 'dashed', borderWidth: 1, borderColor: Colors.surfaceContainerHighest }]}>
+          <Text style={[styles.insightTitle, { color: Colors.onSurfaceVariant }]}>Building your profile...</Text>
+          <Text style={styles.insightSummary}>
+            The engine needs about 5–7 days of logs to identify your unique weekly patterns and causal links.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

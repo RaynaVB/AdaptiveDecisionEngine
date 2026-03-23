@@ -304,7 +304,7 @@ export default function TimelineScreen() {
                     <View style={{ paddingHorizontal: 4 }}>
                         <Text style={[styles.summaryText, { fontSize: 18, marginBottom: 4 }]}>{formatMealSummary(item)}</Text>
                         <Text style={styles.timeColumnText}>
-                            {timeString} • {item.mealSlot.charAt(0).toUpperCase() + item.mealSlot.slice(1)}
+                            {timeString} • {(item.mealSlot || 'meal').charAt(0).toUpperCase() + (item.mealSlot || 'meal').slice(1)}
                         </Text>
 
                         {item.textDescription ? (
@@ -342,7 +342,7 @@ export default function TimelineScreen() {
                     <View style={{ flex: 1 }}>
                         <Text style={[styles.summaryText, { fontSize: 17, marginBottom: 2 }]}>
                             {typeof item.valence === 'string' 
-                                ? item.valence.charAt(0).toUpperCase() + item.valence.slice(1) 
+                                ? (item.valence as string).charAt(0).toUpperCase() + (item.valence as string).slice(1) 
                                 : 'Mood'} & {item.energy} Energy
                         </Text>
                         <Text style={styles.timeColumnText}>
@@ -370,7 +370,7 @@ export default function TimelineScreen() {
                 <View style={[styles.card, styles.cardColumn, { padding: Spacing.s4 }]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                         <Text style={[styles.summaryText, { fontSize: 18, flex: 1, marginRight: 8 }]}>
-                            {item.symptomType.charAt(0).toUpperCase() + item.symptomType.slice(1)}
+                            {(item.symptomType || 'symptom').charAt(0).toUpperCase() + (item.symptomType || 'symptom').slice(1)}
                         </Text>
                         <View style={styles.intensityBadge}>
                             <Text style={styles.intensityText}>Intensity {item.severity}</Text>
@@ -418,16 +418,14 @@ export default function TimelineScreen() {
                             <Text style={styles.pageTitle}>Timeline</Text>
                         </View>
                         {/* 1. Hero — Best Next Action */}
-                        {recommendations.length > 0 && (
-                            <HeroAction 
-                                recommendation={recommendations[0]} 
-                                onStart={handleStartHero}
-                                onMaybe={handleMaybeRecommendation}
-                                onDismiss={handleDismissRecommendation}
-                            />
-                        )}
+                        <HeroAction 
+                            recommendation={recommendations[0]} 
+                            onStart={handleStartHero}
+                            onMaybe={handleMaybeRecommendation}
+                            onDismiss={handleDismissRecommendation}
+                        />
 
-                        {/* 2. Heads Up (Predictive Intelligence) */}
+                        {/* 2. Heads Up (Predictive Intelligence) - Only show if items exist */}
                         {headsUpItems.length > 0 && <HeadsUp items={headsUpItems} />}
 
                         {/* 3. Active Experiment */}
@@ -440,39 +438,60 @@ export default function TimelineScreen() {
                         ))}
 
                         {/* 4. Weekly Intelligence */}
-                        {weeklyItems.length > 0 && (
-                            <WeeklyIntelligence 
-                                items={weeklyItems} 
-                                onStartTest={handleStartTest}
-                            />
-                        )}
+                        <WeeklyIntelligence 
+                            items={weeklyItems} 
+                            onStartTest={handleStartTest}
+                        />
 
                         {/* 5. Week at a Glance */}
-                        {weekAtGlanceData.length > 0 && (
-                            <WeekAtAGlance 
-                                data={weekAtGlanceData.map(d => ({
-                                    label: d.label,
-                                    score: d.score,
-                                    dateStr: d.dateStr,
-                                    displayDate: d.displayDate,
-                                    hasEvents: d.events.length > 0,
-                                    eventCount: d.events.length
-                                }))}
-                                onPressDay={(d) => {
-                                    const day = weekAtGlanceData.find(w => w.dateStr === d.dateStr);
-                                    if (day && day.events.length > 0) {
-                                        setSelectedDayEvents({ dateStr: d.displayDate, events: day.events });
-                                    } else {
-                                        Alert.alert('No Logs', 'You had no activity logged on this day.');
-                                    }
-                                }}
-                            />
-                        )}
+                        <WeekAtAGlance 
+                            data={weekAtGlanceData.length > 0 ? weekAtGlanceData.map(d => ({
+                                label: d.label,
+                                score: d.score,
+                                dateStr: d.dateStr,
+                                displayDate: d.displayDate,
+                                hasEvents: d.events.length > 0,
+                                eventCount: d.events.length
+                            })) : [
+                                { label: 'M', score: 0, dateStr: '', displayDate: '', hasEvents: false, eventCount: 0 },
+                                { label: 'T', score: 0, dateStr: '', displayDate: '', hasEvents: false, eventCount: 0 },
+                                { label: 'W', score: 0, dateStr: '', displayDate: '', hasEvents: false, eventCount: 0 },
+                                { label: 'T', score: 0, dateStr: '', displayDate: '', hasEvents: false, eventCount: 0 },
+                                { label: 'F', score: 0, dateStr: '', displayDate: '', hasEvents: false, eventCount: 0 },
+                                { label: 'S', score: 0, dateStr: '', displayDate: '', hasEvents: false, eventCount: 0 },
+                                { label: 'S', score: 0, dateStr: '', displayDate: '', hasEvents: false, eventCount: 0 },
+                            ]}
+                            onPressDay={(d) => {
+                                const day = weekAtGlanceData.find(w => w.dateStr === d.dateStr);
+                                if (day && day.events.length > 0) {
+                                    setSelectedDayEvents({ dateStr: d.displayDate, events: day.events });
+                                } else {
+                                    Alert.alert('No Logs', 'Log your symptoms daily to see them reflected here.');
+                                }
+                            }}
+                        />
 
                         {/* 6. Micro Insight */}
-                        {microInsights.map((insight, index) => (
+                        {microInsights.length > 0 ? microInsights.map((insight, index) => (
                             <MicroInsightCard key={`insight-${insight.id || index}`} insight={insight} />
-                        ))}
+                        )) : (
+                            <MicroInsightCard 
+                                key="empty-insight" 
+                                insight={{
+                                    id: 'placeholder',
+                                    type: 'behavior_shift',
+                                    title: 'Log two meals to unlock your first insight',
+                                    summary: '',
+                                    confidenceLevel: 'low',
+                                    confidenceScore: 0,
+                                    priorityScore: 0,
+                                    category: 'lifestyle',
+                                    status: 'active',
+                                    window: { minHours: 0, maxHours: 0 },
+                                    supportingEvidence: {}
+                                } as any} 
+                            />
+                        )}
 
                         <View style={styles.recentActivityHeader}>
                             <Text style={styles.recentActivityTitle}>Recent Activity</Text>

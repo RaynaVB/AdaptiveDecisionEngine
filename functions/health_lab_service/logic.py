@@ -83,12 +83,17 @@ def calculate_experiment_scores(user_profile, insights, active_experiments, comp
         # 5. Novelty (0.05)
         if template_id not in completed_experiments:
             score += 0.05
+            
+        # 6. Starter Boost for new users (if no other strong signals)
+        if score < 0.2 and difficulty == 'easy':
+            score += 0.15
+            reasons.append("Great starter study")
 
         if score > 0:
             scored_templates.append({
                 "template": template,
                 "score": round(score, 2),
-                "reason": " + ".join(reasons[:2])
+                "reason": " + ".join(reasons[:2]) if reasons else "New discovery"
             })
 
     # Sort by score descending

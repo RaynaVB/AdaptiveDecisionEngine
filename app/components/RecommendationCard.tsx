@@ -53,7 +53,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
         <View style={styles.metaRow}>
           <View style={styles.confidenceBadge}>
             <Text style={styles.confidenceLabel}>Confidence: </Text>
-            <Text style={styles.confidenceValue}>{recommendation.confidenceLevel.toUpperCase()}</Text>
+            <Text style={styles.confidenceValue}>{(recommendation.confidenceLevel || 'medium').toUpperCase()}</Text>
           </View>
         </View>
       )}

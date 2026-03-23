@@ -119,21 +119,39 @@ def run_recommendation_engine(
     if not candidates:
         safe_templates = [t for t in ACTION_LIBRARY if t["id"].startswith("safe_")]
         for template in safe_templates:
+            rec_id = str(uuid.uuid4())
             candidates.append({
-                "id": str(uuid.uuid4()),
+                "id": rec_id,
                 "templateId": template["id"],
-                "recommendationType": template["recommendationType"],
+                "userId": user_id,
+                "generationId": "fallback", # Placeholder for fallback
+                "type": template["recommendationType"],
+                "category": template.get("category", "general"),
                 "title": template["titleTemplate"],
-                "action": template["actionTemplate"],
-                "whyThis": template["whyTemplate"],
+                "summary": template.get("summaryTemplate", template["actionTemplate"]),
+                "confidenceScore": 0.5,
+                "confidenceLevel": "medium",
+                "priorityScore": 0.6,
+                "whyThis": [
+                    {"kind": "safe_fallback", "label": template["whyTemplate"]}
+                ],
+                "cta": {
+                    "type": template.get("ctaType", "view_details"),
+                    "label": template.get("ctaLabel", "Take Action"),
+                    "payload": {"experimentId": template.get("associatedExperimentId")} if template.get("associatedExperimentId") else {}
+                },
+                "action": {
+                    "state": "none"
+                },
                 "linkedPatternIds": [],
                 "scores": {
                     "impact": 0.3,
                     "feasibility": 1.0,
                     "confidence": 0.5,
                     "mlScore": 0.5,
-                    "total": 0.62
+                    "total": 0.6
                 },
+                "associatedExperimentId": template.get("associatedExperimentId"),
                 "createdAt": datetime.now().isoformat()
             })
 

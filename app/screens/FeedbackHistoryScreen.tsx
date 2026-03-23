@@ -67,7 +67,7 @@ export default function FeedbackHistoryScreen() {
                     <View style={styles.historyCard}>
                         <View style={styles.cardHeader}>
                             <Text style={styles.typeLabel} numberOfLines={1}>
-                                {item.recommendationType.replace(/_/g, ' ').toUpperCase()}
+                                {(item.recommendationType || 'general').replace(/_/g, ' ').toUpperCase()}
                             </Text>
                             <Text style={styles.date}>{formatDate(item.timestamp)}</Text>
                         </View>

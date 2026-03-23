@@ -87,7 +87,7 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
                 </Text>
 
                 <View style={[styles.resultCard, { borderColor: isPositiveChange ? Colors.secondary + '40' : Colors.error + '40' }]}>
-                    <Text style={styles.resultLabel}>Impact on {definition.targetMetric.replace(/_/g, ' ')}</Text>
+                    <Text style={styles.resultLabel}>Impact on {(definition?.targetMetric || 'metric').replace(/_/g, ' ')}</Text>
                     <View style={styles.deltaRow}>
                         <TrendingUp size={32} color={isPositiveChange ? Colors.secondary : Colors.error} style={{ transform: [{ rotate: isPositiveChange ? '0deg' : '180deg' }] }} />
                         <Text style={[styles.deltaValue, { color: isPositiveChange ? Colors.secondary : Colors.error }]}>

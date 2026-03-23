@@ -45,7 +45,7 @@ export default function ExperimentHistoryScreen({ navigation }: ExperimentHistor
                     <View style={[styles.statusBadge, { backgroundColor: isCompleted ? Colors.primarySubtle : Colors.errorContainer }]}>
                         {isCompleted ? <CheckCircle size={14} color={Colors.primary} /> : <XCircle size={14} color={Colors.error} />}
                         <Text style={[styles.statusText, { color: isCompleted ? Colors.primary : Colors.error }]}>
-                            {item.status.toUpperCase()}
+                            {(item.status || 'unknown').toUpperCase()}
                         </Text>
                     </View>
                     <Text style={styles.dateText}>{item.startDate ? new Date(item.startDate).toLocaleDateString() : 'Recent'}</Text>
@@ -58,7 +58,7 @@ export default function ExperimentHistoryScreen({ navigation }: ExperimentHistor
                         <Text style={styles.resultValue}>
                             {item.resultDelta > 0 ? '+' : ''}{Math.round(item.resultDelta)}% 
                         </Text>
-                        <Text style={styles.resultLabel}>Impact on {definition?.targetMetric.replace(/_/g, ' ')}</Text>
+                        <Text style={styles.resultLabel}>Impact on {(definition?.targetMetric || 'metric').replace(/_/g, ' ')}</Text>
                     </View>
                 )}
 

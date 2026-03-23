@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Recommendation } from '../../../src/models/types';
-import { Target, Check, X, ShieldQuestion } from 'lucide-react-native';
+import { Target, Check, X, ShieldQuestion, Sparkles } from 'lucide-react-native';
 import { MICRO_DISCLAIMER_RECOMMENDATIONS } from '../../constants/legal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../constants/Theme';
 import { RecommendationCard } from '../RecommendationCard';
@@ -14,6 +14,26 @@ interface HeroActionProps {
 }
 
 export const HeroAction: React.FC<HeroActionProps> = ({ recommendation, onStart, onMaybe, onDismiss }) => {
+  if (!recommendation) {
+    return (
+      <View style={styles.outerContainer}>
+        <View style={[styles.container, { backgroundColor: Colors.primaryContainer }]}>
+          <View style={styles.header}>
+            <Sparkles size={20} color={Colors.primary} />
+            <Text style={[styles.headerText, { color: Colors.primary }]}>GETTING STARTED</Text>
+          </View>
+          <Text style={styles.title}>Welcome to Veyra</Text>
+          <Text style={styles.summary}>
+            Log your first meal or mood dip to start surfacing personalized patterns and recommendations.
+          </Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={() => {/* Navigate to LogMeal elsewhere */}}>
+            <Text style={styles.primaryButtonText}>Log Your First Meal</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.outerContainer}>
       <RecommendationCard

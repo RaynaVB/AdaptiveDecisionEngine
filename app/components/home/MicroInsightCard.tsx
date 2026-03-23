@@ -23,9 +23,9 @@ export const MicroInsightCard: React.FC<MicroInsightCardProps> = ({ insight }) =
         <Text style={styles.confidenceLabel}>Confidence: </Text>
         <Text style={[
           styles.confidenceValue,
-          { color: insight.confidenceLevel === 'high' ? Colors.primary : Colors.onSurfaceVariant }
+          { color: (insight.confidenceLevel || 'medium').toLowerCase() === 'high' ? Colors.primary : Colors.onSurfaceVariant }
         ]}>
-          {insight.confidenceLevel.charAt(0).toUpperCase() + insight.confidenceLevel.slice(1)}
+          {(insight.confidenceLevel || 'medium').charAt(0).toUpperCase() + (insight.confidenceLevel || 'medium').slice(1)}
         </Text>
       </View>
 
