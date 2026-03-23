@@ -13,7 +13,12 @@ export const WeeklyPatternsService = {
         if (!user) throw new Error("User not authenticated");
 
         try {
-            const response = await fetch(`${BASE_URL}/v1/users/${user.uid}/weekly`);
+            const token = await user.getIdToken();
+            const response = await fetch(`${BASE_URL}/v1/users/${user.uid}/weekly`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (!response.ok) {
                 const errorBody = await response.text();
                 throw new Error(`Failed to fetch weekly summary: ${response.status} ${response.statusText}. ${errorBody.slice(0, 100)}`);
@@ -29,10 +34,12 @@ export const WeeklyPatternsService = {
         const user = auth.currentUser;
         if (!user) throw new Error("User not authenticated");
 
+        const token = await user.getIdToken();
         const response = await fetch(`${BASE_URL}/v1/users/${user.uid}/weekly/recompute`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ trigger }),
         });

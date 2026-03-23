@@ -167,6 +167,10 @@ export default function AppNavigator() {
                     if (docSnap.exists()) {
                         setProfile(docSnap.data() as UserProfile);
                     }
+                }, (error) => {
+                    console.error("Profile snapshot listener failed:", error);
+                    // If permissions are denied, we still want to stop loading
+                    setLoading(false);
                 });
             } else {
                 setProfile(null);
