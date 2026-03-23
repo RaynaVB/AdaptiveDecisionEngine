@@ -1,6 +1,5 @@
-import { getGenerativeModel, Part } from "firebase/ai";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { geminiAI, storage } from "./firebaseConfig";
+import { auth, storage } from "./firebaseConfig";
 import { MealTypeTag } from "../models/types";
 
 // Base tags in our app logic
@@ -9,6 +8,12 @@ const VALID_TAGS: MealTypeTag[] = [
     'sweet', 'savory', 'homemade', 'restaurant', 'packaged',
     'high_sugar', 'fried_greasy', 'high_protein', 'high_fiber', 'caffeinated'
 ];
+
+// Cloud Function URL configuration
+const USE_EMULATOR = false;
+const PROD_URL = 'https://vision-service-n5p5ozwbwa-uc.a.run.app';
+const LOCAL_URL = 'http://192.168.4.39:5001/adaptivehealthengine/us-central1/vision_service';
+const BASE_URL = USE_EMULATOR ? LOCAL_URL : PROD_URL;
 
 export interface VisionAnalysisResult {
     isFood: boolean;
@@ -45,47 +50,32 @@ export async function uploadImageToFirebase(imageUri: string, mealId: string, us
 }
 
 /**
- * Calls Gemini through Firebase Vertex AI to analyze a food image.
+ * Calls the Python Vision Service to analyze a food image.
  */
 export async function analyzeFoodImage(base64Image: string, mimeType: string = 'image/jpeg'): Promise<VisionAnalysisResult> {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
     try {
-        // Initialize the Gemini Model
-        const model = getGenerativeModel(geminiAI, { 
-            model: "gemini-3-flash-preview",
-            generationConfig: {
-                responseMimeType: "application/json",
-            }
+        const token = await user.getIdToken();
+        const response = await fetch(`${BASE_URL}/v1/analyze-food`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                base64Image,
+                mimeType
+            }),
         });
 
-        const prompt = `
-            Analyze this food image for a medical-grade symptom tracking app. It is critical to identify ALL possible ingredients that could trigger symptoms (e.g., dairy, gluten, specific spices, oils, legumes).
-            
-            Provide the following structured data:
-            1. isFood: boolean, true if the image is primarily of food.
-            2. description: A brief summary of the meal.
-            3. dishName: The specific name of the dish.
-            4. visibleComponents: A comprehensive list of individual ingredients clearly seen in the image. Be specific (e.g., "whole wheat bread", "cheddar cheese", "romaine lettuce").
-            5. suggestedIngredients: A list of ingredients that are almost certainly present in this dish but not explicitly visible (e.g., "butter", "cooking oil", "salt", "garlic", "onion", "wheat flour" in a breaded item). Be exhaustive.
-            6. tags: Select relevant tags from this exact list: [${VALID_TAGS.join(', ')}].
-            7. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
-               Format each question as an object: {"id": "unique_id", "text": "Question text?"}.
-               IMPORTANT: Each question MUST be a Yes/No question. Use specific ingredient checks like "Was there any butter?" or "Does this contain dairy?" NOT "Was this A or B?".
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Failed to analyze image: ${response.status} ${response.statusText}. ${errorBody.slice(0, 100)}`);
+        }
 
-            Return ONLY a strict JSON object. If isFood is false, the other fields can be empty/null, but still return the object.
-        `;
-
-        const imagePart: Part = {
-            inlineData: {
-                data: base64Image,
-                mimeType
-            }
-        };
-
-        const result = await model.generateContent([prompt, imagePart]);
-        const responseText = result.response.text();
-
-        // Parse JSON output
-        const data = JSON.parse(responseText.replace(/```json\n?|\n?```/g, ''));
+        const data = await response.json();
         
         // Filter out any tags that aren't in our valid list just to be safe
         const safeTags = (data.tags || []).filter((t: any) => VALID_TAGS.includes(t as MealTypeTag)) as MealTypeTag[];
@@ -112,9 +102,8 @@ export async function analyzeFoodImage(base64Image: string, mimeType: string = '
             potentialQuestions
         };
 
-
     } catch (error) {
-        console.error("Error analyzing image with Vertex AI:", error);
+        console.error("Error analyzing image with Vision Service:", error);
         throw error;
     }
 }
