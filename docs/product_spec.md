@@ -1,162 +1,105 @@
-# Adaptive Decision Engine (Health) — Product Specification
-## Current Implementation State (March 2026)
+# Product Specification & Requirements Document
+## Veyra (formerly Adaptive Decision Engine)
+**Current State: March 2026**
 
-This document details all active features and technical capabilities of the **Adaptive Decision Engine**. It covers data ingestion, intelligence engines, the personalized adaptation loop, and the HealthLab behavioral experimentation system.
-
----
-
-### 1. Core Architecture & Infrastructure
-
-The system is a modular React Native application (Expo) with a clear separation between data collection, behavioral analysis, and intervention logic.
-
-- **Frontend**: Stack-based navigation (`@react-navigation/stack`) with a centralized `Timeline` as the home state.
-- **Backend Service Layer**:
-  - **Firebase Firestore**: Persistent, cloud-synced storage for user profiles, meal/mood logs, and experiment runs.
-  - **Firebase Auth**: Secure user authentication and session management.
-  - **AsyncStorage**: Local storage for recommendation feedback, enabling fast, offline-compatible adaptation.
-- **Intelligence Core**: Decoupled `pattern_engine`, `recommender_engine`, and `experimentAnalysis` modules allow for independent iteration on analytical logic.
+This document consolidates the product requirements (PRD) and the current technical capabilities of Veyra into a single source of truth. It covers the app's goals, user profiles, data ingestion features, intelligence engines, and the HealthLab experimentation system.
 
 ---
 
-### 2. Multi-Modal Data Ingestion
+## 1. Background / Problem
+Most food logging apps emphasize nutritional dashboards (calories/macros), but this does not reliably change user behavior. Users often:
+- Log inconsistently
+- Feel overwhelmed by data
+- Fail to translate insights into action
+- Ignore generic recommendations
 
-#### A. AI-Powered Ingredient Capture
-- **Visual & Text Dual-Mode**: Supports both camera/gallery uploads and manual text descriptions.
-- **Multi-Step AI Analysis**: Large Language Model (Gemini 2.0 Flash) provides real-time feedback during processing (e.g., "Identifying dish...", "Extracting ingredients...").
-- **Non-Food Detection**: Automated safety check to prevent non-food images from being processed.
-- **Canonical Ingredient Database**: Matches food items against a structured 2,500+ item ingredient library with support for manual additions/removals.
-- **Binary Follow-up Questions**: AI-generated clarifying questions (e.g., "Is this dairy-free?") use a simplified Yes/No/Not Sure format for rapid confirmation.
-- **Dish Name Attribution**: Automatically identifies and uses a primary "Dish Name" (e.g., "Street Tacos") over generic descriptions.
-- **Unified Interface**: `MealDetailScreen` provides visual parity with `LogMealScreen`, allowing effortless post-log editing of ingredients and dish details.
+**Veyra reframes health logging into decision support:**
+> The system identifies high-impact behavioral patterns and recommends the best next action a user can realistically follow to improve their lifestyle.
 
-#### B. Integrated Symptom & Mood Tracking
-- **Unified Logging Interface**: A single, dynamic `SymptomLoggerScreen` handles both physical symptoms (e.g., Nausea, Headache) and emotional check-ins (e.g., Anxiety, Low Energy).
-- **Multi-Logging with Sliders**: Users can log multiple symptoms simultaneously by adjusting severity sliders (0-5 scale) with dynamic color transitions.
-- **Duration Presets**: Quick-select presets (5m, 15m, 1h, etc.) for symptoms.
-- **Single Event Model**: Both physical and emotional symptoms utilize the `SymptomEvent` data model, allowing the pattern engine to seamlessly correlate both against lifestyle factors without separate pipelines.
-- **Top 5 Personalization**: The logging interface automatically surfaces the user's most frequently logged symptoms for their selected mode.
+## 2. Project Goals (What success looks like)
+### Primary Success Metrics
+- **Logging friction:** Users can log a meal+mood in under 30 seconds.
+- **Pattern quality:** The system identifies repeatable patterns only when statistically meaningful.
+- **Recommendation utility:** Interventions feel personal, actionable, and relevant.
+- **Follow-through:** Measurable percentage of accepted/partially accepted recommendations.
 
-#### C. Timeline — Chronological Feed
-- **7-Day Sliding Feed**: Displays all meals, moods, and symptoms in a `SectionList` grouped by day.
-- **Week at a Glance**: A summarized top row showing 7 distinct visual dot indicators, with each dot corresponding to total logged daily events. Color coding reflects symptom severities.
-- **Daily Timeline Modal**: Tapping a day's dot in the Week at a Glance opens a custom, interactive `Modal` presenting the day's timeline for meals, moods, and symptoms mirroring the chronological UI aesthetic.
-- **Intelligent Summaries**: Meal cards prioritize the AI-identified **Dish Name** (e.g., "Snack • Apple") over generic tags, ensuring a highly readable, descriptive feed.
-- **Swipe-to-Delete**: Native-feel gesture-based deletion (`PanResponder`) for both meal and mood cards with animated red delete indicator.
-- **Animated Removal**: Uses `LayoutAnimation` for smooth card collapse on deletion.
-- **Chart Summaries**: Embedded weekly bar/line charts showing mood and meal trends.
-- **Weekly Intelligence**: An intelligence summary section displaying dynamic insights. This features a specialized dense "Tag Cloud" layout for top weekly symptoms to preserve vertical real estate and present quick density views.
-- **Quick Actions**: Log Meal, Log Mood, and navigation to intelligence features accessible from the header.
+### Secondary Success Metrics
+- Improved user awareness of triggers (mood-linked eating, symptom flare-ups).
+- Reduced decision fatigue (“What should I do next?”).
+
+## 3. Users
+### Primary User Profile
+- Wants lifestyle improvement but struggles with consistency.
+- Tends to snack or eat impulsively during stress, low mood, or physical slumps.
+- Benefits from low-friction, “one best action” suggestions rather than complex dashboards.
 
 ---
 
-### 3. Intelligence Engines
+## 4. Functional Capabilities
 
-#### A. Pattern Engine
-Detects behavioral clusters using a 7-day sliding window with an **Uncertainty Policy** that gates results until minimum data density is met (5 meals, 3 moods).
+### A. Multi-Modal Data Ingestion (Logging)
 
+#### 1. AI-Powered Ingredient Capture
+- **Visual & Text Dual-Mode**: Supports both camera/gallery uploads and manual text entries.
+- **Multi-Step AI Analysis**: Large Language Model (Gemini 2.0 Flash) provides real-time extraction, identifying dishes and ingredients.
+- **Canonical Ingredient Database**: Maps extracted food items against a structured 2,500+ item ingredient library.
+- **Binary Clarification questions**: AI asks simplified Yes/No/Not Sure questions (e.g., "Is this dairy-free?") for quick confirmation.
+- **Dish Name Attribution**: Identifies primary "Dish Name" (e.g., "Street Tacos") over generic descriptions.
+
+#### 2. Integrated Symptom & Mood Tracking
+- **Unified Logging Interface**: A single, dynamic interface `SymptomLoggerScreen` for both physical symptoms (e.g., Nausea, Headache) and emotional check-ins (e.g., Anxiety, Low Energy).
+- **Multi-Logging with Sliders**: Users can log multiple aspects simultaneously via sliders (0-5 scale).
+- **Single Event Model**: Physical and emotional data use the same model, allowing the pattern engine to correlate both seamlessly.
+- **Top 5 Personalization**: Surfaces the user's most frequently logged symptoms automatically.
+
+### B. Timeline & Feed
+- **7-Day Sliding Feed**: Chronological display of meals, moods, and symptoms.
+- **Week at a Glance**: Summarized dot indicators for daily events.
+- **Daily Timeline Modal**: Detailed daily view with chronological layout.
+- **Weekly Intelligence**: "Tag Cloud" layout for top weekly symptoms and bar/line charts for trends.
+
+### C. Intelligence Engines
+
+#### 1. Pattern Engine
+Detects behavioral clusters using a 7-day sliding window with an **Uncertainty Policy** (minimum data gating: 5 meals, 3 moods).
 **Active Detectors:**
-| ID | Name | Trigger |
-|---|---|---|
-| P1 | Mood-Triggered Eating | Eating follows low mood or high stress |
-| P2 | Late-Night Clustering | Contiguous eating events in late-night hours |
-| P3 | Routine Shifts | Divergence in eating/mood between weekdays and weekends |
-| P4 | Meal-Mood Correlations | Specific meal tags linked to subsequent mood/energy shifts |
-| P5 | Symptom Correlations | Specific meal tags linked to subsequent physical or emotional symptoms |
+- **P1 (Mood-Triggered Eating):** Eating follows low mood or high stress.
+- **P2 (Late-Night Clustering):** Contiguous eating events in late-night hours.
+- **P3 (Routine Shifts):** Divergence between weekdays and weekends.
+- **P4 (Meal-Mood Correlations):** specific meal tags linked to subsequent mood/energy shifts.
+- **P5 (Symptom Correlations):** specific meal tags linked to subsequent physical/emotional symptoms.
 
-- **Actionable Insights / Experiment Pipeline**: Detected patterns automatically surface an `actionableInsight`. This insight acts as a direct suggestion to the user, providing a 1-tap pathway to start a specific, relevant HealthLab Experiment right from the Weekly Patterns screen.
+*Insight Integration:* Detected patterns surface an `actionableInsight`, providing a 1-tap pathway to start a HealthLab experiment.
 
-#### B. Personalized Recommender Engine
+#### 2. Personalized Recommender Engine
 Transforms detected patterns into ranked, actionable interventions using a **Contextual Bandit Model**.
+- **Action Library Includes**:
+  - `timing_intervention` (e.g., 10-minute buffers)
+  - `substitution` (e.g., pairing sweet snacks with protein)
+  - `prevention_plan` (e.g., pre-planned bridge snacks)
+  - `recovery` (e.g., short movement resets)
+  - `soft_intervention` (e.g., 60-second breathing pauses)
+- **Ranked Selection**: Provides 1 "Best Next Action" + 2 alternatives, scored across impact, feasibility, and ML-Reward.
 
-- **Personalization Layer**: `banditModel.ts` and `contextBuilder.ts` use temporal factors and recent behavioral history to predict the most effective intervention.
-- **Action Library**: 5 intervention archetypes:
-  - `timing_intervention` — e.g., 10-minute eating buffers
-  - `substitution` — e.g., pairing sweet snacks with protein
-  - `prevention_plan` — e.g., pre-planned bridge snacks
-  - `recovery` — e.g., short movement resets
-  - `soft_intervention` — e.g., 60-second breathing pauses
-- **Scoring & Ranking**: Each candidate is scored across **Impact** (40%), **Feasibility** (40%), and **ML-Reward** (20%). The engine returns exactly 3 options: 1 "Best Next Action" + 2 alternatives.
+### D. Adaptation & Feedback Loop
+- **Interactive Feedback**: Users respond with `Adopt`, `Maybe`, or `Reject`.
+- **Dynamic Penalty Logic**: Consistently rejected intervention types receive a score penalty to demote them in future rankings.
+- **Feedback History**: Dedicated log of past recommendations and their given outcomes.
 
----
+### E. HealthLab — Behavioral Experimentation System
+A system for short, structured behavioral experiments (4–5 days) to measure causal effects of habits on mood, energy, and stress.
 
-### 4. Adaptation & Feedback Loop
-
-- **Interactive Feedback**: Users respond to recommendations with `Adopt`, `Maybe`, or `Reject`.
-- **Persisted Outcomes**: Feedback is stored locally as structured, queryable events.
-- **Dynamic Penalty Logic**: Rejection rates are tracked per recommendation type. Consistently rejected types receive a score penalty (up to 40%), demoting them in future rankings.
-- **Feedback History Screen**: A dedicated log (`FeedbackHistoryScreen`) of all past recommendation interactions and their outcomes.
-
----
-
-### 5. HealthLab — Behavioral Experimentation System
-
-HealthLab allows users to run short, structured behavioral experiments (4–5 days) to measure the causal effect of specific habits on mood, energy, and stress. It operates as a mini scientific study within the app.
-
-#### A. Experiment Library
-Five built-in experiments, each with a defined hypothesis, duration, baseline window (7 days), and target metric:
-
-| ID | Name | Category | Target Metric | Duration |
-|---|---|---|---|---|
-| `protein_breakfast` | Protein Breakfast | Nutrition | Afternoon Energy | 5 days |
-| `no_late_snacks` | No Late Snacks | Timing | Next-Day Energy | 4 days |
-| `hydration_boost` | Hydration Boost | Nutrition | Mood Stability | 5 days |
-| `protein_snack_3pm` | Protein Snack at 3 PM | Energy | Afternoon Energy | 5 days |
-| `stress_reset_60s` | 60-Second Stress Reset | Stress | Stress Frequency | 5 days |
-| `dairy_reduction` | Dairy-Free Week | Nutrition | Symptom Frequency | 7 days |
-| `hydration_brain_fog` | Hydration vs Brain Fog | Interventions | Symptom Severity | 5 days |
-
-#### B. Experiment Lifecycle
-1. **Discovery**: `HealthLabScreen` lists all available experiments. Experiments already completed with High/Medium confidence are hidden from the list.
-2. **Activation**: User starts an experiment from `ExperimentDetailScreen`. **Multiple experiments can be active concurrently**, allowing a user to run short and long-term studies simultaneously.
-3. **Active Banner**: In-progress experiments appear as a list of highlighted cards on the HealthLab dashboard.
-4. **Completion**: User manually completes the experiment, triggering the Analysis Engine.
-5. **Results**: `ExperimentResultScreen` displays the delta %, confidence score, and a contextual recommendation.
-
-#### C. Analysis Engine (`experimentAnalysis.ts`)
-- **Baseline Computation**: Averages the target metric over the 7-day pre-experiment window.
-- **Experiment Computation**: Averages the same metric over the active experiment period.
-- **Delta Calculation**: `((experimentValue - baseline) / baseline) * 100`
-- **Confidence Scoring**:
-  - `high` — >15 total data points (meals + moods) during experiment period
-  - `medium` — 6–15 data points
-  - `low` — ≤5 data points
-
-**Target Metrics Supported:**
-- `afternoon_energy` — Average energy 2–4 PM
-- `next_day_energy` — Average energy 6–10 AM
-- `mood_stability` — Average mood valence
-- `stress_frequency` — High-stress events per day
-- `symptom_frequency` — Count of reported symptoms per day
-- `symptom_severity` — Average severity score of reported symptoms
-- `avg_energy`, `avg_mood` — General daily averages
-
-#### D. Smart UX Behaviors
-- **Retry Logic**: If confidence is `low`, a "Retry Experiment" button appears on the result screen, allowing the user to immediately restart the study for better data.
-- **Smart Filtering**: Completed high/medium-confidence experiments are removed from the Available list, keeping the dashboard focused on new studies.
-- **Experiment History**: A dedicated `ExperimentHistoryScreen` shows all past runs (completed and abandoned) with their delta and confidence scores.
-- **Focus Refresh**: The HealthLab dashboard automatically re-fetches data when navigated back to, ensuring state is always current.
-- **Simulation Utility**: A developer "Simulate Full 7-Day Study" button seeds backdated mood, meal, and **symptom** data for the active experiment and immediately completes it, enabling end-to-end testing of the analysis pipeline and the surfacing of pattern-triggered experiments (like P5).
+#### Experiment Lifecycle
+1. **Discovery**: `HealthLabScreen` shows available built-in experiments (e.g., "Protein Breakfast", "Hydration Boost", "Dairy-Free Week").
+2. **Activation**: Users can start/run multiple experiments concurrently.
+3. **Analysis Engine**: Computes experiment metrics against a 7-day pre-experiment baseline. Returns a delta % and confidence score (`high`, `medium`, `low`).
+4. **Smart UX**: Features retry logic for low-confidence results, experiment history archiving, and smart filtering of completed high-confidence studies.
 
 ---
 
-### 6. Screen Inventory
+## 5. Non-Functional Requirements
+- **Fast Experience**: The core logging path must remain under 30 seconds.
+- **Safe Fallback**: If confidence is too low (e.g., unidentifiable meal, sparse pattern history), the app will recommend a low-risk action or request more data rather than presenting speculative conclusions.
+- **Modular Architecture**: Logging, patterns, recommendations, and HealthLab are kept structurally independent for easy iteration.
 
-| Screen | Route Key | Description |
-|---|---|---|
-| Timeline | `Timeline` | 7-day feed of meals and moods with swipe-to-delete and charts |
-| Log Meal | `LogMeal` | Camera/text meal entry with ML-powered tagging |
-| Log Mood / Symptom | `SymptomLogger` | Unified slider-based interface for multi-logging symptoms and moods |
-| Meal Detail | `MealDetail` | Full record view for a single meal event |
-| Weekly Patterns | `WeeklyPatterns` | Visual display of recognized behavioral patterns |
-| Recommendation Feed | `Recommendations` | Personalized, ranked interventions with feedback controls |
-| Feedback History | `FeedbackHistory` | Log of all past recommendation outcomes |
-| HealthLab | `HealthLab` | Experiment discovery dashboard |
-| Experiment Detail | `ExperimentDetail` | Hypothesis, controls, and start/complete/abandon actions |
-| Experiment History | `ExperimentHistory` | Archive of all past experiment runs |
-| Experiment Result | `ExperimentResult` | Delta, confidence, and recommendations for a completed run |
-| Login | `Login` | Email/password authentication |
-| Sign Up | `SignUp` | Account creation |
-| Forgot Password | `ForgotPassword` | Password reset via email |
-| Onboarding Welcome | `OnboardingWelcome` | First-run welcome flow |
-| Onboarding Profile | `OnboardingProfile` | Initial user profiling for personalization |
-| Onboarding Complete | `OnboardingComplete` | Completion of setup, transitions to Timeline |
+*(End of Product Specification)*

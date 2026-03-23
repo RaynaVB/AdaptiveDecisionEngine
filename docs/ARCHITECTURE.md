@@ -1,205 +1,97 @@
 # Architecture
-## Adaptive Decision Engine (Health) — V2
+## Veyra (formerly Adaptive Decision Engine)
 
-This document defines the end-to-end architecture for V2. The system is intentionally modular so the “decision intelligence” core (patterns + recommendations + learning loop) can evolve independently of the UI.
-
----
-
-## 1) Goals
-- **Low-friction capture** of meals (photo/text + coarse tags) and mood (tap-based).
-- **Pattern detection** over time-stamped events (meal+mood).
-- **Decision engine** that outputs **1 best next action + up to 2 alternatives**, with “why this, why now”.
-- **Trust via uncertainty handling** (confidence scores + graceful fallback).
-- **Learning loop** from accept/reject outcomes to adapt future recommendations.
-- **Reproducibility**: store run metadata (versions, parameters) so results can be replayed.
+This document defines the end-to-end architecture of Veyra. The system is designed functionally around modular "decision intelligence" cores (patterns, recommendations, experimentation) separated from the user interface.
 
 ---
 
-## 2) Major Modules
+## 1. High-Level Architecture
+Veyra relies on a React Native (Expo) frontend paired with a modular Serverless backend (Firebase + Cloud Functions) to offload heavy intelligence analysis.
 
-### 2.1 Logging UI (Client)
-**Responsibilities**
-- Meal logging: photo OR short text + meal slot + meal type tags.
-- Mood logging: valence/energy/stress (+ optional tag).
-- Timeline/history view (for transparency).
-- Recommendation display + feedback capture.
-
-**Inputs/Outputs**
-- Writes: `meal_events`, `mood_events`, `recommendation_feedback`
-- Reads: recent `meal_events`, `mood_events`, `patterns`, `recommendations`
+- **Frontend Application (React Native / Expo):**
+  - Handles UI logic, local state management, async storage for offline/fast caching.
+  - Implements gesture-based interactions, form captures, and renders visual insights securely.
+- **Backend Infrastructure (Firebase):**
+  - `Firestore`: Primary database storing structured event data (Meals, Moods, Users, Experiments).
+  - `Auth`: User authentication.
+  - `Cloud Functions (Python)`: Decoupled service endpoints to run ML tasks, logic, and intelligent generation offline and at scale.
 
 ---
 
-### 2.2 Inference / Labeling Layer (Hybrid)
-V2 treats inference as **assistive**, not authoritative.
+## 2. API & Service Architecture (Backend Functions)
 
-**Responsibilities**
-- Convert photo/text into *suggested* meal type tags.
-- Produce **confidence** (or “unknown”) for inferred tags.
-- Optionally ask 1 clarification question when confidence is low.
+The system delegates domain-specific logic to independent cloud function services:
 
-**Interfaces**
-- Client can do lightweight rules (e.g., user-selected tags).
-- Server can host model-backed inference (optional for V2).
-- Always preserve user overrides as the source of truth.
-
-**Writes**
-- `meal_events.inferred_tags`, `meal_events.inference_confidence` (optional)
-
----
-
-### 2.3 Pattern Engine (Server)
-Consumes events and produces patterns with confidence gating.
-
-**Responsibilities**
-- Compute patterns from the event window (e.g., last 7/14/30 days):
-  - mood dip → eat within N minutes
-  - late-night eating cluster
-  - weekday vs weekend shift
-  - meal type ↔ mood association
-- Apply minimum sample-size thresholds.
-- Output patterns as structured JSON + readable text.
-
-**Writes**
-- `pattern_runs` (metadata: version, params, window)
-- `patterns` (materialized results)
+1. **`vision_service`**
+   - **Role:** ML-powered ingredient and dish extraction.
+   - **Mechanism:** Integrates with Gemini 2.0 Flash to analyze meal photos and text descriptions, extract dish names, identify canonical ingredients against a 2,500+ item database, and generate binary clarification questions.
+2. **`health_lab_service`**
+   - **Role:** Drives the behavioral experimentation lifecycle.
+   - **Mechanism:** Aggregates logs to compute pre-experiment baselines vs. active experiment periods. Outputs statistical deltas for targeted metrics (e.g., `afternoon_energy`, `symptom_frequency`) and confidence scoring.
+3. **`recommendation_service`**
+   - **Role:** Generates actionable, personalized interventions.
+   - **Mechanism:** Uses a Contextual Bandit Model to score interventions based on ML confidence, expected impact, user feasibility, and past feedback histories.
+4. **`weekly_patterns_service`**
+   - **Role:** Detects behavioral clusters.
+   - **Mechanism:** Scans time-series data to locate conditions like "Mood-Triggered Eating" or "Symptom Correlations". Uses a strict statistical uncertainty policy to avoid false positives.
+5. **`insights_service`**
+   - **Role:** Generates localized and time-based summary intelligence for the Insights Feed.
 
 ---
 
-### 2.4 Recommendation Engine (Server)
-Transforms patterns into ranked, explainable actions.
+## 3. Application Flow & Screen Inventory (Frontend)
 
-**Responsibilities**
-- Generate candidate interventions from patterns.
-- Apply deeply personalized contexts with a **Contextual Bandit Model**:
-  - `contextBuilder.ts` builds the user's current behavioral state from recent mood and food history.
-  - `banditModel.ts` dynamically scores candidates beyond base impact/feasibility heuristics.
-- Score each candidate by:
-  - expected impact
-  - feasibility (friction)
-  - confidence (data quality)
-  - ML preference score (learned via bandit)
-  - recent acceptance/rejection history
-- Output **ranked recommendations**:
-  - rank 1 = best next action
-  - rank 2–3 = alternatives
-- Provide “why this, why now” linked to pattern evidence.
+The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` to coordinate across five main pillars: **Home, Insights, Recommendations, Health Lab, and Weekly**.
 
-**Writes**
-- `recommendation_runs` (metadata: version, params, window)
-- `recommendations` (ranked outputs)
+### Authentication & Onboarding
+- `Login`, `SignUp`, `ForgotPassword`
+- `OnboardingWelcome`, `OnboardingProfile`, `OnboardingComplete`: Sets up initial user baseline parameters.
 
----
-
-### 2.5 Feedback Loop / Learning Logic (Server)
-Turns outcomes into adaptation signals.
-
-**Responsibilities**
-- Store outcomes: accepted / partial / rejected (+ optional reason).
-- Update user-level signals:
-  - “feasibility preference” proxy (based on repeated rejection)
-  - “avoid list” for action types repeatedly rejected
-  - time-of-day preferences (if needed)
-- Adjust future ranking weights (simple rules in V2 are OK).
-
-**Writes**
-- `recommendation_feedback`
-- Optional: user preference state (in `users.preference_weights` or a separate table)
+### Core Features
+- **Logging**
+  - `LogMeal`: Camera/text meal entry bridging to the vision service.
+  - `SymptomLogger`: Unified slider-based interface for logging physical and emotional states.
+  - `MealDetail`: Read/write structured breakdown of a single logged meal event.
+- **Feed & Timeline**
+  - `Timeline`: 7-day chronologic feed of completed meals and moods.
+- **Intelligence Surfaces**
+  - `InsightFeed`: AI-generated insight statements powered by pattern recognition.
+  - `WeeklyPatterns`: Visual display of behavioral patterns over the last evaluated cycle.
+  - `RecommendationFeed`: Personalized interventions ranked 1-3. Features the Adopt/Maybe/Reject feedback mechanisms.
+  - `FeedbackHistory`: Archive of users' interactions with past recommendations.
+- **HealthLab (Experimentation)**
+  - `HealthLab`: The experiment discovery dashboard.
+  - `ExperimentDetail`: Setup, hypothesis, and control toggles for an active run.
+  - `ExperimentResult`: Post-experiment output (delta, metric impact, confidence).
+  - `ExperimentHistory`: Archive of completed/abandoned runs.
 
 ---
 
-## 3) Client vs Server Responsibilities
+## 4. Core Data Models
 
-### Client (Mobile App)
-**Must**
-- Capture input fast and reliably.
-- Display outputs clearly and honestly (including uncertainty).
-- Collect feedback with minimal friction.
+The system relies on deeply structured TypeScript types (see `src/models/types.ts` and `src/models/healthlab.ts`).
 
-**May**
-- Perform basic tag suggestions (non-ML heuristics).
-- Cache recent data for speed/offline.
+### 4.1 Input Events (The Ledger)
+- **`MealEvent`**:
+  - Encompasses `mealSlot` (breakfast/lunch/snack/dinner) and `mealTypeTags`.
+  - Advanced ML features: `dishLabel`, canonical `confirmedIngredients`, and dynamically AI-generated clarifying `questions`.
+- **`MoodEvent`**:
+  - The unified event capturing *both* emotional shifts (`valence`, `arousal`, `energy`) and physical states (`symptom_severity`, specific symptom tags). Allows holistic pattern overlap between mental and physical wellbeing.
 
-### Server (API / Functions)
-**Must**
-- Run pattern computation and recommendation generation.
-- Enforce confidence gating and safe fallbacks.
-- Store run metadata for reproducibility.
+### 4.2 Intelligence Outputs
+- **`Pattern`**: Extracted behavioral sequences. Includes `confidence`, `severity`, and an `actionableInsight` (to trigger HealthLab workflows).
+- **`Recommendation`**: Produced by the recommender engine. Includes `priorityScore`, `confidenceScore`, array of exact `scores` (impact, feasibility, mlScore), and the feedback `action` outcome.
+- **`Insight`**: Generative intelligence containing `supportingEvidence` and `confidenceLevel`.
 
-**May**
-- Host ML inference (optional in V2).
-- Provide scheduled jobs (nightly/weekly runs).
+### 4.3 Experimentation Models
+- **`ExperimentDefinition`**: Template detailing target metrics (`avg_energy`, `symptom_frequency`), required event types, and duration windows.
+- **`ExperimentRun`**: The instance of a user undertaking a definition. Tracks the `baselineValue`, `experimentValue`, the `resultDelta`, and the run `status` (active/completed).
 
 ---
 
-## 4) Data Flow (End-to-End)
-
-1. **User logs meal**
-   - Photo/text + slot + tags saved to `meal_events`
-   - Optional inference suggests additional tags with confidence
-
-2. **User logs mood**
-   - Tap-based mood saved to `mood_events`
-
-3. **Pattern run executes (scheduled or manual)**
-   - Creates `pattern_runs` + `patterns` (with confidence gating)
-
-4. **Recommendation run executes**
-   - Reads latest patterns + history + prior feedback
-   - Creates `recommendation_runs` + ranked `recommendations`
-
-5. **User provides outcome feedback**
-   - Saves to `recommendation_feedback`
-   - Future runs adapt ranking/selection logic
-
----
-
-## 5) APIs (Conceptual)
-These can be REST endpoints, edge functions, or callable functions.
-
-### Logging
-- `POST /meal-events`
-- `POST /mood-events`
-- `GET /timeline?start=...&end=...`
-
-### Patterns
-- `POST /pattern-runs` (optional manual trigger)
-- `GET /patterns?window=7d`
-
-### Recommendations
-- `POST /recommendation-runs` (optional manual trigger)
-- `GET /recommendations?date=today`
-
-### Feedback
-- `POST /recommendation-feedback`
-
----
-
-## 6) Versioning & Reproducibility
-Every run stores:
-- `algorithm_version` (e.g., `pattern_v1.0`, `reco_v1.1`)
-- `parameters` (thresholds, weights)
-- time window and event counts
-
-This enables:
-- comparing iterations
-- explaining changes (critical for M&T narrative)
-- debugging regressions
-
----
-
-## 7) Security / Privacy (V2 baseline)
-- Minimal user data stored.
-- Photos stored in private buckets; avoid public URLs.
-- No medical claims; recommendations are lifestyle suggestions.
-- Clear user control to delete logs (optional for later).
-
----
-
-## 8) Future Extensions (Out of Scope for V2)
-- HRV/Apple Health/Oura integration (physio proxy signals)
-- More robust personalization (learned models)
-- Multi-language support
-- Advanced analytics dashboards (deliberately excluded)
-
----
+## 5. Execution Summary
+1. User interacts with `LogMeal` or `SymptomLogger`.
+2. Frontend writes structured payload to `Firestore` (triggering external Python `vision_service` if a meal photo needs parsing).
+3. On demand or on interval, the backend functions (`weekly_patterns_service`, `insights_service`) sweep recent historical chunks. New `Pattern` records and `Insight` records are materialized.
+4. The `recommendation_service` maps active patterns to candidate interventions, applies contextual bandit weights based on historical user feedback, and persists `Recommendation` records.
+5. The UI reads finalized read-only intelligence into `RecommendationFeed` and `WeeklyPatterns` surfaces for the user.
