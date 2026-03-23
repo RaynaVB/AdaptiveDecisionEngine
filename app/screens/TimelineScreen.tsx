@@ -279,7 +279,7 @@ export default function TimelineScreen() {
         return validMoods.length > 0 ? validMoods[0] : null;
     };
 
-    const renderMealItem = (item: MealEvent) => {
+    const renderMealItem = (item: MealEvent, isModal: boolean = false) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const mood = getMoodForMeal(item);
@@ -298,7 +298,7 @@ export default function TimelineScreen() {
                     onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
                 >
                     {item.photoUri ? (
-                        <Image source={{ uri: item.photoUri }} style={[styles.mealImage, { marginBottom: Spacing.s3 }] as any} resizeMode="cover" />
+                        <Image source={{ uri: item.photoUri }} style={[styles.mealImage, isModal && { height: 100 }, { marginBottom: Spacing.s3 }] as any} resizeMode="cover" />
                     ) : null}
 
                     <View style={{ paddingHorizontal: 4 }}>
@@ -387,8 +387,8 @@ export default function TimelineScreen() {
         );
     };
 
-    const renderItem = ({ item }: { item: TimelineItem }) => {
-        if (item.type === 'meal') return renderMealItem(item.data);
+    const renderItem = ({ item, isModal = false }: { item: TimelineItem, isModal?: boolean }) => {
+        if (item.type === 'meal') return renderMealItem(item.data, isModal);
         if (item.type === 'symptom') return renderSymptomItem(item.data);
         return renderMoodItem(item.data);
     };
@@ -515,71 +515,10 @@ export default function TimelineScreen() {
                         </View>
                         
                         <SectionList
-                            style={{ maxHeight: Dimensions.get('window').height * 0.6 }}
-                            contentContainerStyle={{ paddingHorizontal: Spacing.s3, paddingBottom: Spacing.s3 }}
+                            style={{ maxHeight: Dimensions.get('window').height * 0.7 }}
+                            contentContainerStyle={{ paddingHorizontal: Spacing.s4, paddingBottom: Spacing.s4, paddingTop: Spacing.s2 }}
                             sections={[{ title: 'Events', data: selectedDayEvents?.events || [] }]}
-                            renderItem={({ item }) => {
-                                const timeStr = new Date(item.data.occurredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                                
-                                if (item.type === 'symptom') {
-                                    const sym = item.data;
-                                    let severityColor = Colors.primary;
-                                    if (sym.severity >= 4) severityColor = Colors.error;
-                                    
-                                    return (
-                                        <View style={[styles.timelineRow, { marginBottom: 2 }]}>
-                                            <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
-                                                <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
-                                            </View>
-                                            <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: severityColor, shadowOpacity: 0, elevation: 0 }]}>
-                                                <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4}}>
-                                                    <View style={{flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingRight: 8}}>
-                                                        <Text style={{fontSize: 16, marginRight: 6}}>🤒</Text>
-                                                        <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]} numberOfLines={1}>{sym.symptomType}</Text>
-                                                    </View>
-                                                </View>
-                                                {sym.notes ? <Text style={[styles.symptomNotes, { marginTop: 4 }]} numberOfLines={2}>{sym.notes}</Text> : null}
-                                            </View>
-                                        </View>
-                                    );
-                                } else if (item.type === 'meal') {
-                                    const meal = item.data;
-                                    return (
-                                        <View style={[styles.timelineRow, { marginBottom: 2 }]}>
-                                            <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
-                                                <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
-                                            </View>
-                                            <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: Colors.primary, shadowOpacity: 0, elevation: 0 }]}>
-                                                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
-                                                    <Text style={{fontSize: 16, marginRight: 6}}>🍽️</Text>
-                                                    <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]} numberOfLines={1}>{meal.mealSlot}</Text>
-                                                </View>
-                                                <Text style={styles.symptomNotes} numberOfLines={2}>{formatMealSummary(meal)}</Text>
-                                            </View>
-                                        </View>
-                                    );
-                                } else {
-                                    const mood = item.data;
-                                    let emoji = '😐';
-                                    if (mood.valence === 'positive') emoji = '🙂';
-                                    else if (mood.valence === 'negative') emoji = '🙁';
-                                    
-                                    return (
-                                        <View style={[styles.timelineRow, { marginBottom: 2 }]}>
-                                            <View style={[styles.timeColumn, { width: 60, paddingRight: 6 }]}>
-                                                <Text style={[styles.timeColumnText, { fontSize: 11 }]}>{timeStr}</Text>
-                                            </View>
-                                            <View style={[styles.card, { flex: 1, padding: 12, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: Colors.background, shadowOpacity: 0, elevation: 0 }]}>
-                                                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4}}>
-                                                    <Text style={{fontSize: 16, marginRight: 6}}>{emoji}</Text>
-                                                    <Text style={[styles.symptomTypeName, { marginBottom: 0, fontSize: 14 }]}>Mood</Text>
-                                                </View>
-                                                <Text style={styles.symptomNotes} numberOfLines={2}>{mood.valence} mood, {mood.energy} energy</Text>
-                                            </View>
-                                        </View>
-                                    );
-                                }
-                            }}
+                            renderItem={(props) => renderItem({ ...props, isModal: true })}
                             keyExtractor={(item) => `${item.type}-modal-${item.data.id}`}
                         />
                         
