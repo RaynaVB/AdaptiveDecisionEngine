@@ -33,7 +33,16 @@ def analyze_mood_dip_then_eat(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     triggers = []
 
     for mood in sorted_moods:
-        if mood.get("valence") == "negative" or mood.get("stress") == "high":
+        is_negative = False
+        stype = mood.get("symptomType", "").lower()
+        severity = mood.get("severity", 0)
+
+        if stype == "mood" and severity < 0:
+            is_negative = True
+        elif stype == "stress" and severity > 0:
+            is_negative = True
+
+        if is_negative:
             try:
                 mood_time = datetime.fromisoformat(mood["occurredAt"].replace('Z', '+00:00'))
                 for meal in sorted_meals:
@@ -198,7 +207,17 @@ def analyze_meal_type_mood_association(context: Dict[str, Any]) -> List[Dict[str
                         sub_moods.append(m)
                 
                 if sub_moods:
-                    has_negative = any(m.get("valence") == "negative" for m in sub_moods)
+                    has_negative = False
+                    for m in sub_moods:
+                        stype = m.get("symptomType", "").lower()
+                        sev = m.get("severity", 0)
+                        if stype == "mood" and sev < 0:
+                            has_negative = True
+                            break
+                        if stype == "stress" and sev > 0:
+                            has_negative = True
+                            break
+
                     for tag in present_targets:
                         stats[tag]["total"] += 1
                         if has_negative: stats[tag]["drops"] += 1

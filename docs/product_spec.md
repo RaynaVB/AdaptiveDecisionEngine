@@ -46,11 +46,15 @@ Most food logging apps emphasize nutritional dashboards (calories/macros), but t
 - **Binary Clarification questions**: AI asks simplified Yes/No/Not Sure questions (e.g., "Is this dairy-free?") for quick confirmation.
 - **Dish Name Attribution**: Identifies primary "Dish Name" (e.g., "Street Tacos") over generic descriptions.
 
-#### 2. Integrated Symptom & Mood Tracking
-- **Unified Logging Interface**: A single, dynamic interface `SymptomLoggerScreen` for both physical symptoms (e.g., Nausea, Headache) and emotional check-ins (e.g., Anxiety, Low Energy).
-- **Multi-Logging with Sliders**: Users can log multiple aspects simultaneously via sliders (0-5 scale).
-- **Single Event Model**: Physical and emotional data use the same model, allowing the pattern engine to correlate both seamlessly.
-- **Top 5 Personalization**: Surfaces the user's most frequently logged symptoms automatically.
+#### 2. Specialized Mood & Symptom Tracking
+- **Decoupled Logging Interfaces**: Dedicated screens for mental and physical states to optimize UX:
+    - **`MoodLoggerScreen`**: Focused on emotional check-ins (e.g., Sad ↔ Happy, Energy, Stress).
+    - **`SymptomLoggerScreen`**: Streamlined for physical symptoms (e.g., Nausea, Headache).
+- **Multi-Scale Architecture**:
+    - **Bipolar Moods**: Center-aligned sliders on a **-2 to +2** scale (Neutral at 0) to capture both positive and negative valence.
+    - **Unipolar Symptoms**: Simplified **1-3** scale (Mild, Moderate, Severe) to reduce cognitive load and simplify pattern detection.
+- **Unified Event Model**: Despite separate UIs, data remains compatible, allowing the pattern engine to correlate across both collections seamlessly.
+- **Top 5 Personalization**: Surfaces the user's most frequently logged symptoms or moods automatically.
 
 ### B. Timeline & Feed
 - **7-Day Sliding Feed**: Chronological display of meals, moods, and symptoms.
@@ -61,13 +65,13 @@ Most food logging apps emphasize nutritional dashboards (calories/macros), but t
 ### C. Intelligence Engines
 
 #### 1. Pattern Engine
-Detects behavioral clusters using a 7-day sliding window with an **Uncertainty Policy** (minimum data gating: 5 meals, 3 moods).
+Detects behavioral clusters using a 7-day sliding window with an **Uncertainty Policy** (minimum data gating: 5 meals, 3 moods/symptoms).
 **Active Detectors:**
 - **P1 (Mood-Triggered Eating):** Eating follows low mood or high stress.
 - **P2 (Late-Night Clustering):** Contiguous eating events in late-night hours.
 - **P3 (Routine Shifts):** Divergence between weekdays and weekends.
 - **P4 (Meal-Mood Correlations):** specific meal tags linked to subsequent mood/energy shifts.
-- **P5 (Symptom Correlations):** specific meal tags linked to subsequent physical/emotional symptoms.
+- **P5 (Symptom Correlations):** specific meal tags linked to subsequent physical symptoms or emotional shifts.
 
 *Insight Integration:* Detected patterns surface an `actionableInsight`, providing a 1-tap pathway to start a HealthLab experiment.
 

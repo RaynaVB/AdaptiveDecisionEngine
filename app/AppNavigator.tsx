@@ -6,6 +6,7 @@ import TimelineScreen from './screens/TimelineScreen';
 import LogMealScreen from './screens/LogMealScreen';
 
 import SymptomLoggerScreen from './screens/SymptomLoggerScreen';
+import MoodLoggerScreen from './screens/MoodLoggerScreen';
 import MealDetailScreen from './screens/MealDetailScreen';
 import WeeklyPatternsScreen from './screens/WeeklyPatternsScreen';
 import InsightFeedScreen from './screens/InsightFeedScreen';
@@ -233,9 +234,18 @@ export default function AppNavigator() {
                             })}
                         />
                         <Stack.Screen
-                            name="MealDetail"
-                            component={MealDetailScreen}
-                            options={{ headerShown: true, title: 'Meal Details' }}
+                            name="MoodLogger"
+                            component={MoodLoggerScreen}
+                            options={({ navigation }) => ({
+                                headerShown: true,
+                                title: 'Log Mood',
+                                presentation: 'modal',
+                                headerLeft: () => (
+                                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 16 }}>
+                                        <Text style={{ color: Colors.primary, fontSize: 16, fontFamily: 'Manrope-Medium' }}>Cancel</Text>
+                                    </TouchableOpacity>
+                                )
+                            })}
                         />
                         <Stack.Screen
                             name="WeeklyPatterns"

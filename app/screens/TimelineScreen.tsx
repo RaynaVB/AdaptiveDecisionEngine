@@ -504,9 +504,9 @@ export default function TimelineScreen() {
             <SmartFAB 
                 hasActiveExperiment={activeExperiments.length > 0}
                 onLogMeal={() => navigation.navigate('LogMeal')}
-                onLogSymptom={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
-                onLogMood={() => navigation.navigate('SymptomLogger', { mode: 'mood' })}
-                onLogProgress={() => navigation.navigate('SymptomLogger', { mode: 'symptom' })}
+                onLogSymptom={() => navigation.navigate('SymptomLogger')}
+                onLogMood={() => navigation.navigate('MoodLogger')}
+                onLogProgress={() => navigation.navigate('SymptomLogger')}
             />
 
             {/* Daily Timeline Modal */}

@@ -1,41 +1,36 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, LayoutAnimation, TextInput, Modal, KeyboardAvoidingView } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { SymptomEvent, SymptomSeverity, SymptomCategory } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
 import { v4 as uuidv4 } from 'uuid';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
 import { NotificationService } from '../../src/services/NotificationService';
-import { Clock, Check, Trash2 } from 'lucide-react-native';
+import { Clock, Check } from 'lucide-react-native';
 import { RecommendationService } from '../../src/services/recommendationService';
-import { Colors, Shadows, Radii, Typography } from '../constants/Theme';
+import { Colors, Shadows, Radii } from '../constants/Theme';
 
-type SymptomLoggerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SymptomLogger'>;
+type MoodLoggerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MoodLogger'>;
 
-interface SymptomEntry {
+interface MoodEntry {
     name: string;
     category: SymptomCategory;
     severity: number;
     durationMinutes: number | null;
-    isPositive?: boolean;
+    minLabel: string;
+    maxLabel: string;
 }
 
-const DEFAULT_SYMPTOMS: SymptomEntry[] = [
-    { name: 'Nausea', category: 'digestive', severity: 0, durationMinutes: null },
-    { name: 'Stomach Pain', category: 'digestive', severity: 0, durationMinutes: null },
-    { name: 'Diarrhea', category: 'digestive', severity: 0, durationMinutes: null },
-    { name: 'Constipation', category: 'digestive', severity: 0, durationMinutes: null },
-    { name: 'Bloating', category: 'digestive', severity: 0, durationMinutes: null },
-    { name: 'Reflux', category: 'digestive', severity: 0, durationMinutes: null },
-    { name: 'Headache', category: 'neurological', severity: 0, durationMinutes: null },
-    { name: 'Dizziness', category: 'neurological', severity: 0, durationMinutes: null },
-    { name: 'Brain Fog', category: 'neurological', severity: 0, durationMinutes: null },
-    { name: 'Fatigue', category: 'energy', severity: 0, durationMinutes: null },
-    { name: 'Congestion', category: 'respiratory', severity: 0, durationMinutes: null },
-    { name: 'Skin Irritation', category: 'skin', severity: 0, durationMinutes: null }
+const DEFAULT_MOODS: MoodEntry[] = [
+    { name: 'Mood', category: 'mood', severity: 0, durationMinutes: null, minLabel: 'Sad', maxLabel: 'Happy' },
+    { name: 'Stress', category: 'mood', severity: 0, durationMinutes: null, minLabel: 'Relaxed', maxLabel: 'Stressed' },
+    { name: 'Social', category: 'mood', severity: 0, durationMinutes: null, minLabel: 'Withdrawn', maxLabel: 'Connected' },
+    { name: 'Energy', category: 'energy', severity: 0, durationMinutes: null, minLabel: 'Tired', maxLabel: 'Wired' },
+    { name: 'Focus', category: 'neurological', severity: 0, durationMinutes: null, minLabel: 'Foggy', maxLabel: 'Sharp' },
+    { name: 'Sleep Quality', category: 'sleep', severity: 0, durationMinutes: null, minLabel: 'Poor', maxLabel: 'Great' }
 ];
 
 const DURATION_PRESETS = [
@@ -47,21 +42,15 @@ const DURATION_PRESETS = [
     { label: '2h+', value: 120 },
 ];
 
-export default function SymptomLoggerScreen() {
-    const navigation = useNavigation<SymptomLoggerScreenNavigationProp>();
-
-    React.useEffect(() => {
-        navigation.setOptions({
-            headerTitle: 'Log Symptoms'
-        });
-    }, [navigation]);
+export default function MoodLoggerScreen() {
+    const navigation = useNavigation<MoodLoggerScreenNavigationProp>();
 
     const [occurredAt, setOccurredAt] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
 
-    const [entries, setEntries] = useState<SymptomEntry[]>([...DEFAULT_SYMPTOMS.map(s => ({ ...s }))]);
-    const [customSymptom, setCustomSymptom] = useState('');
+    const [entries, setEntries] = useState<MoodEntry[]>([...DEFAULT_MOODS.map(m => ({ ...m }))]);
+    const [customMood, setCustomMood] = useState('');
 
     const [activeDurationIndex, setActiveDurationIndex] = useState<number | null>(null);
 
@@ -81,34 +70,27 @@ export default function SymptomLoggerScreen() {
         setEntries(newEntries);
     };
 
-    const getSeverityColor = (severity: number, isPositive?: boolean) => {
+    const getSeverityColor = (severity: number) => {
         const sev = Math.round(severity);
-        if (isPositive) {
-            return sev > 0 ? Colors.success : Colors.surfaceContainerLow;
-        }
-        switch (sev) {
-            case 1: return Colors.warning;
-            case 2: return Colors.warning;
-            case 3: return Colors.error;
-            default: return Colors.surfaceContainerLow;
-        }
+        if (sev === 2) return Colors.success;
+        if (sev === 1) return 'rgba(5, 150, 105, 0.4)';
+        if (sev === -1) return 'rgba(220, 38, 38, 0.4)';
+        if (sev === -2) return Colors.error;
+        return Colors.outline; // Neutral/0
     };
 
     const handleSave = async () => {
-        const activeEntries = entries.filter(e => e.severity !== 0);
+        const activeEntries = [...entries];
 
-        if (customSymptom.trim() !== '') {
+        if (customMood.trim() !== '') {
             activeEntries.push({
-                name: customSymptom.trim(),
-                category: 'custom',
-                severity: 3,
-                durationMinutes: null
+                name: customMood.trim(),
+                category: 'mood',
+                severity: 0,
+                durationMinutes: null,
+                minLabel: 'Low',
+                maxLabel: 'High'
             });
-        }
-
-        if (activeEntries.length === 0) {
-            navigation.goBack();
-            return;
         }
 
         for (const entry of activeEntries) {
@@ -126,13 +108,12 @@ export default function SymptomLoggerScreen() {
                 ev.durationMinutes = entry.durationMinutes;
             }
 
-            // Always symptoms collection for this screen
-            await StorageService.addSymptomEvent(ev);
+            await StorageService.addMoodEvent(ev);
         }
 
         await NotificationService.handleUserLoggedActivity('mood');
         
-        RecommendationService.recomputeRecommendations('symptom_logged')
+        RecommendationService.recomputeRecommendations('mood_logged')
             .catch(err => console.error("Failed to recompute recommendations:", err));
 
         navigation.goBack();
@@ -211,19 +192,22 @@ export default function SymptomLoggerScreen() {
                                 </View>
 
                                 <View style={styles.rowRight}>
+                                    <Text style={styles.labelIndicator}>{entry.minLabel}</Text>
                                     <View style={styles.sliderWrapper}>
                                         <Slider
                                             style={styles.slider}
-                                            minimumValue={0}
-                                            maximumValue={3}
+                                            minimumValue={-2}
+                                            maximumValue={2}
                                             step={1}
                                             value={entry.severity}
                                             onValueChange={(val) => updateSeverity(index, val)}
-                                            minimumTrackTintColor={entry.severity > 0 ? getSeverityColor(entry.severity, entry.isPositive) : Colors.surfaceContainerLow}
-                                            maximumTrackTintColor={Colors.surfaceContainerLow}
-                                            thumbTintColor={entry.severity !== 0 ? getSeverityColor(entry.severity, entry.isPositive) : Colors.outline}
+                                            minimumTrackTintColor={entry.severity > 0 ? getSeverityColor(entry.severity) : Colors.surfaceContainerHighest}
+                                            maximumTrackTintColor={entry.severity < 0 ? getSeverityColor(entry.severity) : Colors.surfaceContainerHighest}
+                                            thumbTintColor={entry.severity !== 0 ? getSeverityColor(entry.severity) : Colors.outline}
                                         />
                                     </View>
+                                    <Text style={styles.labelIndicator}>{entry.maxLabel}</Text>
+
                                     <TouchableOpacity
                                         style={styles.durationBadge}
                                         onPress={() => setActiveDurationIndex(index)}
@@ -241,10 +225,10 @@ export default function SymptomLoggerScreen() {
                     <View style={styles.customRow}>
                         <TextInput
                             style={styles.customInput}
-                            placeholder="Add custom symptom..."
+                            placeholder="Add custom mood..."
                             placeholderTextColor={Colors.outline}
-                            value={customSymptom}
-                            onChangeText={setCustomSymptom}
+                            value={customMood}
+                            onChangeText={setCustomMood}
                         />
                     </View>
                 </View>
@@ -257,7 +241,7 @@ export default function SymptomLoggerScreen() {
                 >
                     <View style={styles.saveButtonContent}>
                         <Check color={Colors.onPrimaryContrast} size={20} style={{ marginRight: 8 }} />
-                        <Text style={styles.saveButtonText}>CONFIRM SYMPTOMS</Text>
+                        <Text style={styles.saveButtonText}>CONFIRM MOOD</Text>
                     </View>
                 </TouchableOpacity>
             </View>
@@ -366,6 +350,12 @@ const styles = StyleSheet.create({
     slider: {
         width: '100%',
         height: 40
+    },
+    labelIndicator: {
+        fontSize: 11,
+        color: Colors.outline,
+        width: 60,
+        textAlign: 'center'
     },
     durationBadge: {
         flexDirection: 'row',

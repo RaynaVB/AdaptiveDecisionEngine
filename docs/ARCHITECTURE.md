@@ -12,7 +12,7 @@ Veyra relies on a React Native (Expo) frontend paired with a modular Serverless 
   - Handles UI logic, local state management, async storage for offline/fast caching.
   - Implements gesture-based interactions, form captures, and renders visual insights securely.
 - **Backend Infrastructure (Firebase):**
-  - `Firestore`: Primary database storing structured event data (Meals, SymptomEvents, Users, Experiments). Mood entries are now consolidated within SymptomEvents.
+  - `Firestore`: Primary database storing structured event data (Meals, Symptoms, Moods, Users, Experiments). Moods and Symptoms are stored in dedicated collections (`moods` and `symptoms`).
   - `Auth`: User authentication.
   - `Cloud Functions (Python)`: Decoupled service endpoints to run ML tasks, logic, and intelligent generation offline and at scale.
 
@@ -50,7 +50,8 @@ The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` 
 ### Core Features
 - **Logging**
   - `LogMeal`: Camera/text meal entry bridging to the vision service.
-  - `SymptomLogger`: Unified interface for logging both physical symptoms (e.g., Nausea) and emotional states (e.g., Anxiety) via 0-5 sliders.
+  - `MoodLogger`: Dedicated interface for bipolar mood tracking (e.g., Sad ↔ Happy) using a **-2 to +2** scale.
+  - `SymptomLogger`: Focused interface for unipolar physical symptoms (e.g., Nausea) using a **1-3** scale.
   - `MealDetail`: Read/write structured breakdown of a single logged meal event.
 - **Feed & Timeline**
   - `Timeline`: 7-day chronologic feed of completed meals, moods, and symptoms.
@@ -76,7 +77,10 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
   - Encompasses `mealSlot` (breakfast/lunch/snack/dinner) and `mealTypeTags`.
   - Advanced ML features: `dishLabel`, canonical `confirmedIngredients`, and dynamically AI-generated clarifying `questions`.
 - **`SymptomEvent`**:
-  - The unified event capturing *both* physical states (e.g., `symptom_severity`, specific symptom tags) and emotional shifts (`mood`, `energy`, `sleep`). This enables holistic pattern overlap between mental and physical wellbeing. Previously separate MoodEvents are now consolidated here under the `mood` category.
+  - The core data model for both physical and emotional states. While sharing a structure, data is logically separated into dedicated screens and collections:
+    - **Physical Symptoms**: Tracked on a **1-3** scale (Mild to Severe) in the `symptoms` collection.
+    - **Mood/Energy**: Tracked on a bipolar **-2 to +2** scale in the `moods` collection.
+  - This separation allows specialized UI for each type (e.g., center-aligned sliders for bipolar mood) while maintaining a compatible format for backend engine processing.
 
 ### 4.2 Intelligence Outputs
 - **`Pattern`**: Extracted behavioral sequences. Includes `confidence`, `severity`, and an `actionableInsight` (to trigger HealthLab workflows).
@@ -90,7 +94,7 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
 ---
 
 ## 5. Execution Summary
-1. User interacts with `LogMeal` or `SymptomLogger`.
+1. User interacts with `LogMeal`, `MoodLogger`, or `SymptomLogger`.
 2. Frontend writes structured payload to `Firestore` (triggering external Python `vision_service` if a meal photo needs parsing).
 3. On demand or on interval, the backend functions (`weekly_patterns_service`, `insights_service`) sweep recent historical chunks. New `Pattern` records and `Insight` records are materialized.
 4. The `recommendation_service` maps active patterns to candidate interventions, applies contextual bandit weights based on historical user feedback, and persists `Recommendation` records.
