@@ -30,10 +30,10 @@ The system delegates domain-specific logic to independent cloud function service
    - **Mechanism:** Aggregates logs to compute pre-experiment baselines vs. active experiment periods. Outputs statistical deltas for targeted metrics (e.g., `afternoon_energy`, `symptom_frequency`) and confidence scoring.
 3. **`recommendation_service`**
    - **Role:** Generates actionable, personalized interventions.
-   - **Mechanism:** Uses a Contextual Bandit Model to score interventions based on ML confidence, expected impact, user feasibility, and past feedback histories.
+   - **Mechanism:** Uses a Contextual Bandit Model to score interventions based on ML confidence, expected impact, user feasibility, and past feedback histories. Synchronized with the Insights Service to ensure consistent interpretation of mood/symptom scales and ingredient-level correlations.
 4. **`weekly_patterns_service`**
    - **Role:** Detects behavioral clusters.
-   - **Mechanism:** Scans time-series data to locate conditions like "Mood-Triggered Eating" or "Symptom Correlations". Uses a strict statistical uncertainty policy to avoid false positives.
+   - **Mechanism:** Scans time-series data to locate conditions like "Mood-Triggered Eating", "Symptom Correlations", or "Ingredient-Mood Boosts". Uses a strict statistical uncertainty policy to avoid false positives.
 5. **`insights_service`**
    - **Role:** Generates localized and time-based summary intelligence for the Insights Feed.
 
@@ -74,7 +74,7 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
 
 ### 4.1 Input Events (The Ledger)
 - **`MealEvent`**:
-  - Encompasses `mealSlot` (breakfast/lunch/snack/dinner) and `mealTypeTags`.
+  - Encompasses `mealSlot` (breakfast/lunch/snack/dinner) and time-series metadata.
   - Advanced ML features: `dishLabel`, canonical `confirmedIngredients`, and dynamically AI-generated clarifying `questions`.
 - **`SymptomEvent`**:
   - The core data model for both physical and emotional states. While sharing a structure, data is logically separated into dedicated screens and collections:
@@ -83,9 +83,9 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
   - This separation allows specialized UI for each type (e.g., center-aligned sliders for bipolar mood) while maintaining a compatible format for backend engine processing.
 
 ### 4.2 Intelligence Outputs
-- **`Pattern`**: Extracted behavioral sequences. Includes `confidence`, `severity`, and an `actionableInsight` (to trigger HealthLab workflows).
-- **`Recommendation`**: Produced by the recommender engine. Includes `priorityScore`, `confidenceScore`, array of exact `scores` (impact, feasibility, mlScore), and the feedback `action` outcome.
-- **`Insight`**: Generative intelligence containing `supportingEvidence` and `confidenceLevel`.
+- **`Pattern`**: Extracted behavioral sequences. Includes `confidence`, `severity`, and an `actionableInsight`. Supports ingredient-level detection (e.g., specific triggers or boosters).
+- **`Recommendation`**: Produced by the recommender engine. Includes `priorityScore`, `confidenceScore`, array of exact `scores` (impact, feasibility, mlScore), and the feedback `action` outcome. Supports new pattern types (`mood_boost`, `delayed_trigger`) and **personalized string interpolation** for ingredients and symptoms.
+- **`Insight`**: Generative intelligence containing `supportingEvidence` and `confidenceLevel`. Supports ingredient-level insights.
 
 ### 4.3 Experimentation Models
 - **`ExperimentDefinition`**: Template detailing target metrics (`avg_energy`, `symptom_frequency`), required event types, and duration windows.

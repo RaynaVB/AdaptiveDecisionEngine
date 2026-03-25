@@ -70,8 +70,10 @@ Detects behavioral clusters using a 7-day sliding window with an **Uncertainty P
 - **P1 (Mood-Triggered Eating):** Eating follows low mood or high stress.
 - **P2 (Late-Night Clustering):** Contiguous eating events in late-night hours.
 - **P3 (Routine Shifts):** Divergence between weekdays and weekends.
-- **P4 (Meal-Mood Correlations):** specific meal tags linked to subsequent mood/energy shifts.
-- **P5 (Symptom Correlations):** specific meal tags linked to subsequent physical symptoms or emotional shifts.
+- **P4 (Meal-Mood Correlations):** Specific ingredients or meal patterns linked to subsequent mood/energy shifts.
+- **P5 (Symptom Correlations):** Specific ingredients matched to subsequent physical symptoms.
+- **P6 (Mood Boosters):** Ingredients correlated with positive mood elevation.
+- **P7 (Delayed Triggers):** Physical symptoms occurring 6-24 hours after specific food consumed.
 
 *Insight Integration:* Detected patterns surface an `actionableInsight`, providing a 1-tap pathway to start a HealthLab experiment.
 

@@ -277,11 +277,7 @@ def analyze_symptom_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]
                     if meals_before:
                         meals_before_count += 1
                         for m in meals_before:
-                            # 1. Check legacy mealTypeTags
-                            for tag in m.get("mealTypeTags", []):
-                                trigger_counter[tag] = trigger_counter.get(tag, 0) + 1
-                            
-                            # 2. Check new confirmedIngredients
+                            # Check confirmedIngredients
                             for ing in m.get("confirmedIngredients", []):
                                 if ing.get("confirmedStatus") not in ["removed", "suggested"]:
                                     name = ing.get("canonicalName")

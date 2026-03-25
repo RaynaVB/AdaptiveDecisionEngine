@@ -91,7 +91,7 @@ A consolidated event for physical symptoms (digestive, neuro, etc.) and emotiona
 | occurred_at | timestamp | ✅ | when symptom was felt (default = created_at) |
 | symptom_type | string | ✅ | e.g. "headache", "anxiety", "nausea" |
 | category | enum | ✅ | `digestive/neurological/energy/mood/sleep/respiratory/skin/custom` |
-| severity | int | ✅ | 0–5 scale |
+| severity | int | ✅ | Bipolar -2 to +2 for moods; Unipolar 1-3 for physical symptoms |
 | duration_minutes | int | ❌ | optional |
 | body_area | string | ❌ | optional |
 | notes | string | ❌ | optional |
@@ -136,7 +136,10 @@ Materialized patterns from a `pattern_run`.
 - `mood_dip_then_eat` (mood negative/high stress → meal/snack within N minutes)
 - `late_night_eating_cluster` (meal after cutoff time occurs frequently)
 - `weekday_weekend_shift` (pattern differs across day types)
-- `meal_type_mood_association` (certain meal types correlate with mood change)
+- `meal_type_mood_association` (certain meal types or ingredients correlate with mood change)
+- `symptom_correlation` (certain meal types or ingredients correlate with physical symptoms)
+- `mood_boost` (positive mood correlated with specific ingredients/tags)
+- `delayed_trigger` (symptoms occurring 6-24h after specific triggers)
 
 ---
 

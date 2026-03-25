@@ -23,7 +23,9 @@ def run_recommendation_engine(
         "timing_pattern": "late_night_eating_cluster",
         "behavior_shift": "weekday_weekend_shift",
         "mood_association": "meal_type_mood_association",
-        "trigger_pattern": "meal_type_mood_association" # Map symptom triggers to meal type associations for now
+        "trigger_pattern": "symptom_correlation",
+        "mood_boost": "mood_boost",
+        "delayed_trigger": "delayed_trigger"
     }
     
     for ins in latest_insights:
@@ -89,18 +91,20 @@ def run_recommendation_engine(
             if conf_val == 3: conf_level = 'high'
             elif conf_val == 2: conf_level = 'medium'
 
+            why_this = format_template(template["whyTemplate"], pattern)
+
             candidates.append({
                 "id": str(uuid.uuid4()),
                 "templateId": template["id"],
                 "type": template["recommendationType"],
                 "category": template.get("category", "general"), # Default if not in template
-                "title": template["titleTemplate"],
-                "summary": template.get("summaryTemplate", template["actionTemplate"]), # Fallback to action if summary missing
+                "title": format_template(template["titleTemplate"], pattern),
+                "summary": format_template(template.get("summaryTemplate", template["actionTemplate"]), pattern),
                 "confidenceScore": scores["confidence"],
                 "confidenceLevel": conf_level,
                 "priorityScore": scores["total"],
                 "whyThis": [
-                    {"kind": "pattern", "label": template["whyTemplate"]}
+                    {"kind": "pattern", "label": why_this}
                 ],
                 "cta": {
                     "type": template.get("ctaType", "view_details"),
@@ -167,3 +171,13 @@ def get_confidence_value(c: str) -> int:
     if c == "high": return 3
     if c == "medium": return 2
     return 1
+
+def format_template(text: str, pattern: Dict[str, Any]) -> str:
+    if not text: return text
+    evidence = pattern.get("evidence", {})
+    trigger = evidence.get("trigger", "this")
+    symptom = evidence.get("symptom_type", "symptoms")
+    
+    formatted = text.replace("{trigger}", str(trigger))
+    formatted = formatted.replace("{symptom}", str(symptom))
+    return formatted

@@ -12,6 +12,8 @@ def run_pattern_engine(meals: List[Dict[str, Any]], moods: List[Dict[str, Any]],
     patterns.extend(analyze_weekday_weekend_shift(context))
     patterns.extend(analyze_meal_type_mood_association(context))
     patterns.extend(analyze_symptom_correlations(context))
+    patterns.extend(analyze_mood_boost_ingredients(context))
+    patterns.extend(analyze_delayed_symptom_triggers(context))
 
     return patterns
 
@@ -219,54 +221,66 @@ def analyze_meal_type_mood_association(context: Dict[str, Any]) -> List[Dict[str
     meals = context.get("meals", [])
     moods = context.get("moods", [])
     patterns = []
-    TARGET_TAGS = ["high_sugar", "fried_greasy", "heavy", "caffeinated", "sweet"]
-    stats = {tag: {"total": 0, "drops": 0} for tag in TARGET_TAGS}
+    stats = {}
 
     sorted_meals = sorted(meals, key=lambda x: x.get("occurredAt", ""))
     sorted_moods = sorted(moods, key=lambda x: x.get("occurredAt", ""))
 
     for meal in sorted_meals:
-        tags = meal.get("mealTypeTags", [])
-        present_targets = [t for t in tags if t in TARGET_TAGS]
-        if present_targets:
-            try:
-                meal_time = datetime.fromisoformat(meal["occurredAt"].replace('Z', '+00:00'))
-                sub_moods = []
-                for m in sorted_moods:
-                    m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
-                    if meal_time < m_time <= meal_time + timedelta(hours=4):
-                        sub_moods.append(m)
-                
-                if sub_moods:
-                    has_negative = False
-                    for m in sub_moods:
-                        stype = m.get("symptomType", "").lower()
-                        sev = m.get("severity", 0)
-                        if stype == "mood" and sev < 0:
-                            has_negative = True
-                            break
-                        if stype == "stress" and sev > 0:
-                            has_negative = True
-                            break
+        try:
+            meal_time = datetime.fromisoformat(meal["occurredAt"].replace('Z', '+00:00'))
+            sub_moods = []
+            for m in sorted_moods:
+                m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
+                if meal_time < m_time <= meal_time + timedelta(hours=4):
+                    sub_moods.append(m)
+            
+            if sub_moods:
+                has_negative = False
+                for m in sub_moods:
+                    stype = m.get("symptomType", "").lower()
+                    sev = m.get("severity", 0)
+                    if stype == "mood" and sev < 0:
+                        has_negative = True
+                        break
+                    if stype == "stress" and sev > 0:
+                        has_negative = True
+                        break
 
-                    for tag in present_targets:
-                        stats[tag]["total"] += 1
-                        if has_negative: stats[tag]["drops"] += 1
-            except Exception:
-                continue
+                if has_negative:
+                    # Check confirmedIngredients
+                    for ing in meal.get("confirmedIngredients", []):
+                        if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                            name = ing.get("canonicalName")
+                            if name:
+                                if name not in stats: stats[name] = {"total": 0, "drops": 0}
+                                stats[name]["total"] += 1
+                                if has_negative: stats[name]["drops"] += 1
+        except Exception:
+            continue
 
     for tag, s in stats.items():
         if s["total"] >= 3:
             rate = s["drops"] / s["total"]
             if rate >= 0.60:
-                triggering_meals = [m for m in sorted_meals if tag in m.get("mealTypeTags", [])]
+                # It's an ingredient
+                triggering_meals = []
+                for m in sorted_meals:
+                    for ing in m.get("confirmedIngredients", []):
+                        if ing.get("canonicalName") == tag:
+                            triggering_meals.append(m)
+                            break
+
+                title = f"Mood & {tag}"
+                desc = f"Your mood often dips after consuming meals containing {tag}."
+
                 patterns.append({
                     "id": str(uuid.uuid4()),
                     "patternType": "meal_type_mood_association",
-                    "title": f"{tag.replace('_', ' ').capitalize()} & Mood",
-                    "description": f"{int(rate * 100)}% of '{tag.replace('_', ' ')}' meals are followed by negative mood within 4 hours.",
+                    "title": title,
+                    "description": desc,
                     "confidence": "high" if rate >= 0.8 else "medium",
-                    "evidence": {"tag": tag, "total_tag_count": s["total"], "mood_drop_count": s["drops"], "rate": round(rate, 2)},
+                    "evidence": {"tag": tag, "total_count": s["total"], "drop_count": s["drops"], "rate": round(rate, 2)},
                     "segmentation": calculate_segmentation(triggering_meals),
                     "createdAt": datetime.now().isoformat()
                 })
@@ -281,6 +295,12 @@ def analyze_symptom_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]
     symptoms_by_type = {}
     for s in symptoms:
         st = s.get("symptomType")
+        sev = s.get("severity", 0)
+        
+        # Only correlate moderate-to-high severity physical symptoms (1-3 scale)
+        if st != "mood" and sev < 2:
+            continue
+            
         if st not in symptoms_by_type: symptoms_by_type[st] = []
         symptoms_by_type[st].append(s)
 
@@ -300,22 +320,153 @@ def analyze_symptom_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]
                     if meals_before:
                         meals_before_count += 1
                         for m in meals_before:
-                            for tag in m.get("mealTypeTags", []):
-                                tag_counter[tag] = tag_counter.get(tag, 0) + 1
+                            # Check ingredients
+                            for ing in m.get("confirmedIngredients", []):
+                                if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                                    name = ing.get("canonicalName")
+                                    if name:
+                                        tag_counter[name] = tag_counter.get(name, 0) + 1
                 except Exception:
                     continue
             
             if meals_before_count > 0 and tag_counter:
-                top_tag = max(tag_counter, key=tag_counter.get)
-                if tag_counter[top_tag] >= max(1, len(events) * 0.5):
+                top_trigger = max(tag_counter, key=tag_counter.get)
+                if tag_counter[top_trigger] >= max(1, len(events) * 0.5):
+                    # Find triggering meals for segmentation
+                    triggering_meals = []
+                    for m in meals:
+                        # Check ingredients
+                        for ing in m.get("confirmedIngredients", []):
+                            if ing.get("canonicalName") == top_trigger:
+                                triggering_meals.append(m)
+                                break
+
                     patterns.append({
                         "id": str(uuid.uuid4()),
                         "patternType": "symptom_correlation",
-                        "title": f"Possible Trigger: {top_tag} and {symptom_type}",
-                        "description": f"We noticed that your {symptom_type} often occurs 0-6 hours after logging {top_tag} meals.",
+                        "title": f"Possible Trigger: {top_trigger}",
+                        "description": f"We noticed that your {symptom_type} often occurs 0-6 hours after logging {top_trigger}.",
                         "confidence": "medium",
                         "severity": "medium",
-                        "evidence": {"symptomCount": len(events), "mealsCorrelatedCount": tag_counter[top_tag], "tag": top_tag},
+                        "evidence": {"symptomCount": len(events), "matches": tag_counter[top_trigger], "trigger": top_trigger, "symptom_type": symptom_type},
+                        "segmentation": calculate_segmentation(triggering_meals),
+                        "createdAt": datetime.now().isoformat()
+                    })
+    return patterns
+
+def analyze_mood_boost_ingredients(context: Dict[str, Any]) -> List[Dict[str, Any]]:
+    meals = context.get("meals", [])
+    moods = context.get("moods", [])
+    patterns = []
+    if not moods: return []
+
+    # Identify high mood states (severity >= 1 for bipolar -2 to 2)
+    high_moods = [m for m in moods if m.get("symptomType") == "mood" and m.get("severity", 0) >= 1]
+    if len(high_moods) < 2: return []
+
+    presence_counter = {}
+
+    for mood in high_moods:
+        try:
+            mood_time = datetime.fromisoformat(mood["occurredAt"].replace('Z', '+00:00'))
+            meals_before = []
+            for m in meals:
+                m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
+                if m_time < mood_time and (mood_time - m_time) <= timedelta(hours=4):
+                    meals_before.append(m)
+            
+            seen_in_this_mood = set()
+            for m in meals_before:
+                # Check ingredients
+                for ing in m.get("confirmedIngredients", []):
+                    if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                        name = ing.get("canonicalName")
+                        if name and name not in seen_in_this_mood:
+                            presence_counter[name] = presence_counter.get(name, 0) + 1
+                            seen_in_this_mood.add(name)
+        except Exception:
+            continue
+
+    for trigger, count in presence_counter.items():
+        if count >= 2:
+            rate = count / len(high_moods)
+            if rate >= 0.5:
+                # Find triggering meals for segmentation
+                triggering_meals = []
+                for m in meals:
+                    for ing in m.get("confirmedIngredients", []):
+                        if ing.get("canonicalName") == trigger:
+                            triggering_meals.append(m)
+                            break
+
+                patterns.append({
+                    "id": str(uuid.uuid4()),
+                    "patternType": "mood_boost",
+                    "title": f"Mood Booster: {trigger}",
+                    "description": f"Your mood is often elevated after eating meals containing {trigger}.",
+                    "confidence": "medium",
+                    "severity": "low",
+                    "evidence": {"matchCount": count, "sampleSize": len(high_moods), "trigger": trigger},
+                    "segmentation": calculate_segmentation(triggering_meals),
+                    "createdAt": datetime.now().isoformat()
+                })
+    return patterns
+
+def analyze_delayed_symptom_triggers(context: Dict[str, Any]) -> List[Dict[str, Any]]:
+    meals = context.get("meals", [])
+    symptoms = context.get("symptoms", [])
+    patterns = []
+    if not symptoms: return []
+
+    # Filter for significant symptoms (severity >= 2)
+    significant_symptoms = [s for s in symptoms if s.get("symptomType") != "mood" and s.get("severity", 0) >= 2]
+    if not significant_symptoms: return []
+
+    symptoms_by_type = {}
+    for s in significant_symptoms:
+        st = s.get("symptomType")
+        if st not in symptoms_by_type: symptoms_by_type[st] = []
+        symptoms_by_type[st].append(s)
+
+    for symptom_type, events in symptoms_by_type.items():
+        if len(events) >= 2:
+            trigger_counter = {}
+            for sym in events:
+                try:
+                    sym_time = datetime.fromisoformat(sym["occurredAt"].replace('Z', '+00:00'))
+                    for m in meals:
+                        m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
+                        td = sym_time - m_time
+                        if timedelta(hours=6) <= td <= timedelta(hours=24):
+                            # Check ingredients
+                            for ing in m.get("confirmedIngredients", []):
+                                if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                                    name = ing.get("canonicalName")
+                                    if name:
+                                        trigger_counter[name] = trigger_counter.get(name, 0) + 1
+                except Exception:
+                    continue
+            
+            if trigger_counter:
+                top_trigger = max(trigger_counter, key=trigger_counter.get)
+                if trigger_counter[top_trigger] >= max(2, len(events) * 0.6):
+                    # Find triggering meals for segmentation
+                    triggering_meals = []
+                    for m in meals:
+                        for ing in m.get("confirmedIngredients", []):
+                            if ing.get("canonicalName") == top_trigger:
+                                triggering_meals.append(m)
+                                break
+
+                    patterns.append({
+                        "id": str(uuid.uuid4()),
+                        "patternType": "delayed_trigger",
+                        "title": f"Delayed Trigger: {top_trigger}",
+                        "description": f"Your {symptom_type} often occurs 6-24 hours after consuming {top_trigger}.",
+                        "confidence": "low", # Delayed triggers are noisier
+                        "severity": "medium",
+                        "evidence": {"matchCount": trigger_counter[top_trigger], "sampleSize": len(events), "trigger": top_trigger, "symptom_type": symptom_type},
+                        "segmentation": calculate_segmentation(triggering_meals),
                         "createdAt": datetime.now().isoformat()
                     })
     return patterns
