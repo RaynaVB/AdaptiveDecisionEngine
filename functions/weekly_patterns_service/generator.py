@@ -32,15 +32,16 @@ def run_weekly_generator(user_id: str, data: Dict[str, List[Dict[str, Any]]], in
     
     # Trend: Mood valence
     if moods:
-        avg_valence = sum(1 if m.get('valence') == 'positive' else -1 for m in moods) / len(moods)
+        # Use numeric severity (-2 to +2 scale)
+        avg_severity = sum(m.get('severity', 0) for m in moods) / len(moods)
         items.append({
             "type": "trend",
             "category": "mood",
             "title": "Weekly Mood Pulse",
-            "summary": "Your mood was mostly " + ("positive" if avg_valence > 0 else "neutral/negative") + " this week.",
+            "summary": "Your mood was mostly " + ("positive" if avg_severity > 0 else "neutral/negative") + " this week.",
             "confidenceScore": 0.8,
             "rank": 1,
-            "metadata": {"avgValence": avg_valence}
+            "metadata": {"avgSeverity": avg_severity}
         })
 
     # Top Patterns (from Insights)

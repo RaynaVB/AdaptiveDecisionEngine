@@ -9,8 +9,8 @@ def test_ranking():
     }
     
     insights = [
-        {"tags": ["dairy"], "confidenceScore": 0.5},
-        {"tags": ["protein"], "confidenceScore": 0.2}
+        {"title": "Possible Trigger: Dairy", "confidenceScore": 0.5},
+        {"title": "Mood Booster: Protein", "confidenceScore": 0.2}
     ]
     
     active = []

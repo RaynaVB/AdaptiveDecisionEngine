@@ -36,19 +36,25 @@ def calculate_experiment_scores(user_profile, insights, active_experiments, comp
         score = 0
         reasons = []
 
-        # 1. Insight Confidence Gap (0.30)
-        # Prioritize medium-confidence insights (0.4–0.75)
-        # Find insights that map to this template's tags
-        matched_insights = [i for i in insights if any(tag in i.get('tags', []) for tag in template.get('tags', []))]
+        # 1. Insight Match Score (0.30)
+        # Prioritize insights that match this template's tags (ingredients or categories)
+        matched_insights = []
+        for insight in insights:
+            title = insight.get('title', '').lower()
+            summary = insight.get('summary', '').lower()
+            
+            # Match if any template tag appears in the insight title or summary
+            if any(tag.lower() in title or tag.lower() in summary for tag in template.get('tags', [])):
+                matched_insights.append(insight)
+        
         max_insight_score = 0
         for insight in matched_insights:
             conf = insight.get('confidenceScore', 0)
-            # 0.4 - 0.75 is the sweet spot
+            # 0.4 - 0.75 is the sweet spot for experiments
             if 0.4 <= conf <= 0.75:
                 max_insight_score = max(max_insight_score, 0.3)
             elif conf < 0.4:
                 max_insight_score = max(max_insight_score, 0.15)
-            # high confidence insights don't need experiments as much
         score += max_insight_score
         if max_insight_score > 0:
             reasons.append("Matches an emerging pattern")
@@ -99,3 +105,12 @@ def calculate_experiment_scores(user_profile, insights, active_experiments, comp
     # Sort by score descending
     scored_templates.sort(key=lambda x: x['score'], reverse=True)
     return scored_templates
+
+def evaluate_experiment_result(experiment, baseline_avg, experiment_avg):
+    """
+    Compares baseline vs experiment severity to determine outcome.
+    """
+    if experiment_avg < baseline_avg:
+        return 'positive', 0.2, "Your symptoms improved during the study."
+    else:
+        return 'negative', -0.1, "We didn't see a clear improvement. Consider a different approach."

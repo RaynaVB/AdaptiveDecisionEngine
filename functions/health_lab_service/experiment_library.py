@@ -21,7 +21,7 @@ EXPERIMENT_TEMPLATES = [
             "symptoms": True
         },
         "difficulty": "medium",
-        "tags": ["dairy", "digestion"]
+        "tags": ["dairy", "digestion", "milk", "cheese", "yogurt", "butter", "whey", "lactose"]
     },
     {
         "id": "gluten_elimination",
@@ -43,7 +43,7 @@ EXPERIMENT_TEMPLATES = [
             "symptoms": True
         },
         "difficulty": "medium",
-        "tags": ["gluten", "digestion"]
+        "tags": ["gluten", "digestion", "wheat", "barley", "rye", "bread", "pasta"]
     },
     {
         "id": "high_protein_breakfast",
@@ -64,7 +64,7 @@ EXPERIMENT_TEMPLATES = [
             "mood": True
         },
         "difficulty": "easy",
-        "tags": ["protein", "energy"]
+        "tags": ["protein", "energy", "eggs", "meat", "chicken", "fish", "tofu", "beans"]
     },
     {
         "id": "hydration_boost",
@@ -84,7 +84,7 @@ EXPERIMENT_TEMPLATES = [
             "mood": True
         },
         "difficulty": "easy",
-        "tags": ["hydration", "energy"]
+        "tags": ["hydration", "energy", "water", "fluids"]
     },
     {
         "id": "caffeine_cutoff",
@@ -105,7 +105,7 @@ EXPERIMENT_TEMPLATES = [
             "symptoms": True
         },
         "difficulty": "medium",
-        "tags": ["caffeine", "sleep", "anxiety"]
+        "tags": ["caffeine", "sleep", "anxiety", "coffee", "tea", "soda", "energy drink"]
     },
     {
         "id": "early_dinner",

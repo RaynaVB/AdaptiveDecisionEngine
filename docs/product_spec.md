@@ -75,7 +75,7 @@ Detects behavioral clusters using a 7-day sliding window with an **Uncertainty P
 - **P6 (Mood Boosters):** Ingredients correlated with positive mood elevation.
 - **P7 (Delayed Triggers):** Physical symptoms occurring 6-24 hours after specific food consumed.
 
-*Insight Integration:* Detected patterns surface an `actionableInsight`, providing a 1-tap pathway to start a HealthLab experiment.
+*Insight Integration:* Detected patterns surface an `actionableInsight` (e.g., "Trigger: Milk"), providing a 1-tap pathway to start relevant ingredient-specific HealthLab experiments (e.g., "Dairy Elimination").
 
 #### 2. Personalized Recommender Engine
 Transforms detected patterns into ranked, actionable interventions using a **Contextual Bandit Model**.

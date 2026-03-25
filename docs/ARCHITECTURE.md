@@ -27,13 +27,13 @@ The system delegates domain-specific logic to independent cloud function service
    - **Mechanism:** Integrates with Gemini 2.0 Flash to analyze meal photos and text descriptions, extract dish names, identify canonical ingredients against a 2,500+ item database, and generate binary clarification questions.
 2. **`health_lab_service`**
    - **Role:** Drives the behavioral experimentation lifecycle.
-   - **Mechanism:** Aggregates logs to compute pre-experiment baselines vs. active experiment periods. Outputs statistical deltas for targeted metrics (e.g., `afternoon_energy`, `symptom_frequency`) and confidence scoring.
+   - **Mechanism:** Aggregates logs to compute pre-experiment baselines vs. active experiment periods. Matches ingredient-based insights to templates (e.g., matching "Milk" to "Dairy Elimination") using fuzzy title matching. Outputs statistical deltas for targeted metrics and confidence scoring.
 3. **`recommendation_service`**
    - **Role:** Generates actionable, personalized interventions.
    - **Mechanism:** Uses a Contextual Bandit Model to score interventions based on ML confidence, expected impact, user feasibility, and past feedback histories. Synchronized with the Insights Service to ensure consistent interpretation of mood/symptom scales and ingredient-level correlations.
 4. **`weekly_patterns_service`**
    - **Role:** Detects behavioral clusters.
-   - **Mechanism:** Scans time-series data to locate conditions like "Mood-Triggered Eating", "Symptom Correlations", or "Ingredient-Mood Boosts". Uses a strict statistical uncertainty policy to avoid false positives.
+   - **Mechanism:** Scans time-series data to locate conditions like "Mood-Triggered Eating", "Symptom Correlations", or "Ingredient-Mood Boosts". Uses the bipolar -2 to +2 mood scale for valence trends and applies a strict statistical uncertainty policy.
 5. **`insights_service`**
    - **Role:** Generates localized and time-based summary intelligence for the Insights Feed.
 
