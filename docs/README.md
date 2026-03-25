@@ -1,6 +1,6 @@
 # Adaptive Decision Engine (Health)
 
-An AI-driven decision intelligence system that converts multimodal lifestyle inputs (meal logs + mood signals) into ranked, actionable health recommendations optimized for impact, feasibility, and user follow-through.
+An AI-driven decision intelligence system that converts multimodal lifestyle inputs (meal logs + symptom/mood signals) into ranked, actionable health recommendations optimized for impact, feasibility, and user follow-through.
 
 Unlike traditional food logging apps that emphasize nutrition breakdown and dashboards, this project focuses on behavior change by detecting patterns (timing, mood-linked eating, meal-type correlations) and generating a single best “next action” with explainable reasoning, uncertainty handling, and feedback-driven adaptation.
 
@@ -13,9 +13,9 @@ Most food logging systems provide information (calories/macros) but fail to mean
 
 ## What V2 does
 - Fast meal logging (photo or short text) + meal type tags
-- Fast mood logging (tap-based predefined moods)
+- Unified mood and symptom logging (slider-based)
 - Pattern detection:
-  - mood dips followed by eating
+  - mood/symptom dips followed by eating
   - late-night eating clusters
   - weekday vs weekend shifts
   - meal type ↔ mood correlations

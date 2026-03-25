@@ -12,7 +12,7 @@ Veyra relies on a React Native (Expo) frontend paired with a modular Serverless 
   - Handles UI logic, local state management, async storage for offline/fast caching.
   - Implements gesture-based interactions, form captures, and renders visual insights securely.
 - **Backend Infrastructure (Firebase):**
-  - `Firestore`: Primary database storing structured event data (Meals, Moods, Users, Experiments).
+  - `Firestore`: Primary database storing structured event data (Meals, SymptomEvents, Users, Experiments). Mood entries are now consolidated within SymptomEvents.
   - `Auth`: User authentication.
   - `Cloud Functions (Python)`: Decoupled service endpoints to run ML tasks, logic, and intelligent generation offline and at scale.
 
@@ -50,10 +50,10 @@ The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` 
 ### Core Features
 - **Logging**
   - `LogMeal`: Camera/text meal entry bridging to the vision service.
-  - `SymptomLogger`: Unified slider-based interface for logging physical and emotional states.
+  - `SymptomLogger`: Unified interface for logging both physical symptoms (e.g., Nausea) and emotional states (e.g., Anxiety) via 0-5 sliders.
   - `MealDetail`: Read/write structured breakdown of a single logged meal event.
 - **Feed & Timeline**
-  - `Timeline`: 7-day chronologic feed of completed meals and moods.
+  - `Timeline`: 7-day chronologic feed of completed meals, moods, and symptoms.
 - **Intelligence Surfaces**
   - `InsightFeed`: AI-generated insight statements powered by pattern recognition.
   - `WeeklyPatterns`: Visual display of behavioral patterns over the last evaluated cycle.
@@ -75,8 +75,8 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
 - **`MealEvent`**:
   - Encompasses `mealSlot` (breakfast/lunch/snack/dinner) and `mealTypeTags`.
   - Advanced ML features: `dishLabel`, canonical `confirmedIngredients`, and dynamically AI-generated clarifying `questions`.
-- **`MoodEvent`**:
-  - The unified event capturing *both* emotional shifts (`valence`, `arousal`, `energy`) and physical states (`symptom_severity`, specific symptom tags). Allows holistic pattern overlap between mental and physical wellbeing.
+- **`SymptomEvent`**:
+  - The unified event capturing *both* physical states (e.g., `symptom_severity`, specific symptom tags) and emotional shifts (`mood`, `energy`, `sleep`). This enables holistic pattern overlap between mental and physical wellbeing. Previously separate MoodEvents are now consolidated here under the `mood` category.
 
 ### 4.2 Intelligence Outputs
 - **`Pattern`**: Extracted behavioral sequences. Includes `confidence`, `severity`, and an `actionableInsight` (to trigger HealthLab workflows).

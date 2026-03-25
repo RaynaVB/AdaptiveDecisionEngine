@@ -10,13 +10,13 @@ All recommendations are strictly selected from `src/core/recommender_engine/acti
 - `timing_intervention`: Suggestions to delay or timebox eating (e.g., adding a 10-minute buffer).
 - `substitution`: Suggesting pairing or swapping foods (e.g., adding a protein to a sweet snack).
 - `prevention_plan`: Pre-planning a response to a likely scenario (e.g., default snack for stressful moments).
-- `recovery`: Actions to take after eating or a mood dip (e.g., a light walk or wind-down routine).
+- `recovery`: Actions to take after eating or a symptom/mood flare-up (e.g., a light walk or wind-down routine).
 - `soft_intervention`: Very low-friction pauses or hydration prompts.
 
 ## Selection & Guardrails
 For a template to be selected as a candidate, it must match the detected pattern type and pass several guardrails:
 1. **Minimum Pattern Confidence:** The confidence of the detected pattern must meet or exceed the template's required minimum confidence.
-2. **Minimum Data Volume:** The time window must contain enough meal and mood logs to support the recommendation (e.g., `minMealEventsInWindow`, `minMoodEventsInWindow`).
+2. **Minimum Data Volume:** The time window must contain enough meal and symptom/mood logs to support the recommendation (e.g., `minMealEventsInWindow`, `minSymptomEventsInWindow`).
 
 ## Scoring Model
 Each candidate recommendation receives a total score out of 1.0, calculated as follows:

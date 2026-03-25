@@ -18,7 +18,7 @@ The feature must integrate with the following existing modules:
 - `pattern_engine`
 - `recommender_engine`
 - Meal logging
-- Mood logging
+- Symptom/Mood logging
 - Firestore storage
 
 ---
@@ -168,7 +168,7 @@ export type ExperimentDefinition = {
 
 ### 5. Experiment Metrics
 Initial metrics to be computed from existing logs:
-- `avg_mood`
+- `avg_mood` (from SymptomEvents)
 - `avg_energy`
 - `stress_frequency`
 - `late_night_meal_count`

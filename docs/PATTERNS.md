@@ -10,10 +10,10 @@ This document defines the behavior patterns detected by the Adaptive Decision En
 Detects if a "Negative" or "High Stress" mood log is followed by a meal log within a short time window. This identifies potential emotional eating triggers.
 
 ### Trigger Logic
-1.  Find all Mood Events where:
-    *   `valence` is 'negative' OR
-    *   `stress` is 'high'
-2.  For each such mood, check if any Meal Event occurred where:
+1.  Find all Symptom Events where:
+    *   `category` is 'mood' AND
+    *   `symptomType` is one of: 'anxiety', 'irritability', 'low mood' (or other negative mood states)
+2.  For each such event, check if any Meal Event occurred where:
     *   `meal.occurredAt` > `mood.occurredAt` AND
     *   `meal.occurredAt` <= `mood.occurredAt` + `WINDOW_MINUTES`
 
@@ -31,7 +31,7 @@ Detects if a "Negative" or "High Stress" mood log is followed by a meal log with
   "evidence": {
     "trigger_count": 2,
     "window_minutes": 60,
-    "total_negative_moods": 5
+    "total_negative_mood_events": 5
   }
 }
 ```
@@ -120,8 +120,8 @@ Identifies if specific meal tags (e.g., "high_sugar", "fried_greasy") are consis
 ### Trigger Logic
 1.  For each target tag (e.g., `high_sugar`, `heavy`):
 2.  Find all meals with this tag.
-3.  Look for "Mood Shift" events within `WINDOW_HOURS` after meal.
-    *   Mood Shift = Valence dropping (e.g., Positive -> Neutral, or Neutral -> Negative).
+3.  Look for "Symptom Shift" events (category: mood) within `WINDOW_HOURS` after meal.
+    *   Mood Shift = Severity increasing (e.g. 0 -> 3) for a negative mood symptom.
 4.  Trigger if Association Rate (Shift Count / Tag Count) >= `THRESHOLD`.
 
 ### Parameters

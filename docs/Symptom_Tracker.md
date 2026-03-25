@@ -172,21 +172,21 @@ The app surfaces the user’s most frequently logged symptoms.
 
 ### Symptom Event Schema
 ```typescript
-type SymptomEvent = {
-  id: string
-  userId: string
-  symptomType: string
-  severity: number
-  startedAt: string
-  endedAt?: string
-  isOngoing: boolean
-  bodyArea?: string
-  notes?: string
-  suspectedTriggerIds?: string[]
-  tags?: string[]
-  source: "manual" | "checkin" | "predicted"
-  createdAt: string
-  updatedAt: string
+export interface SymptomEvent {
+  id: string;
+  symptomType: string;
+  category: 'digestive' | 'neurological' | 'energy' | 'mood' | 'sleep' | 'respiratory' | 'skin' | 'custom';
+  severity: 0 | 1 | 2 | 3 | 4 | 5;
+  occurredAt: string; // ISO timestamp
+  endedAt?: string;
+  isOngoing: boolean;
+  durationMinutes?: number;
+  bodyArea?: string;
+  notes?: string;
+  suspectedTriggerIds?: string[]; // IDs of meals/events
+  tags?: string[];
+  source: 'manual' | 'checkin' | 'predicted';
+  createdAt: string;
 }
 ```
 

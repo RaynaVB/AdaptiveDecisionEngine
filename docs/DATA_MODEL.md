@@ -24,7 +24,7 @@ This document defines the core data entities for V2. The schema is designed to:
 Core entities:
 - `users`
 - `meal_events`
-- `mood_events`
+- `symptom_events` (consolidated mood + physical symptoms)
 - `pattern_runs`
 - `patterns`
 - `recommendation_runs`
@@ -80,23 +80,23 @@ A meal log entry (photo or short text), with meal slot + coarse meal type tags.
 
 ---
 
-### 3.3 `mood_events`
-A fast mood check-in associated with time (and optionally linked to a meal).
+### 3.3 `symptom_events`
+A consolidated event for physical symptoms (digestive, neuro, etc.) and emotional states (anxiety, low mood).
 
 | Field | Type | Required | Notes |
 |------|------|----------|------|
 | id | UUID/string | ✅ | Primary key |
 | user_id | UUID/string | ✅ | FK to users |
 | created_at | timestamp | ✅ | |
-| occurred_at | timestamp | ✅ | when mood was felt (default = created_at) |
-| valence | enum/float | ❌ | `positive/neutral/negative` or numeric score |
-| arousal | float | ❌ | optional numeric score |
-| energy | enum | ❌ | `high/ok/low` |
-| moodLabel | string | ❌ | optional text label |
-| stress | enum | ❌ | `low/medium/high` |
-| tag | enum | ❌ | optional single tag (anxious/bored/sad/angry/lonely/celebratory) |
-| linked_meal_event_id | UUID/string | ❌ | optionally link to meal event |
-| notes | string | ❌ | optional text |
+| occurred_at | timestamp | ✅ | when symptom was felt (default = created_at) |
+| symptom_type | string | ✅ | e.g. "headache", "anxiety", "nausea" |
+| category | enum | ✅ | `digestive/neurological/energy/mood/sleep/respiratory/skin/custom` |
+| severity | int | ✅ | 0–5 scale |
+| duration_minutes | int | ❌ | optional |
+| body_area | string | ❌ | optional |
+| notes | string | ❌ | optional |
+| suspected_trigger_ids | array | ❌ | array of linked event IDs |
+| source | enum | ✅ | `manual/checkin/predicted` |
 
 ---
 
@@ -230,7 +230,7 @@ Outcome and learning signal for recommendations.
 
 ## 5) Example Event Flow (Happy Path)
 1. User logs meal (photo) + selects tags + timestamp stored in `meal_events`
-2. User logs mood (tap-based) stored in `mood_events`
+2. User logs symptom/mood (slider-based) stored in `symptom_events`
 3. A scheduled or manual computation creates a `pattern_run` and populates `patterns`
 4. Recommendation generation creates a `recommendation_run` and 1–3 `recommendations`
 5. User marks outcome → stored in `recommendation_feedback`
