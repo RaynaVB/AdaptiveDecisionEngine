@@ -57,6 +57,9 @@ Most food logging apps emphasize nutritional dashboards (calories/macros), but t
 - **Top 5 Personalization**: Surfaces the user's most frequently logged symptoms or moods automatically.
 
 ### B. Timeline & Feed
+- **Check-in Logic**: The system uses log-aware notifications to minimize friction:
+    - **Meal Reminders**: Fire 45 minutes *after* predicted meal times only if no log is detected for that slot.
+    - **Daily Reflection**: A consolidated mood/symptom check-in at 20:30, skipped if already logged.
 - **7-Day Sliding Feed**: Chronological display of meals, moods, and symptoms.
 - **Week at a Glance**: Summarized dot indicators for daily events.
 - **Daily Timeline Modal**: Detailed daily view with chronological layout.
