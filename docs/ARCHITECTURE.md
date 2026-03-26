@@ -36,7 +36,10 @@ The system delegates domain-specific logic to independent cloud function service
    - **Mechanism:** Scans time-series data to locate conditions like "Mood-Triggered Eating", "Symptom Correlations", or "Ingredient-Mood Boosts". Uses the bipolar -2 to +2 mood scale for valence trends and applies a strict statistical uncertainty policy.
 5. **`insights_service`**
    - **Role:** Generates localized and time-based summary intelligence for the Insights Feed.
-6. **`notification_service` (Frontend)**
+6. **`streak_service` (Frontend)**
+   - **Role:** Computes user engagement streaks (logging, symptom-free).
+   - **Mechanism:** Analyzes the full event history to calculate consecutive days of activity. Handles future-dated logs (common in seeding) by starting the count from the current date or the most recent past/present log. Persists personal records and milestones via local storage.
+7. **`notification_service` (Frontend)**
    - **Role:** Manages local, log-aware notifications for user engagement.
    - **Mechanism:** Schedules reminders 45 minutes post-meal (based on historical clusters) and daily at 20:30. Logic automatically cancels/defers reminders for a given slot if the user logs data before the reminder fires.
 

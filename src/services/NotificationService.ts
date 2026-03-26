@@ -201,6 +201,22 @@ export const NotificationService = {
         } else if (category === 'mood') {
             await this.scheduleDynamicMoodReminder();
         }
-    }
+    },
+
+    /**
+     * Fires an immediate local notification celebrating a streak milestone.
+     * Uses a distinct identifier so it never collides with meal/mood reminders.
+     */
+    async scheduleStreakMilestoneNotification(days: number) {
+        await Notifications.scheduleNotificationAsync({
+            identifier: `streak_milestone_${days}`,
+            content: {
+                title: `🔥 ${days}-Day Streak!`,
+                body: `You've logged ${days} days in a row. Your data is getting more powerful.`,
+                data: { category: 'streak', days },
+            },
+            trigger: null, // immediate
+        });
+    },
 
 };

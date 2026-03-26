@@ -32,6 +32,9 @@ import { WeekAtAGlance, WeekAtGlanceData } from '../components/home/WeekAtAGlanc
 import { MicroInsightCard } from '../components/home/MicroInsightCard';
 import { TopBar } from '../components/TopBar';
 import { SmartFAB } from '../components/home/SmartFAB';
+import { WinsWidget } from '../components/home/WinsWidget';
+import { StreakService, StreakData } from '../../src/services/StreakService';
+import { NotificationService } from '../../src/services/NotificationService';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -68,6 +71,9 @@ export default function TimelineScreen() {
 
     // Week at a Glance State
     const [weekAtGlanceData, setWeekAtGlanceData] = useState<{ label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[]>([]);
+
+    // Streak State
+    const [streakData, setStreakData] = useState<StreakData | null>(null);
 
     const handleStartExperimentFocus = async (experimentId: string) => {
         try {
@@ -180,7 +186,7 @@ export default function TimelineScreen() {
         const filteredSymptoms = loadedSymptoms.filter(s => new Date(s.occurredAt) >= threeDaysAgo);
 
         setMeals(filteredMeals);
-        setMoods(loadedMoods); 
+        setMoods(filteredMoods); 
         setSymptoms(filteredSymptoms);
 
         const merged: TimelineItem[] = [
@@ -254,6 +260,19 @@ export default function TimelineScreen() {
         setWeekAtGlanceData(weekAtGlance);
         setTimelineData(sections);
         setActiveExperiments(activeExps);
+
+        // Compute streaks from full event history (not the 3-day filtered subset)
+        try {
+            const computed = await StreakService.computeStreaks(loadedMeals, loadedMoods, loadedSymptoms);
+            setStreakData(computed);
+            const newMilestone = await StreakService.getNewMilestone(computed);
+            if (newMilestone !== null) {
+                NotificationService.scheduleStreakMilestoneNotification(newMilestone);
+            }
+        } catch (e) {
+            console.error('[StreakService] Failed to compute streaks:', e);
+        }
+
         setLoading(false);
     };
 
@@ -427,6 +446,9 @@ export default function TimelineScreen() {
 
                         {/* 2. Heads Up (Predictive Intelligence) - Only show if items exist */}
                         {headsUpItems.length > 0 && <HeadsUp items={headsUpItems} />}
+
+                        {/* 2b. Streak & Consistency */}
+                        {streakData && <WinsWidget streakData={streakData} />}
 
                         {/* 3. Active Experiment */}
                         {activeExperiments.map(run => (

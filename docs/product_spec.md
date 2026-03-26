@@ -61,6 +61,7 @@ Most food logging apps emphasize nutritional dashboards (calories/macros), but t
     - **Meal Reminders**: Fire 45 minutes *after* predicted meal times only if no log is detected for that slot.
     - **Daily Reflection**: A consolidated mood/symptom check-in at 20:30, skipped if already logged.
 - **7-Day Sliding Feed**: Chronological display of meals, moods, and symptoms.
+- **Wins & Streaks**: Celebrate logging consistency (e.g., 14-day streak) and symptom-free periods (3+ days) via the WinsWidget.
 - **Week at a Glance**: Summarized dot indicators for daily events.
 - **Daily Timeline Modal**: Detailed daily view with chronological layout.
 - **Weekly Intelligence**: "Tag Cloud" layout for top weekly symptoms and bar/line charts for trends.
