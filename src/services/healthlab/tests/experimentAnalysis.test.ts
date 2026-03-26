@@ -20,12 +20,12 @@ describe('ExperimentAnalysis', () => {
 
     const mockMoods: MoodEvent[] = [
         // Baseline window (March 3 - March 9)
-        { id: '1', createdAt: '2026-03-05T12:00:00Z', occurredAt: '2026-03-05T12:00:00Z', energy: 'ok' }, // Val: 3
-        { id: '2', createdAt: '2026-03-06T12:00:00Z', occurredAt: '2026-03-06T12:00:00Z', energy: 'ok' }, // Val: 3
+        { id: '1', createdAt: '2026-03-05T12:00:00Z', occurredAt: '2026-03-05T12:00:00Z', symptomType: 'energy', category: 'energy', severity: 1, source: 'manual', isOngoing: false },
+        { id: '2', createdAt: '2026-03-06T12:00:00Z', occurredAt: '2026-03-06T12:00:00Z', symptomType: 'energy', category: 'energy', severity: 1, source: 'manual', isOngoing: false },
         
         // Experiment window (March 10 - March 15)
-        { id: '3', createdAt: '2026-03-11T12:00:00Z', occurredAt: '2026-03-11T12:00:00Z', energy: 'high' }, // Val: 5
-        { id: '4', createdAt: '2026-03-12T12:00:00Z', occurredAt: '2026-03-12T12:00:00Z', energy: 'high' }, // Val: 5
+        { id: '3', createdAt: '2026-03-11T12:00:00Z', occurredAt: '2026-03-11T12:00:00Z', symptomType: 'energy', category: 'energy', severity: 2, source: 'manual', isOngoing: false },
+        { id: '4', createdAt: '2026-03-12T12:00:00Z', occurredAt: '2026-03-12T12:00:00Z', symptomType: 'energy', category: 'energy', severity: 2, source: 'manual', isOngoing: false },
     ];
 
     const mockMeals: MealEvent[] = [];
@@ -40,8 +40,8 @@ describe('ExperimentAnalysis', () => {
             endDate
         );
 
-        expect(results.baselineValue).toBe(3);
-        expect(results.experimentValue).toBe(5);
+        expect(results.baselineValue).toBe(1);
+        expect(results.experimentValue).toBe(2);
     });
 
     test('calculates correct delta percentage', () => {
@@ -54,8 +54,8 @@ describe('ExperimentAnalysis', () => {
             endDate
         );
 
-        // (5 - 3) / 3 * 100 = 66.66%
-        expect(results.delta).toBeCloseTo(66.666, 1);
+        // (2 - 1) / 1 * 100 = 100%
+        expect(results.delta).toBe(100);
     });
 
     test('calculates confidence based on data points', () => {
@@ -68,15 +68,6 @@ describe('ExperimentAnalysis', () => {
             endDate
         );
 
-        // 4 total moods in window (wait, no, 2 moods in experiment window)
-        // Actually, calculateConfidence uses total meals + moods in experiment window
-        // Moods 3 and 4 are in the window. 2 points total.
         expect(results.confidence).toBe('low'); 
-    });
-
-    test('maps energy correctly', () => {
-        expect(ExperimentAnalysis.mapEnergyToValue('high')).toBe(5);
-        expect(ExperimentAnalysis.mapEnergyToValue('ok')).toBe(3);
-        expect(ExperimentAnalysis.mapEnergyToValue('low')).toBe(1);
     });
 });

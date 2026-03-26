@@ -61,23 +61,24 @@ export const ExperimentAnalysis = {
             case 'afternoon_energy': {
                 const energyLogs = windowMoods.filter(m => {
                     const hour = new Date(m.occurredAt).getHours();
-                    return hour >= 14 && hour <= 16; // 2 PM - 4 PM
+                    return m.symptomType === 'energy' && hour >= 14 && hour <= 16;
                 });
-                return this.avg(energyLogs.map(m => this.mapEnergyToValue(m.energy)));
+                return this.avg(energyLogs.map(m => m.severity));
             }
             case 'next_day_energy': {
                 const morningEnergy = windowMoods.filter(m => {
                     const hour = new Date(m.occurredAt).getHours();
-                    return hour >= 6 && hour <= 10;
+                    return m.symptomType === 'energy' && hour >= 6 && hour <= 10;
                 });
-                return this.avg(morningEnergy.map(m => this.mapEnergyToValue(m.energy)));
+                return this.avg(morningEnergy.map(m => m.severity));
             }
             case 'mood_stability': {
-                return this.avg(windowMoods.map(m => this.mapMoodToValue(m.valence)));
+                const moodLogs = windowMoods.filter(m => m.symptomType === 'mood');
+                return this.avg(moodLogs.map(m => m.severity));
             }
             case 'stress_frequency': {
                 const days = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                const highStress = windowMoods.filter(m => this.mapStressToValue(m.stress) >= 4);
+                const highStress = windowMoods.filter(m => m.symptomType === 'stress' && m.severity >= 1);
                 return highStress.length / days;
             }
             case 'symptom_frequency': {
@@ -96,41 +97,14 @@ export const ExperimentAnalysis = {
                 return this.avg(windowSymptoms.map(s => s.severity));
             }
             case 'avg_energy':
-                return this.avg(windowMoods.map(m => this.mapEnergyToValue(m.energy)));
+                return this.avg(windowMoods.filter(m => m.symptomType === 'energy').map(m => m.severity));
             case 'avg_mood':
-                return this.avg(windowMoods.map(m => this.mapMoodToValue(m.valence)));
+                return this.avg(windowMoods.filter(m => m.symptomType === 'mood').map(m => m.severity));
             default:
                 return 0;
         }
     },
 
-    mapMoodToValue(valence: any): number {
-        if (typeof valence === 'number') return valence;
-        switch (valence) {
-            case 'positive': return 5;
-            case 'neutral': return 3;
-            case 'negative': return 1;
-            default: return 3;
-        }
-    },
-
-    mapEnergyToValue(energy: any): number {
-        switch (energy) {
-            case 'high': return 5;
-            case 'ok': return 3;
-            case 'low': return 1;
-            default: return 3;
-        }
-    },
-
-    mapStressToValue(stress: any): number {
-        switch (stress) {
-            case 'high': return 5;
-            case 'medium': return 3;
-            case 'low': return 1;
-            default: return 1;
-        }
-    },
 
     avg(values: number[]): number {
         if (values.length === 0) return 0;

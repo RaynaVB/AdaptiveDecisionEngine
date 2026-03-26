@@ -5,10 +5,9 @@ from datetime import datetime
 class MoodEvent(TypedDict):
     id: str
     occurredAt: str
-    valence: Optional[Union[float, Literal['positive', 'neutral', 'negative']]]
-    arousal: Optional[float]
-    energy: Optional[Literal['high', 'ok', 'low']]
-    stress: Optional[Literal['high', 'ok', 'low']]
+    symptomType: str
+    severity: int
+    category: Optional[str]
 
 ContextVector = List[float]  # [valence, arousal, hour, day]
 
@@ -17,40 +16,30 @@ LAMBDA_SPIKE = 2.0
 LAMBDA_PERSISTENT = 0.3
 
 def get_decay_constant(mood: MoodEvent) -> float:
-    # Check for new scale first
     stype = mood.get('symptomType', '').lower()
     severity = mood.get('severity', 0)
     
+    # High intensity states decay differently
     if stype == "stress" and severity > 0:
         return LAMBDA_SPIKE
     if stype == "energy" and severity > 0:
         return LAMBDA_SPIKE
         
-    # Legacy check
-    if mood.get('energy') == 'high' or mood.get('stress') == 'high':
-        return LAMBDA_SPIKE
     return LAMBDA_PERSISTENT
 
 def calculate_mood_influence_weight(delta_hours: float, lambda_val: float) -> float:
     return math.exp(-lambda_val * delta_hours)
 
 def parse_valence(mood: MoodEvent) -> float:
-    # Check for new scale first
     stype = mood.get('symptomType', '').lower()
     severity = mood.get('severity', 0)
+    
     if stype == "mood":
         return float(severity) / 2.0  # Normalize -2..2 to -1..1
         
-    # Legacy check
-    valence = mood.get('valence')
-    if isinstance(valence, (int, float)):
-        return float(valence)
-    if valence == 'positive': return 0.8
-    if valence == 'negative': return -0.8
     return 0.0
 
 def parse_arousal(mood: MoodEvent) -> float:
-    # Check for new scale first
     stype = mood.get('symptomType', '').lower()
     severity = mood.get('severity', 0)
     
@@ -58,14 +47,6 @@ def parse_arousal(mood: MoodEvent) -> float:
     if stype == "energy":
         return float(severity) / 2.0  # Normalize -2..2 to -1..1
         
-    # Legacy check
-    arousal = mood.get('arousal')
-    if isinstance(arousal, (int, float)):
-        return float(arousal)
-    
-    energy = mood.get('energy')
-    if energy == 'high': return 0.8
-    if energy == 'low': return -0.8
     return 0.0
 
 def build_context_vector(target_time_ms: int, moods: List[MoodEvent]) -> ContextVector:

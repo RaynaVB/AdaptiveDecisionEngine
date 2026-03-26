@@ -1,4 +1,4 @@
-export type SymptomSeverity = -2 | -1 | 0 | 1 | 2 | 3;
+export type BehavioralValue = -2 | -1 | 0 | 1 | 2 | 3;
 
 export type SymptomCategory = 
   | 'digestive'
@@ -14,7 +14,7 @@ export interface SymptomEvent {
   id: string;
   symptomType: string;
   category: SymptomCategory;
-  severity: SymptomSeverity;
+  severity: BehavioralValue;
   occurredAt: string; // Aligning with MealEvent/MoodEvent naming, or startedAt.
   endedAt?: string;
   isOngoing: boolean;
@@ -23,6 +23,8 @@ export interface SymptomEvent {
   notes?: string;
   suspectedTriggerIds?: string[]; // IDs of meals/events
   tags?: string[];
+  linkedMealEventId?: string;
+  moodLabel?: string;
   source: 'manual' | 'checkin' | 'predicted';
   createdAt: string;
 }

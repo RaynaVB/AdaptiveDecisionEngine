@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Insight } from '../core/insight_engine/insightEngine';
+import { Insight } from '../models/types';
 import { SymptomEvent } from '../models/Symptom';
 import { Sparkles, TrendingDown, Target } from 'lucide-react-native';
 
@@ -57,7 +57,7 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({
                     {predictionInsights.map(pi => (
                         <View key={pi.id} style={styles.insightBox}>
                             <Target color="#ef4444" size={16} />
-                            <Text style={styles.insightText}>{pi.description}</Text>
+                            <Text style={styles.insightText}>{pi.summary}</Text>
                         </View>
                     ))}
                 </View>

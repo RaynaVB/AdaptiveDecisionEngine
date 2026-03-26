@@ -64,7 +64,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
                     const d = new Date(m.occurredAt);
                     const dayStr = d.toLocaleDateString([], { weekday: 'short' });
                     if (moodByDay[dayStr]) {
-                        const val = typeof m.valence === 'number' ? m.valence : (m.valence === 'positive' ? 5 : m.valence === 'negative' ? 1 : 3);
+                        const val = m.severity;
                         moodByDay[dayStr].sum += val;
                         moodByDay[dayStr].count += 1;
                     }

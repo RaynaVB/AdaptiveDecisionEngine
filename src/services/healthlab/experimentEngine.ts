@@ -216,16 +216,22 @@ export const ExperimentEngine = {
                 id: uuidv4(),
                 createdAt: dateAt(-i, 9),
                 occurredAt: dateAt(-i, 9),
-                arousal: -1, // energy: 'low'
-                valence: -1, // valence: 'negative'
+                symptomType: 'energy',
+                category: 'energy',
+                severity: -1,
+                source: 'manual',
+                isOngoing: false
             });
             // Afternoon baseline log (3 PM, i days before start)
             await StorageService.addMoodEvent({
                 id: uuidv4(),
                 createdAt: dateAt(-i, 15),
                 occurredAt: dateAt(-i, 15),
-                arousal: -1, // energy: 'low'
-                valence: 0, // valence: 'neutral'
+                symptomType: 'mood',
+                category: 'mood',
+                severity: 0,
+                source: 'manual',
+                isOngoing: false
             });
         }
 
@@ -236,16 +242,22 @@ export const ExperimentEngine = {
                 id: uuidv4(),
                 createdAt: dateAt(i, 9),
                 occurredAt: dateAt(i, 9),
-                arousal: 1, // energy: 'high'
-                valence: 1, // valence: 'positive'
+                symptomType: 'energy',
+                category: 'energy',
+                severity: 1,
+                source: 'manual',
+                isOngoing: false
             });
             // Afternoon experimental log (3:30 PM — inside the 2-4 PM window)
             await StorageService.addMoodEvent({
                 id: uuidv4(),
                 createdAt: dateAt(i, 15),
                 occurredAt: dateAt(i, 15),
-                arousal: 1, // energy: 'high'
-                valence: 1, // valence: 'positive'
+                symptomType: 'mood',
+                category: 'mood',
+                severity: 1,
+                source: 'manual',
+                isOngoing: false
             });
             // Meal log to boost confidence count
             await StorageService.addMealEvent({

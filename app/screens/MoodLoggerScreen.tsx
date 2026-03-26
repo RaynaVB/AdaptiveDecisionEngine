@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, LayoutA
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
-import { SymptomEvent, SymptomSeverity, SymptomCategory } from '../../src/models/Symptom';
+import { SymptomEvent, BehavioralValue, SymptomCategory } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
 import { v4 as uuidv4 } from 'uuid';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -98,7 +98,7 @@ export default function MoodLoggerScreen() {
                 id: uuidv4(),
                 symptomType: entry.name.toLowerCase(),
                 category: entry.category,
-                severity: Math.round(entry.severity) as SymptomSeverity,
+                severity: Math.round(entry.severity) as BehavioralValue,
                 occurredAt: occurredAt.toISOString(),
                 isOngoing: false,
                 source: 'manual',

@@ -1,3 +1,5 @@
+import { SymptomEvent } from './Symptom';
+
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export type MealReason = 'hungry' | 'meal_time' | 'social' | 'late_night' | 'boredom' | 'craving';
@@ -41,16 +43,7 @@ export interface MealEvent {
 }
 
 
-export interface MoodEvent {
-  id: string;
-  createdAt: string; // ISO
-  occurredAt: string; // ISO
-  valence?: number;
-  arousal?: number;
-  moodLabel?: string;
-  notes?: string;
-  linkedMealEventId?: string;
-}
+export type MoodEvent = SymptomEvent;
 
 export type FeedbackOutcome = 'accepted' | 'rejected' | 'maybe' | 'dismissed' | 'completed';
 
@@ -168,6 +161,11 @@ export interface Insight {
   };
   status: string;
   relatedPatternIds?: string[];
+  actionableInsight?: {
+    label: string;
+    actionType: 'start_experiment' | 'log_more' | 'lifestyle_change';
+    experimentIdToStart: string;
+  };
   createdAt: string;
 }
 

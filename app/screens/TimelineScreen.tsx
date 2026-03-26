@@ -344,9 +344,9 @@ export default function TimelineScreen() {
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
         let emoji = '😐';
-        if (item.valence !== undefined) {
-            if (item.valence > 0) emoji = '😊';
-            else if (item.valence < 0) emoji = '😟';
+        if (item.severity !== undefined && item.symptomType === 'mood') {
+            if (item.severity > 0) emoji = '😊';
+            else if (item.severity < 0) emoji = '😟';
         }
 
         return (
@@ -362,10 +362,10 @@ export default function TimelineScreen() {
                     <Text style={{ fontSize: 32, marginRight: Spacing.s4 }}>{emoji}</Text>
                     <View style={{ flex: 1 }}>
                         <Text style={[styles.summaryText, { fontSize: 17, marginBottom: 2 }]}>
-                            {item.moodLabel || 'Mood Update'}
+                            {item.moodLabel || (item.symptomType.charAt(0).toUpperCase() + item.symptomType.slice(1))}
                         </Text>
                         <Text style={styles.timeColumnText}>
-                            {timeString} {item.valence !== undefined ? `• Intensity: ${item.valence > 0 ? '+' : ''}${item.valence}` : ''}
+                            {timeString} {item.symptomType === 'mood' ? `• Intensity: ${item.severity > 0 ? '+' : ''}${item.severity}` : ''}
                         </Text>
                     </View>
                 </View>
