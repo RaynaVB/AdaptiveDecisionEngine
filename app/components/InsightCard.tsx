@@ -51,6 +51,11 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
       <Text style={styles.cardTitle}>{insight.title}</Text>
       <Text style={styles.cardDescription}>{insight.summary}</Text>
       <View style={styles.footer}>
+        {insight.supportingEvidence?.matchCount > 0 && insight.supportingEvidence?.sampleSize > 0 && (
+          <Text style={styles.evidenceText}>
+            FOUND IN {insight.supportingEvidence.matchCount} OF {insight.supportingEvidence.sampleSize} LOGS
+          </Text>
+        )}
         <Text style={styles.confidenceText}>
           CONFIDENCE: {(insight.confidenceLevel || 'medium').toUpperCase()}
         </Text>
@@ -110,6 +115,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.surfaceContainer,
     paddingTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  evidenceText: {
+    ...Typography.label,
+    fontSize: 10,
+    color: Colors.accent,
+    fontWeight: '700',
   },
   confidenceText: {
     ...Typography.label,

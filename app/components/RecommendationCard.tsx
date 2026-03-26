@@ -55,6 +55,15 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             <Text style={styles.confidenceLabel}>Confidence: </Text>
             <Text style={styles.confidenceValue}>{(recommendation.confidenceLevel || 'medium').toUpperCase()}</Text>
           </View>
+          {recommendation.scores?.feasibility >= 0.8 ? (
+            <View style={[styles.signalChip, styles.easyChip]}>
+              <Text style={[styles.signalChipText, styles.easyChipText]}>EASY TO TRY</Text>
+            </View>
+          ) : recommendation.scores?.impact >= 0.7 ? (
+            <View style={[styles.signalChip, styles.impactChip]}>
+              <Text style={[styles.signalChipText, styles.impactChipText]}>HIGH IMPACT</Text>
+            </View>
+          ) : null}
         </View>
       )}
 
@@ -81,7 +90,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             styles.primaryButtonText,
             { color: (actionState === 'accepted' || (!actionState && isHero)) ? Colors.onPrimaryContrast : Colors.onSurfaceVariant }
           ]}>
-            {isHero ? (recommendation.associatedExperimentId ? 'START' : 'ACCEPT') : 'CHECK'}
+            {isHero ? (recommendation.associatedExperimentId ? 'START' : 'ACCEPT') : (recommendation.cta?.label?.toUpperCase() || 'CHECK')}
           </Text>
         </TouchableOpacity>
 
@@ -166,7 +175,30 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: Spacing.s4,
+  },
+  signalChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.full,
+  },
+  signalChipText: {
+    ...Typography.label,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  easyChip: {
+    backgroundColor: Colors.successContainer,
+  },
+  easyChipText: {
+    color: Colors.success,
+  },
+  impactChip: {
+    backgroundColor: Colors.accentContainer,
+  },
+  impactChipText: {
+    color: Colors.accent,
   },
   confidenceBadge: {
     flexDirection: 'row',
