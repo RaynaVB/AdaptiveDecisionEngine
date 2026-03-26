@@ -2,6 +2,30 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
+def compute_ingredient_baseline(meals: List[Dict[str, Any]]) -> Dict[str, float]:
+    """Returns fraction of meals (0.0–1.0) that contain each ingredient."""
+    counter: Dict[str, int] = {}
+    total = len(meals)
+    if total == 0:
+        return {}
+    for m in meals:
+        seen: set = set()
+        for ing in m.get("confirmedIngredients", []):
+            if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                name = ing.get("canonicalName")
+                if name and name not in seen:
+                    counter[name] = counter.get(name, 0) + 1
+                    seen.add(name)
+    return {k: v / total for k, v in counter.items()}
+
+
+def compute_lift(event_rate: float, baseline_rate: float) -> float:
+    """Lift = how much more often an ingredient appears before events vs. in general."""
+    if baseline_rate <= 0:
+        return 2.0 if event_rate >= 0.4 else 1.0
+    return event_rate / baseline_rate
+
+
 def run_pattern_engine(meals: List[Dict[str, Any]], moods: List[Dict[str, Any]], symptoms: List[Dict[str, Any]] = []) -> List[Dict[str, Any]]:
     context = {"meals": meals, "moods": moods, "symptoms": symptoms}
     patterns = []
@@ -222,6 +246,8 @@ def analyze_meal_type_mood_association(context: Dict[str, Any]) -> List[Dict[str
     moods = context.get("moods", [])
     patterns = []
     stats = {}
+    # Fix 1: baseline for lift calculation
+    baseline = compute_ingredient_baseline(meals)
 
     sorted_meals = sorted(meals, key=lambda x: x.get("occurredAt", ""))
     sorted_moods = sorted(moods, key=lambda x: x.get("occurredAt", ""))
@@ -262,7 +288,9 @@ def analyze_meal_type_mood_association(context: Dict[str, Any]) -> List[Dict[str
     for tag, s in stats.items():
         if s["total"] >= 3:
             rate = s["drops"] / s["total"]
-            if rate >= 0.60:
+            # Fix 1: lift check — tag must be elevated before mood drops vs. overall frequency
+            lift = compute_lift(rate, baseline.get(tag, 0))
+            if rate >= 0.60 and lift >= 1.5:
                 # It's an ingredient
                 triggering_meals = []
                 for m in sorted_meals:
@@ -292,50 +320,57 @@ def analyze_symptom_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]
     patterns = []
     if not symptoms: return []
 
+    # Fix 1: baseline for lift calculation
+    baseline = compute_ingredient_baseline(meals)
+
     symptoms_by_type = {}
     for s in symptoms:
         st = s.get("symptomType")
         sev = s.get("severity", 0)
-        
+
         # Only correlate moderate-to-high severity physical symptoms (1-3 scale)
         if st != "mood" and sev < 2:
             continue
-            
+
         if st not in symptoms_by_type: symptoms_by_type[st] = []
         symptoms_by_type[st].append(s)
 
     for symptom_type, events in symptoms_by_type.items():
         if len(events) >= 2:
-            meals_before_count = 0
             tag_counter = {}
             for sym in events:
                 try:
                     sym_time = datetime.fromisoformat(sym["occurredAt"].replace('Z', '+00:00'))
-                    meals_before = []
-                    for m in meals:
-                        m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
-                        if m_time < sym_time and (sym_time - m_time) <= timedelta(hours=6):
-                            meals_before.append(m)
-                    
-                    if meals_before:
-                        meals_before_count += 1
-                        for m in meals_before:
-                            # Check ingredients
-                            for ing in m.get("confirmedIngredients", []):
-                                if ing.get("confirmedStatus") not in ["removed", "suggested"]:
-                                    name = ing.get("canonicalName")
-                                    if name:
-                                        tag_counter[name] = tag_counter.get(name, 0) + 1
+                    meals_before = [
+                        m for m in meals
+                        if (lambda t: t < sym_time and (sym_time - t) <= timedelta(hours=6))(
+                            datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
+                        )
+                    ]
+                    # Fix: seen set per symptom event so multi-meal windows don't inflate counts
+                    seen_in_this_sym: set = set()
+                    for m in meals_before:
+                        for ing in m.get("confirmedIngredients", []):
+                            if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                                name = ing.get("canonicalName")
+                                if name and name not in seen_in_this_sym:
+                                    tag_counter[name] = tag_counter.get(name, 0) + 1
+                                    seen_in_this_sym.add(name)
                 except Exception:
                     continue
-            
-            if meals_before_count > 0 and tag_counter:
+
+            if tag_counter:
                 top_trigger = max(tag_counter, key=tag_counter.get)
-                if tag_counter[top_trigger] >= max(1, len(events) * 0.5):
-                    # Find triggering meals for segmentation
+                top_count = tag_counter[top_trigger]
+                if top_count >= max(1, len(events) * 0.5):
+                    event_rate = top_count / len(events)
+                    # Fix 1: lift check — ingredient must be elevated before symptoms
+                    lift = compute_lift(event_rate, baseline.get(top_trigger, 0))
+                    if lift < 1.5:
+                        continue
+
                     triggering_meals = []
                     for m in meals:
-                        # Check ingredients
                         for ing in m.get("confirmedIngredients", []):
                             if ing.get("canonicalName") == top_trigger:
                                 triggering_meals.append(m)
@@ -348,7 +383,7 @@ def analyze_symptom_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]
                         "description": f"We noticed that your {symptom_type} often occurs 0-6 hours after logging {top_trigger}.",
                         "confidence": "medium",
                         "severity": "medium",
-                        "evidence": {"symptomCount": len(events), "matches": tag_counter[top_trigger], "trigger": top_trigger, "symptom_type": symptom_type},
+                        "evidence": {"symptomCount": len(events), "matches": top_count, "trigger": top_trigger, "symptom_type": symptom_type},
                         "segmentation": calculate_segmentation(triggering_meals),
                         "createdAt": datetime.now().isoformat()
                     })
@@ -364,6 +399,8 @@ def analyze_mood_boost_ingredients(context: Dict[str, Any]) -> List[Dict[str, An
     high_moods = [m for m in moods if m.get("symptomType") == "mood" and m.get("severity", 0) >= 1]
     if len(high_moods) < 2: return []
 
+    # Fix 1: baseline for lift calculation
+    baseline = compute_ingredient_baseline(meals)
     presence_counter = {}
 
     for mood in high_moods:
@@ -390,8 +427,9 @@ def analyze_mood_boost_ingredients(context: Dict[str, Any]) -> List[Dict[str, An
     for trigger, count in presence_counter.items():
         if count >= 2:
             rate = count / len(high_moods)
-            if rate >= 0.5:
-                # Find triggering meals for segmentation
+            # Fix 1: lift check — ingredient must be elevated before good moods vs. baseline
+            lift = compute_lift(rate, baseline.get(trigger, 0))
+            if rate >= 0.5 and lift >= 1.5:
                 triggering_meals = []
                 for m in meals:
                     for ing in m.get("confirmedIngredients", []):
@@ -422,6 +460,9 @@ def analyze_delayed_symptom_triggers(context: Dict[str, Any]) -> List[Dict[str, 
     significant_symptoms = [s for s in symptoms if s.get("symptomType") != "mood" and s.get("severity", 0) >= 2]
     if not significant_symptoms: return []
 
+    # Fix 1+7: baseline for lift; higher lift threshold for noisy 6-24h window
+    baseline = compute_ingredient_baseline(meals)
+
     symptoms_by_type = {}
     for s in significant_symptoms:
         st = s.get("symptomType")
@@ -434,39 +475,50 @@ def analyze_delayed_symptom_triggers(context: Dict[str, Any]) -> List[Dict[str, 
             for sym in events:
                 try:
                     sym_time = datetime.fromisoformat(sym["occurredAt"].replace('Z', '+00:00'))
+                    # Fix: seen set per event to prevent multi-meal inflation
+                    seen_in_this_sym: set = set()
                     for m in meals:
                         m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
                         td = sym_time - m_time
                         if timedelta(hours=6) <= td <= timedelta(hours=24):
-                            # Check ingredients
                             for ing in m.get("confirmedIngredients", []):
                                 if ing.get("confirmedStatus") not in ["removed", "suggested"]:
                                     name = ing.get("canonicalName")
-                                    if name:
+                                    if name and name not in seen_in_this_sym:
                                         trigger_counter[name] = trigger_counter.get(name, 0) + 1
+                                        seen_in_this_sym.add(name)
                 except Exception:
                     continue
-            
+
             if trigger_counter:
                 top_trigger = max(trigger_counter, key=trigger_counter.get)
-                if trigger_counter[top_trigger] >= max(2, len(events) * 0.6):
-                    # Find triggering meals for segmentation
-                    triggering_meals = []
-                    for m in meals:
-                        for ing in m.get("confirmedIngredients", []):
-                            if ing.get("canonicalName") == top_trigger:
-                                triggering_meals.append(m)
-                                break
+                top_count = trigger_counter[top_trigger]
+                # Fix 7: raise threshold from 0.6 → 0.75 for the noisier 6-24h window
+                if top_count < max(2, len(events) * 0.75):
+                    continue
 
-                    patterns.append({
-                        "id": str(uuid.uuid4()),
-                        "patternType": "delayed_trigger",
-                        "title": f"Delayed Trigger: {top_trigger}",
-                        "description": f"Your {symptom_type} often occurs 6-24 hours after consuming {top_trigger}.",
-                        "confidence": "low", # Delayed triggers are noisier
-                        "severity": "medium",
-                        "evidence": {"matchCount": trigger_counter[top_trigger], "sampleSize": len(events), "trigger": top_trigger, "symptom_type": symptom_type},
-                        "segmentation": calculate_segmentation(triggering_meals),
-                        "createdAt": datetime.now().isoformat()
-                    })
+                event_rate = top_count / len(events)
+                # Fix 7: require lift >= 2.0 — stricter threshold for delayed window
+                lift = compute_lift(event_rate, baseline.get(top_trigger, 0))
+                if lift < 2.0:
+                    continue
+
+                triggering_meals = []
+                for m in meals:
+                    for ing in m.get("confirmedIngredients", []):
+                        if ing.get("canonicalName") == top_trigger:
+                            triggering_meals.append(m)
+                            break
+
+                patterns.append({
+                    "id": str(uuid.uuid4()),
+                    "patternType": "delayed_trigger",
+                    "title": f"Delayed Trigger: {top_trigger}",
+                    "description": f"Your {symptom_type} often occurs 6-24 hours after consuming {top_trigger}.",
+                    "confidence": "low",  # Delayed triggers are noisier
+                    "severity": "medium",
+                    "evidence": {"matchCount": top_count, "sampleSize": len(events), "trigger": top_trigger, "symptom_type": symptom_type},
+                    "segmentation": calculate_segmentation(triggering_meals),
+                    "createdAt": datetime.now().isoformat()
+                })
     return patterns

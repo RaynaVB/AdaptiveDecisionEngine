@@ -386,7 +386,6 @@ export default function LogMealScreen() {
             mealSlot: selectedSlot,
             inputMode: photoUri ? 'photo' : 'text',
             mealReason: selectedReason,
-            mealTypeTags: [],
             tags: [],
 
             // Canonical data

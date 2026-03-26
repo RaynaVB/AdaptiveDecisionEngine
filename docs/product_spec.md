@@ -48,7 +48,7 @@ Most food logging apps emphasize nutritional dashboards (calories/macros), but t
 
 #### 2. Specialized Mood & Symptom Tracking
 - **Decoupled Logging Interfaces**: Dedicated screens for mental and physical states to optimize UX:
-    - **`MoodLoggerScreen`**: Focused on emotional check-ins (e.g., Sad ↔ Happy, Energy, Stress).
+    - **`MoodLoggerScreen`**: Focused on emotional check-ins (e.g., Sad ↔ Happy).
     - **`SymptomLoggerScreen`**: Streamlined for physical symptoms (e.g., Nausea, Headache).
 - **Multi-Scale Architecture**:
     - **Bipolar Moods**: Center-aligned sliders on a **-2 to +2** scale (Neutral at 0) to capture both positive and negative valence.
@@ -74,7 +74,7 @@ Detects behavioral clusters using a 7-day sliding window with an **Uncertainty P
 - **P1 (Mood-Triggered Eating):** Eating follows low mood or high stress.
 - **P2 (Late-Night Clustering):** Contiguous eating events in late-night hours.
 - **P3 (Routine Shifts):** Divergence between weekdays and weekends.
-- **P4 (Meal-Mood Correlations):** Specific ingredients or meal patterns linked to subsequent mood/energy shifts.
+- **P4 (Meal-Mood Correlations):** Specific ingredients or meal patterns linked to subsequent mood shifts.
 - **P5 (Symptom Correlations):** Specific ingredients matched to subsequent physical symptoms.
 - **P6 (Mood Boosters):** Ingredients correlated with positive mood elevation.
 - **P7 (Delayed Triggers):** Physical symptoms occurring 6-24 hours after specific food consumed.

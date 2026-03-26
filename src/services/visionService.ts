@@ -1,14 +1,5 @@
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, storage } from "./firebaseConfig";
-import { MealTypeTag } from "../models/types";
-
-// Base tags in our app logic
-const VALID_TAGS: MealTypeTag[] = [
-    'light', 'regular', 'heavy',
-    'sweet', 'savory', 'homemade', 'restaurant', 'packaged',
-    'high_sugar', 'fried_greasy', 'high_protein', 'high_fiber', 'caffeinated'
-];
-
 // Cloud Function URL configuration
 const USE_EMULATOR = false;
 const PROD_URL = 'https://vision-service-n5p5ozwbwa-uc.a.run.app';
@@ -21,10 +12,8 @@ export interface VisionAnalysisResult {
     dishName: string;
     visibleComponents: string[];
     suggestedIngredients: string[];
-    tags: MealTypeTag[];
     potentialQuestions: Array<{ id: string; text: string }>;
 }
-
 
 /**
  * Uploads a local image file to Firebase Storage.
@@ -77,9 +66,6 @@ export async function analyzeFoodImage(base64Image: string, mimeType: string = '
 
         const data = await response.json();
         
-        // Filter out any tags that aren't in our valid list just to be safe
-        const safeTags = (data.tags || []).filter((t: any) => VALID_TAGS.includes(t as MealTypeTag)) as MealTypeTag[];
-
         // Fallback for questions if the LLM returns strings instead of objects
         const rawQuestions = data.potentialQuestions || [];
         const potentialQuestions = rawQuestions.map((q: any, index: number) => {
@@ -98,7 +84,6 @@ export async function analyzeFoodImage(base64Image: string, mimeType: string = '
             dishName: data.dishName || '',
             visibleComponents: data.visibleComponents || [],
             suggestedIngredients: data.suggestedIngredients || [],
-            tags: safeTags,
             potentialQuestions
         };
 

@@ -140,7 +140,6 @@ export default function MealDetailScreen() {
             mealSlot: selectedSlot,
             textDescription: textDescription.trim(),
             mealReason: selectedReason,
-            mealTypeTags: [], // Pruned
             dishId: confirmedDish?.id,
             dishLabel: confirmedDish?.label,
             confirmedIngredients: ingredients,

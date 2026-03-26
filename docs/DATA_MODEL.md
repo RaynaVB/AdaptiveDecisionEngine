@@ -13,7 +13,7 @@ This document defines the core data entities for V2. The schema is designed to:
 
 ## 1) Design Principles
 1. **Event-based logging:** Meals and moods are time-stamped events.
-2. **Coarse labels > precise nutrition:** Meal *type* tags are sufficient for V2 patterns.
+2. **Ingredient-based correlations:** Meal analysis relies on specific ingredients rather than string-based tags.
 3. **Uncertainty is first-class:** Inference outputs include confidence.
 4. **Learning loop is explicit:** Recommendation outcomes are stored as structured feedback.
 5. **Reproducibility:** Pattern and recommendation runs can be replayed from raw events.
@@ -56,7 +56,7 @@ Stores minimal user profile + preferences used by the decision engine.
 ---
 
 ### 3.2 `meal_events`
-A meal log entry (photo or short text), with meal slot + coarse meal type tags.
+A meal log entry (photo or short text), with meal slot and ingredient-level breakdown.
 
 | Field | Type | Required | Notes |
 |------|------|----------|------|
@@ -69,14 +69,13 @@ A meal log entry (photo or short text), with meal slot + coarse meal type tags.
 | photo_uri | string | ❌ | storage URL if photo |
 | text_description | string | ❌ | short description |
 | raw_text | string | ❌ | optional raw transcription |
-| tags | json/array | ❌ | string array of custom tags |
-| portion_size | enum | ❌ | `small/medium/large` |
-| meal_type_tags | json/array | ✅ | list of coarse tags (see MEAL_TAXONOMY) |
+| dish_label | string | ❌ | Identified dish name |
+| confirmed_ingredients | json/array | ✅ | list of ConfirmedIngredient objects |
 | notes | string | ❌ | optional free text |
 
 **Constraints**
 - Require at least one of: `photo_uri` or `text_description`.
-- Require at least one `meal_type_tag` OR allow `unknown` tag when confidence is low.
+- Require `confirmed_ingredients` for pattern detection.
 
 ---
 
@@ -90,7 +89,7 @@ A consolidated event for physical symptoms (digestive, neuro, etc.) and emotiona
 | created_at | timestamp | ✅ | |
 | occurred_at | timestamp | ✅ | when symptom was felt (default = created_at) |
 | symptom_type | string | ✅ | e.g. "headache", "anxiety", "nausea" |
-| category | enum | ✅ | `digestive/neurological/energy/mood/sleep/respiratory/skin/custom` |
+| category | enum | ✅ | `digestive/neurological/mood/sleep/respiratory/skin/custom` |
 | severity | int | ✅ | Bipolar -2 to +2 for moods; Unipolar 1-3 for physical symptoms |
 | duration_minutes | int | ❌ | optional |
 | body_area | string | ❌ | optional |

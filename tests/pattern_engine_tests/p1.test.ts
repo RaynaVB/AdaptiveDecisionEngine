@@ -15,17 +15,14 @@ describe('P1: Mood Dip Then Eat', () => {
             id: uuidv4(),
             createdAt: now.toISOString(),
             occurredAt: now.toISOString(),
-            valence: 'negative',
-            energy: 'ok',
-            stress: 'high'
+            valence: -1,
         };
         const meal1: MealEvent = {
             id: uuidv4(),
             createdAt: now.toISOString(),
             occurredAt: new Date(now.getTime() + 10 * 60000).toISOString(), // 10 mins later
             mealSlot: 'snack',
-            inputMode: 'text',
-            mealTypeTags: ['sweet']
+            inputMode: 'text'
         };
 
         const context: PatternContext = {
@@ -43,17 +40,14 @@ describe('P1: Mood Dip Then Eat', () => {
             id: uuidv4(),
             createdAt: now.toISOString(),
             occurredAt: now.toISOString(),
-            valence: 'negative',
-            energy: 'ok',
-            stress: 'high'
+            valence: -1,
         };
         const meal1: MealEvent = {
             id: uuidv4(),
             createdAt: now.toISOString(),
             occurredAt: new Date(now.getTime() + 10 * 60000).toISOString(),
-            mealSlot: 'text' as any, // 'text' isn't a slot but let's stick to valid types if possible, or cast
-            inputMode: 'text',
-            mealTypeTags: ['sweet']
+            mealSlot: 'snack',
+            inputMode: 'text'
         };
         // Fix slot
         meal1.mealSlot = 'snack';
@@ -75,8 +69,8 @@ describe('P1: Mood Dip Then Eat', () => {
     test('Should include segmentation data', () => {
         const now = new Date(); // Assume 'daytime'
         // Create trigger same as above
-        const mood1: MoodEvent = { id: uuidv4(), createdAt: now.toISOString(), occurredAt: now.toISOString(), valence: 'negative', energy: 'ok', stress: 'high' };
-        const meal1: MealEvent = { id: uuidv4(), createdAt: now.toISOString(), occurredAt: new Date(now.getTime() + 600000).toISOString(), mealSlot: 'snack', inputMode: 'text', mealTypeTags: [] };
+        const mood1: MoodEvent = { id: uuidv4(), createdAt: now.toISOString(), occurredAt: now.toISOString(), valence: -1 };
+        const meal1: MealEvent = { id: uuidv4(), createdAt: now.toISOString(), occurredAt: new Date(now.getTime() + 600000).toISOString(), mealSlot: 'snack', inputMode: 'text' };
 
         const mood2 = { ...mood1, id: uuidv4(), occurredAt: new Date(now.getTime() - 86400000).toISOString() };
         const meal2 = { ...meal1, id: uuidv4(), occurredAt: new Date(now.getTime() - 86400000 + 600000).toISOString() };

@@ -66,16 +66,7 @@ export const StorageService = {
             await this.logAuditAction('VIEW_MEALS', { count_requested: 'all' });
             const q = query(this.getMealsCollectionRef(), orderBy('occurredAt', 'desc'));
             const querySnapshot = await getDocs(q);
-            return querySnapshot.docs.map(doc => {
-                const data = doc.data() as MealEvent;
-                // Migration: Normalize empty tags to ['unknown']
-                return {
-                    ...data,
-                    mealTypeTags: (!data.mealTypeTags || data.mealTypeTags.length === 0)
-                        ? ['unknown']
-                        : data.mealTypeTags
-                };
-            });
+            return querySnapshot.docs.map(doc => doc.data() as MealEvent);
         } catch (e) {
             console.error('Failed to load meals', e);
             return [];

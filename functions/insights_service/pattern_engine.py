@@ -15,12 +15,78 @@ def run_pattern_engine(meals: List[Dict[str, Any]], moods: List[Dict[str, Any]],
     insights.extend(analyze_symptom_correlations(context))
     insights.extend(analyze_delayed_symptom_triggers(context))
 
+    # Fix 8: remove duplicate (ingredient, symptomType) pairs — prefer 0-6h over 6-24h
+    insights = deduplicate_trigger_insights(insights)
+
     return insights
+
 
 def get_confidence_level(score: float) -> str:
     if score >= 0.8: return "high"
     if score >= 0.5: return "medium"
     return "low"
+
+
+def compute_ingredient_baseline(meals: List[Dict[str, Any]]) -> Dict[str, float]:
+    """Returns fraction of meals (0.0–1.0) that contain each ingredient.
+    Used as a baseline frequency to detect genuine lift vs. common staple foods.
+    """
+    counter: Dict[str, int] = {}
+    total = len(meals)
+    if total == 0:
+        return {}
+    for m in meals:
+        seen: set = set()
+        for ing in m.get("confirmedIngredients", []):
+            if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                name = ing.get("canonicalName")
+                if name and name not in seen:
+                    counter[name] = counter.get(name, 0) + 1
+                    seen.add(name)
+    return {k: v / total for k, v in counter.items()}
+
+
+def compute_lift(event_rate: float, baseline_rate: float) -> float:
+    """Lift = how much more often an ingredient appears before events vs. in general."""
+    if baseline_rate <= 0:
+        # No baseline data — treat as moderate lift if rate is meaningful
+        return 2.0 if event_rate >= 0.4 else 1.0
+    return event_rate / baseline_rate
+
+
+def deduplicate_trigger_insights(insights: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Fix 8: If the same (ingredient, symptomType) pair is flagged by both
+    the 0-6h and 6-24h analyzers, drop the delayed version — the immediate
+    signal is cleaner and more actionable.
+    """
+    seen_immediate: set = set()
+    immediate: List[Dict] = []
+    delayed: List[Dict] = []
+    other: List[Dict] = []
+
+    for ins in insights:
+        t = ins.get("type")
+        if t == "trigger_pattern":
+            meta = ins.get("metadata", {})
+            key = (meta.get("triggerIngredient", ""), meta.get("symptomType", ""))
+            seen_immediate.add(key)
+            immediate.append(ins)
+        elif t == "delayed_trigger":
+            delayed.append(ins)
+        else:
+            other.append(ins)
+
+    deduped_delayed = []
+    for ins in delayed:
+        meta = ins.get("metadata", {})
+        key = (meta.get("triggerIngredient", ""), meta.get("symptomType", ""))
+        if key not in seen_immediate:
+            deduped_delayed.append(ins)
+
+    return immediate + other + deduped_delayed
+
+
+# ─── Analyzers ───────────────────────────────────────────────────────────────
 
 def analyze_mood_dip_then_eat(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     meals = context.get("meals", [])
@@ -31,6 +97,8 @@ def analyze_mood_dip_then_eat(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     sorted_moods = sorted(moods, key=lambda x: x.get("occurredAt", ""))
     sorted_meals = sorted(meals, key=lambda x: x.get("occurredAt", ""))
 
+    # Fix 2: track negative moods separately so sampleSize reflects the relevant pool
+    negative_moods = []
     trigger_count = 0
     triggers = []
 
@@ -45,6 +113,7 @@ def analyze_mood_dip_then_eat(context: Dict[str, Any]) -> List[Dict[str, Any]]:
             is_negative = True
 
         if is_negative:
+            negative_moods.append(mood)
             try:
                 mood_time = datetime.fromisoformat(mood["occurredAt"].replace('Z', '+00:00'))
                 for meal in sorted_meals:
@@ -69,17 +138,18 @@ def analyze_mood_dip_then_eat(context: Dict[str, Any]) -> List[Dict[str, Any]]:
             "window": {"minHours": 0, "maxHours": 1},
             "supportingEvidence": {
                 "matchCount": trigger_count,
-                "sampleSize": len(moods)
+                "sampleSize": len(negative_moods)  # Fix 2: only negative moods, not all moods
             },
             "status": "active",
             "metadata": {"triggers": triggers}
         })
     return insights
 
+
 def analyze_late_night_cluster(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     meals = context.get("meals", [])
     insights = []
-    
+
     seven_days_ago = datetime.now() - timedelta(days=7)
     recent_meals = []
     for m in meals:
@@ -89,7 +159,7 @@ def analyze_late_night_cluster(context: Dict[str, Any]) -> List[Dict[str, Any]]:
                 recent_meals.append(m)
         except Exception:
             continue
-            
+
     if not recent_meals: return []
 
     CUTOFF_HOUR = 21
@@ -124,8 +194,8 @@ def analyze_late_night_cluster(context: Dict[str, Any]) -> List[Dict[str, Any]]:
         })
     return insights
 
+
 def analyze_weekday_weekend_shift(context: Dict[str, Any]) -> List[Dict[str, Any]]:
-    # Ported from original but adapted to Insight format
     meals = context.get("meals", [])
     insights = []
     snacks = [m for m in meals if m.get("mealSlot") == "snack"]
@@ -133,8 +203,8 @@ def analyze_weekday_weekend_shift(context: Dict[str, Any]) -> List[Dict[str, Any
 
     weekday_snacks = 0
     weekend_snacks = 0
-    weekday_days = set()
-    weekend_days = set()
+    weekday_days: set = set()
+    weekend_days: set = set()
 
     for m in snacks:
         try:
@@ -186,31 +256,32 @@ def analyze_weekday_weekend_shift(context: Dict[str, Any]) -> List[Dict[str, Any
         })
     return insights
 
+
 def analyze_mood_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     meals = context.get("meals", [])
     moods = context.get("moods", [])
     insights = []
     if not moods: return []
 
-    # Map moods to identify severe dips (severity < 0 for bipolar -2 to 2)
     mood_dips = [m for m in moods if m.get("symptomType") == "mood" and m.get("severity", 0) < 0]
     if len(mood_dips) < 2: return []
 
-    trigger_counter = {}
+    # Fix 1: compute baseline ingredient frequency across all meals
+    baseline = compute_ingredient_baseline(meals)
+
+    trigger_counter: Dict[str, int] = {}
 
     for dip in mood_dips:
         try:
             dip_time = datetime.fromisoformat(dip["occurredAt"].replace('Z', '+00:00'))
-            # Find meals 0-4 hours before the mood dip
-            meals_before = []
-            for m in meals:
-                m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
-                if m_time < dip_time and (dip_time - m_time) <= timedelta(hours=4):
-                    meals_before.append(m)
-            
-            seen_in_this_dip = set()
+            meals_before = [
+                m for m in meals
+                if (lambda t: t < dip_time and (dip_time - t) <= timedelta(hours=4))(
+                    datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
+                )
+            ]
+            seen_in_this_dip: set = set()
             for m in meals_before:
-                # Correlate with ingredients
                 for ing in m.get("confirmedIngredients", []):
                     if ing.get("confirmedStatus") not in ["removed", "suggested"]:
                         name = ing.get("canonicalName")
@@ -220,12 +291,12 @@ def analyze_mood_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]]:
         except Exception:
             continue
 
-    # Identify significant correlations
     for ingredient, count in trigger_counter.items():
         if count >= 2:
-            # Simple heuristic: if ingredient is present in 50% of mood dips
             rate = count / len(mood_dips)
-            if rate >= 0.5:
+            # Fix 1: require lift >= 1.5 to rule out common staple foods
+            lift = compute_lift(rate, baseline.get(ingredient, 0))
+            if rate >= 0.5 and lift >= 1.5:
                 score = min(0.9, 0.4 + rate * 0.5)
                 insights.append({
                     "insightId": str(uuid.uuid4()),
@@ -241,69 +312,86 @@ def analyze_mood_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]]:
                 })
     return insights
 
+
 def analyze_symptom_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     meals = context.get("meals", [])
     symptoms = context.get("symptoms", [])
     insights = []
     if not symptoms: return []
 
-    # Map symptoms by type and filter for significant severity (>= 2 for unipolar 1-3)
-    symptoms_by_type = {}
+    # Fix 1: baseline for lift calculation
+    baseline = compute_ingredient_baseline(meals)
+
+    symptoms_by_type: Dict[str, list] = {}
     for s in symptoms:
         st = s.get("symptomType")
         sev = s.get("severity", 0)
-        
-        # Only correlate moderate-to-high severity physical symptoms
-        # For mood, we focus on negative dips in analyze_mood_dip_then_eat
         if st != "mood" and sev < 2:
             continue
-            
-        if st not in symptoms_by_type: symptoms_by_type[st] = []
+        if st not in symptoms_by_type:
+            symptoms_by_type[st] = []
         symptoms_by_type[st].append(s)
 
     for symptom_type, events in symptoms_by_type.items():
-        if len(events) >= 2:
-            meals_before_count = 0
-            trigger_counter = {}
-            for sym in events:
-                try:
-                    sym_time = datetime.fromisoformat(sym["occurredAt"].replace('Z', '+00:00'))
-                    meals_before = []
-                    for m in meals:
-                        m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
-                        if m_time < sym_time and (sym_time - m_time) <= timedelta(hours=6):
-                            meals_before.append(m)
-                    
-                    if meals_before:
-                        meals_before_count += 1
-                        for m in meals_before:
-                            # Check confirmedIngredients
-                            for ing in m.get("confirmedIngredients", []):
-                                if ing.get("confirmedStatus") not in ["removed", "suggested"]:
-                                    name = ing.get("canonicalName")
-                                    if name:
-                                        trigger_counter[name] = trigger_counter.get(name, 0) + 1
-                                        
-                except Exception:
-                    continue
-            
-            if meals_before_count > 0 and trigger_counter:
-                top_trigger = max(trigger_counter, key=trigger_counter.get)
-                if trigger_counter[top_trigger] >= max(1, len(events) * 0.5):
-                    score = min(0.95, 0.5 + (trigger_counter[top_trigger] / len(events)) * 0.4)
-                    insights.append({
-                        "insightId": str(uuid.uuid4()),
-                        "type": "trigger_pattern",
-                        "category": "symptom",
-                        "title": f"Possible Trigger: {top_trigger} and {symptom_type}",
-                        "summary": f"We noticed that your {symptom_type} often occurs 0-6 hours after logging {top_trigger}.",
-                        "confidenceScore": score,
-                        "confidenceLevel": get_confidence_level(score),
-                        "window": {"minHours": 0, "maxHours": 6},
-                        "supportingEvidence": {"matchCount": trigger_counter[top_trigger], "sampleSize": len(events)},
-                        "status": "active"
-                    })
+        if len(events) < 2:
+            continue
+
+        trigger_counter: Dict[str, int] = {}
+        for sym in events:
+            try:
+                sym_time = datetime.fromisoformat(sym["occurredAt"].replace('Z', '+00:00'))
+                meals_before = [
+                    m for m in meals
+                    if (lambda t: t < sym_time and (sym_time - t) <= timedelta(hours=6))(
+                        datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
+                    )
+                ]
+                # Fix: use seen set per event so multi-meal windows don't inflate counts
+                seen_in_this_sym: set = set()
+                for m in meals_before:
+                    for ing in m.get("confirmedIngredients", []):
+                        if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                            name = ing.get("canonicalName")
+                            if name and name not in seen_in_this_sym:
+                                trigger_counter[name] = trigger_counter.get(name, 0) + 1
+                                seen_in_this_sym.add(name)
+            except Exception:
+                continue
+
+        if not trigger_counter:
+            continue
+
+        threshold = max(1, len(events) * 0.5)
+
+        # Fix 6: surface top 3 triggers per symptom type (not just the single top)
+        candidates = sorted(
+            [(ing, cnt) for ing, cnt in trigger_counter.items() if cnt >= threshold],
+            key=lambda x: x[1],
+            reverse=True
+        )[:3]
+
+        for ingredient, count in candidates:
+            rate = count / len(events)
+            # Fix 1: lift check — ingredient must appear more before events than in general
+            lift = compute_lift(rate, baseline.get(ingredient, 0))
+            if lift < 1.5:
+                continue
+            score = min(0.95, 0.5 + (count / len(events)) * 0.4)
+            insights.append({
+                "insightId": str(uuid.uuid4()),
+                "type": "trigger_pattern",
+                "category": "symptom",
+                "title": f"Possible Trigger: {ingredient} and {symptom_type}",
+                "summary": f"We noticed that your {symptom_type} often occurs 0-6 hours after logging {ingredient}.",
+                "confidenceScore": score,
+                "confidenceLevel": get_confidence_level(score),
+                "window": {"minHours": 0, "maxHours": 6},
+                "supportingEvidence": {"matchCount": count, "sampleSize": len(events)},
+                "status": "active",
+                "metadata": {"triggerIngredient": ingredient, "symptomType": symptom_type}  # Fix 8: dedup key
+            })
     return insights
+
 
 def analyze_positive_mood_ingredients(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     meals = context.get("meals", [])
@@ -311,23 +399,24 @@ def analyze_positive_mood_ingredients(context: Dict[str, Any]) -> List[Dict[str,
     insights = []
     if not moods: return []
 
-    # Identify high mood states (severity >= 1 for bipolar -2 to 2)
     high_moods = [m for m in moods if m.get("symptomType") == "mood" and m.get("severity", 0) >= 1]
     if len(high_moods) < 2: return []
 
-    presence_counter = {}
+    # Fix 1: baseline for lift calculation
+    baseline = compute_ingredient_baseline(meals)
+
+    presence_counter: Dict[str, int] = {}
 
     for mood in high_moods:
         try:
             mood_time = datetime.fromisoformat(mood["occurredAt"].replace('Z', '+00:00'))
-            # Find meals 0-4 hours before the high mood
-            meals_before = []
-            for m in meals:
-                m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
-                if m_time < mood_time and (mood_time - m_time) <= timedelta(hours=4):
-                    meals_before.append(m)
-            
-            seen_in_this_mood = set()
+            meals_before = [
+                m for m in meals
+                if (lambda t: t < mood_time and (mood_time - t) <= timedelta(hours=4))(
+                    datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
+                )
+            ]
+            seen_in_this_mood: set = set()
             for m in meals_before:
                 for ing in m.get("confirmedIngredients", []):
                     if ing.get("confirmedStatus") not in ["removed", "suggested"]:
@@ -341,7 +430,9 @@ def analyze_positive_mood_ingredients(context: Dict[str, Any]) -> List[Dict[str,
     for ingredient, count in presence_counter.items():
         if count >= 2:
             rate = count / len(high_moods)
-            if rate >= 0.5:
+            # Fix 1: lift check — protective ingredients must stand out from the baseline
+            lift = compute_lift(rate, baseline.get(ingredient, 0))
+            if rate >= 0.5 and lift >= 1.5:
                 score = min(0.85, 0.3 + rate * 0.6)
                 insights.append({
                     "insightId": str(uuid.uuid4()),
@@ -357,58 +448,80 @@ def analyze_positive_mood_ingredients(context: Dict[str, Any]) -> List[Dict[str,
                 })
     return insights
 
+
 def analyze_delayed_symptom_triggers(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     meals = context.get("meals", [])
     symptoms = context.get("symptoms", [])
     insights = []
     if not symptoms: return []
 
-    # Filter for significant symptoms (severity >= 2)
     significant_symptoms = [s for s in symptoms if s.get("symptomType") != "mood" and s.get("severity", 0) >= 2]
     if not significant_symptoms: return []
 
-    symptoms_by_type = {}
+    # Fix 1+7: baseline for lift; higher lift threshold for noisy 6-24h window
+    baseline = compute_ingredient_baseline(meals)
+
+    symptoms_by_type: Dict[str, list] = {}
     for s in significant_symptoms:
         st = s.get("symptomType")
-        if st not in symptoms_by_type: symptoms_by_type[st] = []
+        if st not in symptoms_by_type:
+            symptoms_by_type[st] = []
         symptoms_by_type[st].append(s)
 
     for symptom_type, events in symptoms_by_type.items():
-        if len(events) >= 2:
-            trigger_counter = {}
-            for sym in events:
-                try:
-                    sym_time = datetime.fromisoformat(sym["occurredAt"].replace('Z', '+00:00'))
-                    # Look for meals 6-24 hours before
-                    for m in meals:
-                        m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
-                        td = sym_time - m_time
-                        if timedelta(hours=6) <= td <= timedelta(hours=24):
-                            for ing in m.get("confirmedIngredients", []):
-                                if ing.get("confirmedStatus") not in ["removed", "suggested"]:
-                                    name = ing.get("canonicalName")
-                                    if name:
-                                        trigger_counter[name] = trigger_counter.get(name, 0) + 1
-                except Exception:
-                    continue
-            
-            if trigger_counter:
-                top_trigger = max(trigger_counter, key=trigger_counter.get)
-                if trigger_counter[top_trigger] >= max(2, len(events) * 0.6):
-                    score = 0.7 # Lower confidence for delayed triggers due to noise
-                    insights.append({
-                        "insightId": str(uuid.uuid4()),
-                        "type": "delayed_trigger",
-                        "category": "symptom",
-                        "title": f"Delayed Trigger: {top_trigger}",
-                        "summary": f"Your {symptom_type} often occurs 6-24 hours after consuming {top_trigger}. This might be a delayed reaction.",
-                        "confidenceScore": score,
-                        "confidenceLevel": get_confidence_level(score),
-                        "window": {"minHours": 6, "maxHours": 24},
-                        "supportingEvidence": {"matchCount": trigger_counter[top_trigger], "sampleSize": len(events)},
-                        "status": "active"
-                    })
+        if len(events) < 2:
+            continue
+
+        trigger_counter: Dict[str, int] = {}
+        for sym in events:
+            try:
+                sym_time = datetime.fromisoformat(sym["occurredAt"].replace('Z', '+00:00'))
+                seen_in_this_sym: set = set()
+                for m in meals:
+                    m_time = datetime.fromisoformat(m["occurredAt"].replace('Z', '+00:00'))
+                    td = sym_time - m_time
+                    if timedelta(hours=6) <= td <= timedelta(hours=24):
+                        for ing in m.get("confirmedIngredients", []):
+                            if ing.get("confirmedStatus") not in ["removed", "suggested"]:
+                                name = ing.get("canonicalName")
+                                if name and name not in seen_in_this_sym:
+                                    trigger_counter[name] = trigger_counter.get(name, 0) + 1
+                                    seen_in_this_sym.add(name)
+            except Exception:
+                continue
+
+        if not trigger_counter:
+            continue
+
+        top_trigger = max(trigger_counter, key=trigger_counter.get)
+        top_count = trigger_counter[top_trigger]
+
+        # Fix 7: raise match threshold from 0.6 → 0.75 for the noisier 6-24h window
+        if top_count < max(2, len(events) * 0.75):
+            continue
+
+        event_rate = top_count / len(events)
+        # Fix 7: require lift >= 2.0 (stricter than immediate triggers) for delayed window
+        lift = compute_lift(event_rate, baseline.get(top_trigger, 0))
+        if lift < 2.0:
+            continue
+
+        score = 0.7  # Delayed triggers carry inherently lower confidence due to window noise
+        insights.append({
+            "insightId": str(uuid.uuid4()),
+            "type": "delayed_trigger",
+            "category": "symptom",
+            "title": f"Delayed Trigger: {top_trigger}",
+            "summary": f"Your {symptom_type} often occurs 6-24 hours after consuming {top_trigger}. This might be a delayed reaction.",
+            "confidenceScore": score,
+            "confidenceLevel": get_confidence_level(score),
+            "window": {"minHours": 6, "maxHours": 24},
+            "supportingEvidence": {"matchCount": top_count, "sampleSize": len(events)},
+            "status": "active",
+            "metadata": {"triggerIngredient": top_trigger, "symptomType": symptom_type}  # Fix 8: dedup key
+        })
     return insights
+
 
 # TODO: NEXT VERSION - Implement AI Pattern Recognition
 # This will use the Gemini 1.5 Flash API to perform deep discovery across

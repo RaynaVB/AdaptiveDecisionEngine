@@ -30,7 +30,11 @@ export const ExperimentEngine = {
             if (querySnapshot.empty) return [];
             
             const docs = querySnapshot.docs.map(d => d.data() as ExperimentRun);
-            docs.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+            docs.sort((a, b) => {
+                const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+                const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+                return dateB - dateA;
+            });
             
             return docs;
         } catch (e) {
@@ -60,6 +64,7 @@ export const ExperimentEngine = {
             const id = uuidv4();
             const newRun: ExperimentRun = {
                 id,
+                runId: id,
                 userId: auth.currentUser.uid,
                 experimentId,
                 startDate: now,
@@ -112,7 +117,7 @@ export const ExperimentEngine = {
                 meals,
                 moods,
                 symptoms,
-                new Date(runData.startDate),
+                runData.startDate ? new Date(runData.startDate) : new Date(),
                 new Date()
             );
 
@@ -146,7 +151,7 @@ export const ExperimentEngine = {
             // Use the existing active run — but backdate its startDate to 3 days ago
             // so the analysis engine has a real experimental window to work with.
             runId = active.id;
-            experimentId = active.experimentId;
+            experimentId = active.experimentId || 'protein_breakfast';
             const now = new Date();
             startOfExperiment = new Date(now);
             startOfExperiment.setDate(now.getDate() - 5);
@@ -182,6 +187,7 @@ export const ExperimentEngine = {
 
             const run: ExperimentRun = {
                 id: runId,
+                runId: runId,
                 userId: auth.currentUser.uid,
                 experimentId,
                 startDate: startOfExperiment.toISOString(),
@@ -210,18 +216,16 @@ export const ExperimentEngine = {
                 id: uuidv4(),
                 createdAt: dateAt(-i, 9),
                 occurredAt: dateAt(-i, 9),
-                energy: 'low',
-                valence: 'negative',
-                stress: 'medium'
+                arousal: -1, // energy: 'low'
+                valence: -1, // valence: 'negative'
             });
             // Afternoon baseline log (3 PM, i days before start)
             await StorageService.addMoodEvent({
                 id: uuidv4(),
                 createdAt: dateAt(-i, 15),
                 occurredAt: dateAt(-i, 15),
-                energy: 'low',
-                valence: 'neutral',
-                stress: 'high'
+                arousal: -1, // energy: 'low'
+                valence: 0, // valence: 'neutral'
             });
         }
 
@@ -232,25 +236,23 @@ export const ExperimentEngine = {
                 id: uuidv4(),
                 createdAt: dateAt(i, 9),
                 occurredAt: dateAt(i, 9),
-                energy: 'high',
-                valence: 'positive',
-                stress: 'low'
+                arousal: 1, // energy: 'high'
+                valence: 1, // valence: 'positive'
             });
             // Afternoon experimental log (3:30 PM — inside the 2-4 PM window)
             await StorageService.addMoodEvent({
                 id: uuidv4(),
                 createdAt: dateAt(i, 15),
                 occurredAt: dateAt(i, 15),
-                energy: 'high',
-                valence: 'positive',
-                stress: 'low'
+                arousal: 1, // energy: 'high'
+                valence: 1, // valence: 'positive'
             });
             // Meal log to boost confidence count
             await StorageService.addMealEvent({
                 id: uuidv4(),
                 mealSlot: 'breakfast',
                 inputMode: 'text',
-                mealTypeTags: ['high_protein'],
+                tags: ['high_protein'],
                 textDescription: 'Simulated high protein breakfast',
                 createdAt: dateAt(i, 8),
                 occurredAt: dateAt(i, 8)

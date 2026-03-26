@@ -15,8 +15,7 @@ describe('P2: Late Night Cluster', () => {
             createdAt: now.toISOString(),
             occurredAt: new Date().setHours(12, 0, 0, 0).toString(), // Noon
             mealSlot: 'lunch',
-            inputMode: 'text',
-            mealTypeTags: []
+            inputMode: 'text'
         };
         const context: PatternContext = {
             meals: [meal1],
@@ -37,8 +36,7 @@ describe('P2: Late Night Cluster', () => {
                 createdAt: d.toISOString(),
                 occurredAt: d.toISOString(),
                 mealSlot: 'snack',
-                inputMode: 'text',
-                mealTypeTags: []
+                inputMode: 'text'
             });
         }
 
@@ -51,8 +49,7 @@ describe('P2: Late Night Cluster', () => {
                 createdAt: d.toISOString(),
                 occurredAt: d.toISOString(),
                 mealSlot: 'lunch',
-                inputMode: 'text',
-                mealTypeTags: []
+                inputMode: 'text'
             });
         }
 

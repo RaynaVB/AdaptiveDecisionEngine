@@ -36,9 +36,16 @@ def run_recommendation_engine(
             "source": "stable_insight"
         })
 
-    # Combine fresh patterns and stable insights
-    # Patterns are fresh, insights are stable. We want to act on both.
-    all_patterns = patterns + normalized_insights
+    # Combine fresh patterns and stable insights.
+    # Fresh patterns take priority; stable insights fill in any pattern types not yet detected fresh.
+    # Fix 3: deduplicate by patternType so the same template cannot fire twice from both sources.
+    seen_pattern_types: set = set()
+    all_patterns = []
+    for p in patterns + normalized_insights:
+        pt = p.get("patternType")
+        if pt not in seen_pattern_types:
+            seen_pattern_types.add(pt)
+            all_patterns.append(p)
     
     candidates = []
     meal_count = len(context.get("meals", []))

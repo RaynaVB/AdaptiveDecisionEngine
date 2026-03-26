@@ -85,7 +85,7 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
 - **`SymptomEvent`**:
   - The core data model for both physical and emotional states. While sharing a structure, data is logically separated into dedicated screens and collections:
     - **Physical Symptoms**: Tracked on a **1-3** scale (Mild to Severe) in the `symptoms` collection.
-    - **Mood/Energy**: Tracked on a bipolar **-2 to +2** scale in the `moods` collection.
+    - **Mood**: Tracked on a bipolar **-2 to +2** scale in the `moods` collection.
   - This separation allows specialized UI for each type (e.g., center-aligned sliders for bipolar mood) while maintaining a compatible format for backend engine processing.
 
 ### 4.2 Intelligence Outputs

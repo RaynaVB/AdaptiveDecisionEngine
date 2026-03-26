@@ -124,10 +124,10 @@ export const NotificationService = {
                         data: { category: 'meal', reminderId: s.id },
                     },
                     trigger: {
+                        type: Notifications.SchedulableTriggerInputTypes.DAILY,
                         hour: s.time.hours,
                         minute: s.time.minutes,
-                        repeats: true
-                    } as any, // Expo handles "next occurrence" for daily
+                    },
                 });
                 // Note: Expo's hour/minute trigger always targets the NEXT occurrence. 
                 // If it's 10:00 and we schedule for 10:45, it targets today.

@@ -15,19 +15,19 @@ describe('P3: Weekday/Weekend Shift', () => {
         // Sat 1
         for (let i = 0; i < 4; i++) {
             const d = new Date('2024-01-13T14:00:00'); // Saturday
-            meals.push({ id: uuidv4(), occurredAt: d.toISOString(), mealSlot: 'snack', inputMode: 'text', mealTypeTags: [], createdAt: '' });
+            meals.push({ id: uuidv4(), occurredAt: d.toISOString(), mealSlot: 'snack', inputMode: 'text', createdAt: '' });
         }
         // Sun 1
         for (let i = 0; i < 4; i++) {
             const d = new Date('2024-01-14T14:00:00'); // Sunday
-            meals.push({ id: uuidv4(), occurredAt: d.toISOString(), mealSlot: 'snack', inputMode: 'text', mealTypeTags: [], createdAt: '' });
+            meals.push({ id: uuidv4(), occurredAt: d.toISOString(), mealSlot: 'snack', inputMode: 'text', createdAt: '' });
         }
 
         // 5 Weekdays (Mon-Fri) with FEW snacks
         for (let i = 15; i < 20; i++) {
             const d = new Date(`2024-01-${i}T14:00:00`);
             // 1 snack per day on weekday
-            meals.push({ id: uuidv4(), occurredAt: d.toISOString(), mealSlot: 'snack', inputMode: 'text', mealTypeTags: [], createdAt: '' });
+            meals.push({ id: uuidv4(), occurredAt: d.toISOString(), mealSlot: 'snack', inputMode: 'text', createdAt: '' });
         }
 
         // Summary:

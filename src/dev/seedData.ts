@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { MealEvent, MoodEvent, MealSlot, MealTypeTag, ConfirmedIngredient } from '../models/types';
+import { MealEvent, MoodEvent, MealSlot, ConfirmedIngredient } from '../models/types';
 import { SymptomEvent } from '../models/Symptom';
 
 // ---------------------------------------------------------------------------
@@ -25,13 +25,11 @@ function ing(
 // ---------------------------------------------------------------------------
 const BREAKFASTS: Array<{
   dishLabel: string;
-  tags: MealTypeTag[];
   ingredients: ConfirmedIngredient[];
   hasDairy: boolean;
 }> = [
   {
     dishLabel: 'Yogurt Parfait',
-    tags: ['light', 'homemade', 'high_protein'],
     hasDairy: true,
     ingredients: [
       ing('greek_yogurt', 'Greek Yogurt'),
@@ -42,7 +40,6 @@ const BREAKFASTS: Array<{
   },
   {
     dishLabel: 'Oatmeal with Berries',
-    tags: ['light', 'homemade', 'high_fiber'],
     hasDairy: false,
     ingredients: [
       ing('oats', 'Rolled Oats'),
@@ -53,7 +50,6 @@ const BREAKFASTS: Array<{
   },
   {
     dishLabel: 'Avocado Toast with Egg',
-    tags: ['regular', 'homemade', 'high_protein'],
     hasDairy: false,
     ingredients: [
       ing('whole_wheat_bread', 'Whole Wheat Bread'),
@@ -64,7 +60,6 @@ const BREAKFASTS: Array<{
   },
   {
     dishLabel: 'Cereal with Milk',
-    tags: ['light', 'packaged', 'high_sugar'],
     hasDairy: true,
     ingredients: [
       ing('corn_flakes', 'Corn Flakes'),
@@ -76,12 +71,10 @@ const BREAKFASTS: Array<{
 
 const LUNCHES: Array<{
   dishLabel: string;
-  tags: MealTypeTag[];
   ingredients: ConfirmedIngredient[];
 }> = [
   {
     dishLabel: 'Grilled Chicken Salad',
-    tags: ['regular', 'savory', 'high_protein'],
     ingredients: [
       ing('chicken_breast', 'Chicken Breast'),
       ing('romaine_lettuce', 'Romaine Lettuce'),
@@ -92,7 +85,6 @@ const LUNCHES: Array<{
   },
   {
     dishLabel: 'Quinoa Buddha Bowl',
-    tags: ['regular', 'homemade', 'high_fiber'],
     ingredients: [
       ing('quinoa', 'Quinoa'),
       ing('roasted_sweet_potato', 'Roasted Sweet Potato'),
@@ -103,7 +95,6 @@ const LUNCHES: Array<{
   },
   {
     dishLabel: 'Turkey Sandwich',
-    tags: ['regular', 'savory'],
     ingredients: [
       ing('turkey_breast', 'Turkey Breast'),
       ing('whole_wheat_bread', 'Whole Wheat Bread'),
@@ -114,7 +105,6 @@ const LUNCHES: Array<{
   },
   {
     dishLabel: 'Lentil Soup',
-    tags: ['regular', 'homemade', 'high_fiber'],
     ingredients: [
       ing('red_lentil', 'Red Lentil'),
       ing('carrot', 'Carrot'),
@@ -127,13 +117,11 @@ const LUNCHES: Array<{
 
 const DINNERS: Array<{
   dishLabel: string;
-  tags: MealTypeTag[];
   ingredients: ConfirmedIngredient[];
   hasGluten: boolean;
 }> = [
   {
     dishLabel: 'Grilled Salmon with Asparagus',
-    tags: ['regular', 'homemade', 'high_protein'],
     hasGluten: false,
     ingredients: [
       ing('salmon', 'Salmon'),
@@ -145,7 +133,6 @@ const DINNERS: Array<{
   },
   {
     dishLabel: 'Pasta Bolognese',
-    tags: ['heavy', 'savory', 'restaurant'],
     hasGluten: true,
     ingredients: [
       ing('pasta', 'Pasta'),
@@ -157,7 +144,6 @@ const DINNERS: Array<{
   },
   {
     dishLabel: 'Veggie Stir Fry with Tofu',
-    tags: ['regular', 'homemade', 'high_protein'],
     hasGluten: false,
     ingredients: [
       ing('tofu', 'Tofu'),
@@ -170,7 +156,6 @@ const DINNERS: Array<{
   },
   {
     dishLabel: 'Chicken Tacos',
-    tags: ['heavy', 'savory', 'restaurant'],
     hasGluten: false,
     ingredients: [
       ing('chicken_breast', 'Chicken Breast'),
@@ -185,12 +170,10 @@ const DINNERS: Array<{
 
 const LATE_SNACKS: Array<{
   dishLabel: string;
-  tags: MealTypeTag[];
   ingredients: ConfirmedIngredient[];
 }> = [
   {
     dishLabel: 'Chips and Salsa',
-    tags: ['high_sugar', 'sweet', 'packaged'],
     ingredients: [
       ing('potato_chips', 'Potato Chips'),
       ing('salsa', 'Salsa'),
@@ -198,7 +181,6 @@ const LATE_SNACKS: Array<{
   },
   {
     dishLabel: 'Chocolate Ice Cream',
-    tags: ['sweet', 'high_sugar', 'packaged'],
     ingredients: [
       ing('chocolate_ice_cream', 'Chocolate Ice Cream'),
       ing('whole_milk', 'Whole Milk', 'suggested', 'inferred_dish_prior', 0.9),
@@ -231,7 +213,7 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
     // P2 & P3 bias: late-night snacks every other day (and more on weekends)
     const hasLateNight = (i % 2 === 0) || isWeekend;
 
-    const mealSlots: Array<{ slot: MealSlot; hour: number; minute: number; def: (typeof BREAKFASTS)[0] | (typeof DINNERS)[0] }> = [
+    const mealSlots: Array<{ slot: MealSlot; hour: number; minute: number; def: any }> = [
       { slot: 'breakfast', hour: 8, minute: 15, def: breakfast },
       { slot: 'lunch', hour: 12, minute: 30, def: lunch },
       { slot: 'dinner', hour: 19, minute: 15, def: dinner },
@@ -251,33 +233,27 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
         mealSlot: slot,
         inputMode: 'text',
         dishLabel: def.dishLabel,
-        mealTypeTags: def.tags,
-        tags: def.tags,
         confirmedIngredients: def.ingredients,
         textDescription: def.dishLabel,
         raw_text: def.dishLabel,
-        portionSize: slot === 'dinner' ? 'large' : slot === 'snack' ? 'medium' : 'medium',
       });
 
-      // P4 bias: high_sugar late snack → mood drops to -1 or -2 about 90 mins later
-      if (def.tags.includes('high_sugar') && slot === 'snack') {
+      // P4 bias: late snack (e.g. Chocolate) → mood drops about 90 mins later
+      if (slot === 'snack' && def.dishLabel.includes('Chocolate')) {
         const moodT = new Date(t.getTime() + 90 * 60 * 1000);
         moods.push({
           id: uuidv4(),
           createdAt: moodT.toISOString(),
           occurredAt: moodT.toISOString(),
-          valence: -1,           // -2 to +2 scale: mild-to-moderate negative
+          valence: -1,
           arousal: -1,
           moodLabel: 'Low',
-          stress: 'low',
-          energy: 'low',
-          tag: 'sad',
           notes: 'Felt flat and sluggish after late snack',
         });
       }
     }
 
-    // P1 bias: high stress (mood -1 to -2) before dinner on odd days
+    // P1 bias: high stress before dinner on odd days
     if (i % 2 !== 0) {
       const moodT = new Date(date);
       moodT.setHours(18, 0, 0, 0);
@@ -285,32 +261,26 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
         id: uuidv4(),
         createdAt: moodT.toISOString(),
         occurredAt: moodT.toISOString(),
-        valence: -2,             // -2 = most negative; strong stress signal for P1
+        valence: -2,
         arousal: 2,
         moodLabel: 'Anxious',
-        stress: 'high',
-        energy: 'low',
-        tag: 'anxious',
         notes: 'Work pressure, deadline stress',
       });
     } else {
-      // Positive morning mood on even days — valence +1 or +2
+      // Positive morning mood on even days
       const moodT = new Date(date);
       moodT.setHours(10, 0, 0, 0);
       moods.push({
         id: uuidv4(),
         createdAt: moodT.toISOString(),
         occurredAt: moodT.toISOString(),
-        valence: i % 4 === 0 ? 2 : 1,   // alternate +2 and +1
+        valence: i % 4 === 0 ? 2 : 1,
         arousal: 1,
         moodLabel: i % 4 === 0 ? 'Great' : 'Good',
-        stress: 'low',
-        energy: 'high',
-        tag: 'celebratory',
       });
     }
 
-    // P5 bias: dairy breakfast → bloating 2h later (severity 2 = moderate on 1-3 scale)
+    // Symptoms... (unchanged logic, just ensuring it's in the loop)
     if (breakfast.hasDairy) {
       const symT = new Date(date);
       symT.setHours(10, 15, 0, 0);
@@ -322,14 +292,13 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
         category: 'digestive',
         isOngoing: false,
         source: 'manual',
-        severity: 2,             // 1-3 scale: 2 = moderate
+        severity: 2,
         durationMinutes: 45,
         notes: 'Stomach feels full and uncomfortable after breakfast',
       });
     }
 
-    // P7 bias (delayed trigger): gluten dinner → headache 8-10h later, severity 1-2
-    if ((dinner as typeof DINNERS[0]).hasGluten && i % 3 === 0) {
+    if (dinner.hasGluten && i % 3 === 0) {
       const symT = new Date(date);
       symT.setHours(23, 30, 0, 0);
       symptoms.push({
@@ -340,13 +309,12 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
         category: 'neurological',
         isOngoing: false,
         source: 'manual',
-        severity: 1,             // 1-3 scale: 1 = mild
+        severity: 1,
         durationMinutes: 60,
         notes: 'Dull headache later in the evening',
       });
     }
 
-    // Extra symptom variety: low energy on high-stress afternoons (severity 1)
     if (i % 2 !== 0) {
       const symT = new Date(date);
       symT.setHours(15, 30, 0, 0);
@@ -358,7 +326,7 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
         category: 'energy',
         isOngoing: false,
         source: 'manual',
-        severity: 1,             // 1-3 scale: 1 = mild
+        severity: 1,
         durationMinutes: 90,
         notes: 'Afternoon energy crash',
       });

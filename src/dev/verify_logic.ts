@@ -50,8 +50,7 @@ async function runVerification() {
         if (meals.length < 20 || meals.length > 30) throw new Error("Meal count out of range (20-30)");
         if (moods.length < 10 || moods.length > 20) throw new Error("Mood count out of range (10-20)");
 
-        const hasMealTags = meals.every(m => m.mealTypeTags.length > 0);
-        if (!hasMealTags) throw new Error("Found meal with empty tags");
+        // Validation (no longer checking tags)
 
         console.log("   ✅ Seed Data Logic Passed");
     } catch (e: any) {
@@ -73,7 +72,6 @@ async function runVerification() {
         occurredAt: new Date().toISOString(),
         mealSlot: 'breakfast',
         inputMode: 'text',
-        mealTypeTags: ['light', 'homemade'],
         textDescription: 'Test Meal'
     };
 

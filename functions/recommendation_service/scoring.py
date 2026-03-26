@@ -7,13 +7,16 @@ def calculate_scores(
     rejection_rate: float = 0.0, 
     ml_score: float = 0.5
 ) -> Dict[str, float]:
-    impact = 0.5
-    if template["intensity"] == "high":
-        impact = 0.9
-    elif template["intensity"] == "medium":
-        impact = 0.7
-    elif template["intensity"] == "low":
-        impact = 0.4
+    # Base impact derived from template intensity
+    base_impact_map = {"high": 0.9, "medium": 0.7, "low": 0.4}
+    base_impact = base_impact_map.get(template["intensity"], 0.5)
+
+    # Fix 4: scale by the user's actual pattern confidence so stronger evidence → higher impact.
+    # A "low intensity" rec still scores higher when backed by high-confidence user data.
+    confidence_scale = {"high": 1.0, "medium": 0.85, "low": 0.65}
+    pattern_confidence = pattern.get("confidence", "low")
+    scale = confidence_scale.get(pattern_confidence, 0.65)
+    impact = round(base_impact * scale, 3)
 
     feasibility = 0.5
     if template["intensity"] == "low":

@@ -12,7 +12,7 @@ describe('P4: Meal Type Mood Association', () => {
         const meals: MealEvent[] = [];
         const moods: MoodEvent[] = [];
 
-        // Generate 4 events where 'high_sugar' -> 'negative' mood 2 hours later
+        // Generate 4 events where 'Sugar' -> 'negative' mood 2 hours later
         for (let i = 0; i < 4; i++) {
             const d = new Date();
             d.setDate(d.getDate() - i);
@@ -21,34 +21,51 @@ describe('P4: Meal Type Mood Association', () => {
 
             meals.push({
                 id: uuidv4(), occurredAt: mealTime, createdAt: '',
-                mealSlot: 'snack', inputMode: 'text', mealTypeTags: ['high_sugar']
+                mealSlot: 'snack', inputMode: 'text',
+                confirmedIngredients: [{
+                    ingredientId: 'sugar',
+                    canonicalName: 'Sugar',
+                    confirmedStatus: 'confirmed',
+                    source: 'user_added',
+                    confidence: 1
+                }]
             });
             moods.push({
                 id: uuidv4(), occurredAt: moodTime, createdAt: '',
-                valence: 'negative', energy: 'low', stress: 'medium'
+                valence: -2
             });
         }
-
-        // 4/4 = 100% rate. > 60% threshold.
 
         const context: PatternContext = { meals, moods };
         const result = analyzeMealTypeMoodAssociation(context);
 
         expect(result).toHaveLength(1);
         expect(result[0].patternType).toBe('meal_type_mood_association');
-        expect(result[0].evidence.tag).toBe('high_sugar');
+        expect(result[0].evidence.tag).toBe('Sugar');
         expect(parseFloat(result[0].evidence.rate)).toBe(1.00);
     });
 
     test('Should ignore pattern if drop rate is low', () => {
-        // 3 sugar meals, all POSITIVE outcome
         const meals: MealEvent[] = [];
         const moods: MoodEvent[] = [];
         for (let i = 0; i < 3; i++) {
             const d = new Date();
             d.setDate(d.getDate() - i);
-            meals.push({ id: uuidv4(), occurredAt: d.toISOString(), createdAt: '', mealSlot: 'snack', inputMode: 'text', mealTypeTags: ['high_sugar'] });
-            moods.push({ id: uuidv4(), occurredAt: new Date(d.getTime() + 60 * 60 * 1000).toISOString(), createdAt: '', valence: 'positive', energy: 'high', stress: 'low' });
+            meals.push({ 
+                id: uuidv4(), occurredAt: d.toISOString(), createdAt: '', 
+                mealSlot: 'snack', inputMode: 'text',
+                confirmedIngredients: [{
+                    ingredientId: 'sugar',
+                    canonicalName: 'Sugar',
+                    confirmedStatus: 'confirmed',
+                    source: 'user_added',
+                    confidence: 1
+                }]
+            });
+            moods.push({ 
+                id: uuidv4(), occurredAt: new Date(d.getTime() + 60 * 60 * 1000).toISOString(), 
+                createdAt: '', valence: 2 
+            });
         }
 
         const context = { meals, moods };

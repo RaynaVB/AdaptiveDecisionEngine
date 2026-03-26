@@ -28,8 +28,8 @@ for (let i = 0; i < 4; i++) {
         occurredAt: d.toISOString(),
         mealSlot: 'snack',
         inputMode: 'text',
-        mealTypeTags: ['sweet'],
-        textDescription: 'Late snack'
+        textDescription: 'Late snack',
+        confirmedIngredients: [{ ingredientId: 'chips', canonicalName: 'Chips', confirmedStatus: 'confirmed', source: 'user_added', confidence: 1 }]
     });
 }
 const p2Results = runPatternEngine(lateMeals, []); // No moods needed for P2
@@ -53,9 +53,7 @@ p1Moods.push({
     id: uuidv4(),
     createdAt: time1.toISOString(),
     occurredAt: time1.toISOString(),
-    valence: 'neutral',
-    energy: 'ok',
-    stress: 'high'
+    valence: 0,
 });
 const time1_eat = new Date(time1);
 time1_eat.setMinutes(time1.getMinutes() + 30);
@@ -64,8 +62,7 @@ p1Meals.push({
     createdAt: time1_eat.toISOString(),
     occurredAt: time1_eat.toISOString(),
     mealSlot: 'snack',
-    inputMode: 'text',
-    mealTypeTags: ['savory']
+    inputMode: 'text'
 });
 
 // Case 2: Negative -> Eat 15m later
@@ -75,9 +72,7 @@ p1Moods.push({
     id: uuidv4(),
     createdAt: time2.toISOString(),
     occurredAt: time2.toISOString(),
-    valence: 'negative',
-    energy: 'low',
-    stress: 'medium'
+    valence: -1,
 });
 const time2_eat = new Date(time2);
 time2_eat.setMinutes(time2.getMinutes() + 15);
@@ -86,8 +81,7 @@ p1Meals.push({
     createdAt: time2_eat.toISOString(),
     occurredAt: time2_eat.toISOString(),
     mealSlot: 'snack',
-    inputMode: 'text',
-    mealTypeTags: ['sweet']
+    inputMode: 'text'
 });
 
 const p1Results = runPatternEngine(p1Meals, p1Moods);
@@ -112,8 +106,7 @@ p3Weekdays.forEach(date => {
         createdAt: d.toISOString(),
         occurredAt: d.toISOString(),
         mealSlot: 'snack',
-        inputMode: 'text',
-        mealTypeTags: ['light']
+        inputMode: 'text'
     });
 });
 
@@ -126,8 +119,7 @@ p3Weekend.forEach(date => {
             createdAt: d.toISOString(),
             occurredAt: d.toISOString(),
             mealSlot: 'snack',
-            inputMode: 'text',
-            mealTypeTags: ['sweet']
+            inputMode: 'text'
         });
     }
 });
@@ -160,7 +152,7 @@ for (let i = 0; i < 3; i++) {
         occurredAt: mTime.toISOString(),
         mealSlot: 'snack',
         inputMode: 'text',
-        mealTypeTags: ['high_sugar']
+        confirmedIngredients: [{ ingredientId: 'sugar', canonicalName: 'Sugar', confirmedStatus: 'confirmed', source: 'user_added', confidence: 1 }]
     });
 
     if (i < 2) { // First 2 are crashes
@@ -170,9 +162,7 @@ for (let i = 0; i < 3; i++) {
             id: uuidv4(),
             createdAt: moodTime.toISOString(),
             occurredAt: moodTime.toISOString(),
-            valence: 'negative',
-            energy: 'low',
-            stress: 'medium'
+            valence: -1,
         });
     } else { // Last one is ok
         const moodTime = new Date(mTime);
@@ -181,9 +171,7 @@ for (let i = 0; i < 3; i++) {
             id: uuidv4(),
             createdAt: moodTime.toISOString(),
             occurredAt: moodTime.toISOString(),
-            valence: 'positive',
-            energy: 'high',
-            stress: 'low'
+            valence: 2,
         });
     }
 }

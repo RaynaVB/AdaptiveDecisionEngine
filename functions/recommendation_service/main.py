@@ -75,8 +75,14 @@ def is_generation_valid(user_id, generation_data):
     
     try:
         generated_at = datetime.fromisoformat(generated_at_str.replace('Z', '+00:00'))
-        if datetime.now(timezone.utc) - generated_at > timedelta(hours=6):
+        age = datetime.now(timezone.utc) - generated_at
+
+        if age > timedelta(hours=6):
             return False
+
+        # Fix 5: 5-minute debounce — don't recompute on rapid successive logs
+        if age < timedelta(minutes=5):
+            return True
     except Exception:
         return False
 

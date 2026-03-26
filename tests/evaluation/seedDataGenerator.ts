@@ -27,9 +27,7 @@ export function generateSeedData(days: number): { meals: MealEvent[], moods: Moo
             mealSlot: 'breakfast',
             createdAt: breakfastTime.toISOString(),
             occurredAt: breakfastTime.toISOString(),
-            inputMode: 'text',
-            mealTypeTags: ['regular'],
-            tags: ['regular']
+            inputMode: 'text'
         });
 
         // 1 PM Lunch
@@ -40,9 +38,7 @@ export function generateSeedData(days: number): { meals: MealEvent[], moods: Moo
             mealSlot: 'lunch',
             createdAt: lunchTime.toISOString(),
             occurredAt: lunchTime.toISOString(),
-            inputMode: 'text',
-            mealTypeTags: ['regular', 'savory'],
-            tags: ['regular', 'savory']
+            inputMode: 'text'
         });
 
         // 7 PM Dinner
@@ -53,9 +49,7 @@ export function generateSeedData(days: number): { meals: MealEvent[], moods: Moo
             mealSlot: 'dinner',
             createdAt: dinnerTime.toISOString(),
             occurredAt: dinnerTime.toISOString(),
-            inputMode: 'text',
-            mealTypeTags: ['regular'],
-            tags: ['regular']
+            inputMode: 'text'
         });
 
         // PATTERN INJECTION: 
@@ -69,9 +63,7 @@ export function generateSeedData(days: number): { meals: MealEvent[], moods: Moo
                 mealSlot: 'snack',
                 createdAt: snackTime.toISOString(),
                 occurredAt: snackTime.toISOString(),
-                inputMode: 'text',
-                mealTypeTags: ['heavy', 'high_sugar'],
-                tags: ['heavy', 'high_sugar']
+                inputMode: 'text'
             });
 
             // Consequence mood within 4 hours to trigger P4 Association pattern
@@ -82,8 +74,7 @@ export function generateSeedData(days: number): { meals: MealEvent[], moods: Moo
             moods.push({
                 id: uuidv4(),
                 linkedMealEventId: meals[meals.length - 1].id,
-                valence: 1, // Negative (1) vs Positive (4) - actually, valence string to score uses 'negative', but TS allows number. Actually P4 strictly checks `m.valence === 'negative'`. Wait!
-                tag: 'sad',
+                valence: -2, // Strong negative
                 createdAt: consequenceMoodTime.toISOString(),
                 occurredAt: consequenceMoodTime.toISOString()
             });
@@ -97,8 +88,7 @@ export function generateSeedData(days: number): { meals: MealEvent[], moods: Moo
         moods.push({
             id: uuidv4(),
             linkedMealEventId: meals[0].id,
-            valence: 'positive',
-            tag: 'celebratory',
+            valence: 2, // Strong positive
             createdAt: morningMoodTime.toISOString(),
             occurredAt: morningMoodTime.toISOString()
         });
@@ -108,7 +98,7 @@ export function generateSeedData(days: number): { meals: MealEvent[], moods: Moo
         afternoonMoodTime.setHours(14, 0, 0, 0);
         moods.push({
             id: uuidv4(),
-            valence: 'neutral',
+            valence: 0, // Neutral
             createdAt: afternoonMoodTime.toISOString(),
             occurredAt: afternoonMoodTime.toISOString()
         });
