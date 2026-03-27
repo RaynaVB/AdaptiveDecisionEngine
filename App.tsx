@@ -19,11 +19,11 @@ export default function App() {
   });
 
   useEffect(() => {
+    if (!fontsLoaded) return;
+
     async function init() {
-      if (fontsLoaded) {
-        await SplashScreen.hideAsync();
-      }
-      
+      await SplashScreen.hideAsync();
+
       const hasPermission = await NotificationService.requestPermissions();
       if (hasPermission) {
         await NotificationService.scheduleDynamicMealReminders();

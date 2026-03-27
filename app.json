@@ -12,6 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#08101a"
     },
+    "backgroundColor": "#08101a",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.raynab.Veyra",
@@ -39,6 +40,15 @@
       }
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#08101a"
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-notifications",
       "expo-image-picker",
