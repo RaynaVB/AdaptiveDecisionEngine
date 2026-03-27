@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Insight } from '../../src/models/types';
-import { Sparkles, Shield, TrendingUp, AlertTriangle, Beaker } from 'lucide-react-native';
+import { Sparkles, Shield, TrendingUp, AlertTriangle, Beaker, ShieldAlert } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -65,6 +65,17 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
           CONFIDENCE: {(insight.confidenceLevel || 'medium').toUpperCase()}
         </Text>
       </View>
+      {((insight as any).metadata?.knownSensitivities?.length ?? 0) > 0 && (
+        <View style={styles.sensitivityRow}>
+          <ShieldAlert size={12} color={Colors.warning} />
+          <Text style={styles.sensitivityLabel}>
+            {'MATCHES YOUR PROFILE: '}
+            {(insight as any).metadata.knownSensitivities
+              .map((s: string) => s.replace(/_/g, ' ').replace(/sensitive|allergy/g, '').trim().toUpperCase())
+              .join(', ')}
+          </Text>
+        </View>
+      )}
       {insight.actionableInsight?.experimentIdToStart && (
         <TouchableOpacity
           style={styles.experimentCta}
@@ -146,6 +157,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.outline,
     fontWeight: '700',
+  },
+  sensitivityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  sensitivityLabel: {
+    ...Typography.label,
+    fontSize: 10,
+    color: Colors.warning,
+    fontWeight: '800',
+    flexShrink: 1,
   },
   experimentCta: {
     flexDirection: 'row',

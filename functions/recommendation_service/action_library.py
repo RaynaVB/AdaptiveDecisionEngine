@@ -31,7 +31,7 @@ class ActionTemplate(TypedDict):
     minPatternConfidence: ConfidenceLevel
     minMealEventsInWindow: int
     minMoodEventsInWindow: int
-    tags: List[str]
+    tags: Optional[List[str]]
     category: str
     titleTemplate: str
     summaryTemplate: str
