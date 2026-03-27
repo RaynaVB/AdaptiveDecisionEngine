@@ -24,86 +24,153 @@ Most food logging apps emphasize nutritional dashboards (calories/macros), but t
 - **Follow-through:** Measurable percentage of accepted/partially accepted recommendations.
 
 ### Secondary Success Metrics
-- Improved user awareness of triggers (mood-linked eating, symptom flare-ups).
-- Reduced decision fatigue (“What should I do next?”).
+- Improved user awareness of triggers (mood-linked eating, symptom flare-ups, energy crashes, sleep disruptions).
+- Reduced decision fatigue ("What should I do next?").
+- Direct pathways from insight → experiment → validated result.
 
 ## 3. Users
 ### Primary User Profile
 - Wants lifestyle improvement but struggles with consistency.
 - Tends to snack or eat impulsively during stress, low mood, or physical slumps.
-- Benefits from low-friction, “one best action” suggestions rather than complex dashboards.
+- Benefits from low-friction, "one best action" suggestions rather than complex dashboards.
 
 ---
 
 ## 4. Functional Capabilities
 
-### A. Multi-Modal Data Ingestion (Logging)
+### A. Onboarding & User Profile
+
+A 6-step profile capture that personalizes the entire app experience from first launch.
+
+| Step | What's Collected | How It's Used |
+|------|-----------------|---------------|
+| 1. Name | Stored locally on-device only (never in Firestore) | Personalization only |
+| 2. Goals | Up to 3 of 7 options (see below) | `InsightFeed` sorts by goal-relevant keywords; `sortByGoalRelevance()` uses per-goal keyword maps |
+| 3. Symptoms | Multi-select across Digestive, Energy, Mental, Physical groups | Primary focus for pattern engine; surfaces on `InsightFeed` sensitivity profile card |
+| 4. Dietary profile | Allergies (incl. wheat/gluten), dietary preferences (vegan, gluten-free, etc.), sensitivities (lactose, caffeine, sugar, etc.) | Displayed on sensitivity profile card; foundation for future allergen flagging in engines |
+| 5. Avoided foods | Ingredient-level search (2,500+ item database) | Saved to `avoidedFoods` in UserProfile |
+| 6. Symptom frequency | Rarely / Few times a week / Almost daily / After most meals | **Directly calibrates pattern engine thresholds** — users with frequent symptoms unlock patterns sooner |
+
+**Goal Options:**
+- Understand how food affects my body
+- Identify my food triggers
+- Improve digestion & gut health
+- Improve energy levels
+- Improve mood & mental clarity
+- **Improve sleep quality** *(routes sleep-related insights to the top of the feed)*
+- Build healthier eating habits
+
+---
+
+### B. Multi-Modal Data Ingestion (Logging)
 
 #### 1. AI-Powered Ingredient Capture
 - **Visual & Text Dual-Mode**: Supports both camera/gallery uploads and manual text entries.
-- **Multi-Step AI Analysis**: Large Language Model (Gemini 2.0 Flash) provides real-time extraction, identifying dishes and ingredients.
+- **Multi-Step AI Analysis**: Gemini 2.0 Flash provides real-time extraction, identifying dishes and ingredients.
 - **Canonical Ingredient Database**: Maps extracted food items against a structured 2,500+ item ingredient library.
-- **Binary Clarification questions**: AI asks simplified Yes/No/Not Sure questions (e.g., "Is this dairy-free?") for quick confirmation.
+- **Binary Clarification Questions**: AI asks simplified Yes/No/Not Sure questions (e.g., "Is this dairy-free?") for quick confirmation.
 - **Dish Name Attribution**: Identifies primary "Dish Name" (e.g., "Street Tacos") over generic descriptions.
 
 #### 2. Specialized Mood & Symptom Tracking
 - **Decoupled Logging Interfaces**: Dedicated screens for mental and physical states to optimize UX:
-    - **`MoodLoggerScreen`**: Focused on emotional check-ins (e.g., Sad ↔ Happy).
-    - **`SymptomLoggerScreen`**: Streamlined for physical symptoms (e.g., Nausea, Headache).
+    - **`MoodLoggerScreen`**: Emotional check-ins for 6 dimensions: mood, stress, social, energy, focus, sleep quality.
+    - **`SymptomLoggerScreen`**: Streamlined for physical symptoms (bloating, headache, etc.).
 - **Multi-Scale Architecture**:
-    - **Bipolar Moods**: Center-aligned sliders on a **-2 to +2** scale (Neutral at 0) to capture both positive and negative valence.
-    - **Unipolar Symptoms**: Simplified **1-3** scale (Mild, Moderate, Severe) to reduce cognitive load and simplify pattern detection.
-- **Unified Event Model**: Despite separate UIs, data remains compatible, allowing the pattern engine to correlate across both collections seamlessly.
-- **Top 5 Personalization**: Surfaces the user's most frequently logged symptoms or moods automatically.
+    - **Mood Dimensions**: Bipolar **-2 to +2** scale (Neutral at 0). Stored in `/moods` collection with `symptomType` and `severity` fields.
+    - **Physical Symptoms**: Unipolar **1–3** scale (Mild, Moderate, Severe). Stored in `/symptoms` collection.
+- **Pattern Engine Separation**: Engines use a `MOOD_DIMENSIONS` exclusion set to ensure physical and emotional signals are never mixed in the same correlation analysis.
 
-### B. Timeline & Feed
-- **Check-in Logic**: The system uses log-aware notifications to minimize friction:
-    - **Meal Reminders**: Fire 45 minutes *after* predicted meal times only if no log is detected for that slot.
-    - **Daily Reflection**: A consolidated mood/symptom check-in at 20:30, skipped if already logged.
-- **7-Day Sliding Feed**: Chronological display of meals, moods, and symptoms.
-- **Wins & Streaks**: Celebrate logging consistency (e.g., 14-day streak) and symptom-free periods (3+ days) via the WinsWidget.
-- **Week at a Glance**: Summarized dot indicators for daily events.
-- **Daily Timeline Modal**: Detailed daily view with chronological layout.
-- **Weekly Intelligence**: "Tag Cloud" layout for top weekly symptoms and bar/line charts for trends.
+---
 
 ### C. Intelligence Engines
 
-#### 1. Pattern Engine
-Detects behavioral clusters using a 7-day sliding window with an **Uncertainty Policy** (minimum data gating: 5 meals, 3 moods/symptoms).
-**Active Detectors:**
-- **P1 (Mood-Triggered Eating):** Eating follows low mood or high stress.
-- **P2 (Late-Night Clustering):** Contiguous eating events in late-night hours.
-- **P3 (Routine Shifts):** Divergence between weekdays and weekends.
-- **P4 (Meal-Mood Correlations):** Specific ingredients or meal patterns linked to subsequent mood shifts.
-- **P5 (Symptom Correlations):** Specific ingredients matched to subsequent physical symptoms.
-- **P6 (Mood Boosters):** Ingredients correlated with positive mood elevation.
-- **P7 (Delayed Triggers):** Physical symptoms occurring 6-24 hours after specific food consumed.
+#### 1. Insights Pattern Engine (`insights_service`)
 
-*Insight Integration:* Detected patterns surface an `actionableInsight` (e.g., "Trigger: Milk"), providing a 1-tap pathway to start relevant ingredient-specific HealthLab experiments (e.g., "Dairy Elimination").
+Detects behavioral clusters using a rolling data window. Minimum event thresholds are **dynamically scaled** by the user's `symptomFrequency` onboarding answer (range: 0.6× for "after most meals" → 1.25× for "rarely").
 
-#### 2. Personalized Recommender Engine
+**Active Analyzers (9 total):**
+
+| # | Analyzer | Signal | Window | Min Events |
+|---|----------|--------|--------|------------|
+| P1 | Mood-Triggered Eating | Eating within 1h of low mood or high stress | 0–1h | — |
+| P2 | Late-Night Cluster | Snacks after configurable cutoff (default 9 PM) | — | 5 snacks* |
+| P3 | Weekday/Weekend Shift | Weekend snack frequency vs. weekday | — | 5 snacks* |
+| P4 | Mood Correlations | Ingredient lift vs. mood dip events | 0–4h | 3 mood dips* |
+| P5 | Mood Boosters | Ingredient lift vs. elevated mood (≥+1) | 0–4h | 3 high moods* |
+| P6 | Symptom Correlations | Ingredient lift vs. physical symptoms | 0–6h | 2 events |
+| P7 | Delayed Triggers | Ingredient lift vs. physical symptoms (stricter: lift ≥ 2.0) | 6–24h | 2 events |
+| P8 | Energy Dip Triggers | Ingredient lift vs. low energy events | 0–4h | 3 energy dips* |
+| P9 | Sleep Impact Triggers | Evening meal ingredients vs. poor sleep quality | 2–8h | 3 sleep events* |
+
+*\* Scaled by `symptomFrequency` factor*
+
+**Quality Controls:**
+- **Lift scoring**: `event_rate / baseline_rate` prevents staple-food false positives.
+- **Per-event `seen` sets**: Prevents multi-meal window inflation.
+- **Deduplication**: Same (ingredient, symptomType) pair detected by both P6 and P7 → P6 preferred.
+
+**Insight Types → UI Sections:**
+- `trigger_pattern`, `mood_trigger`, `correlation`, `energy_dip`, `sleep_impact` → **TRIGGERS**
+- `protective`, `mood_boost` → **PROTECTORS**
+- `timing_pattern`, `behavior_shift`, `mood_association` → **EMERGING**
+- `prediction` → **PREDICTIONS**
+
+**Goal-Aware Sorting:** `InsightFeed` sorts results by keyword match against the user's selected goals. Each goal maps to a set of keywords (e.g., `improve_sleep` → `['sleep', 'evening', 'bedtime', 'night', 'rest', 'insomnia']`).
+
+**InsightCard CTA:** When an insight has `actionableInsight.experimentIdToStart`, the card renders a "Start Experiment" button that navigates directly to the `ExperimentDetail` screen.
+
+---
+
+#### 2. Personalized Recommender Engine (`recommendation_service`)
+
 Transforms detected patterns into ranked, actionable interventions using a **Contextual Bandit Model**.
-- **Action Library Includes**:
-  - `timing_intervention` (e.g., 10-minute buffers)
-  - `substitution` (e.g., pairing sweet snacks with protein)
-  - `prevention_plan` (e.g., pre-planned bridge snacks)
-  - `recovery` (e.g., short movement resets)
-  - `soft_intervention` (e.g., 60-second breathing pauses)
-- **Ranked Selection**: Provides 1 "Best Next Action" + 2 alternatives, scored across impact, feasibility, and ML-Reward.
+
+**Action Library: 21 Templates across 5 Types:**
+- `soft_intervention` — low-friction behavior nudges (60-second pause, reset habits)
+- `timing_intervention` — when to eat (10-min buffer, kitchen cutoff, meal anchoring, sleep timing)
+- `substitution` — what to eat instead (pairing snacks, food swaps, energy swaps)
+- `prevention_plan` — proactive planning (default snack, bridge snack, weekend plan, trigger avoidance)
+- `recovery` — post-event resets (movement after heavy meals, wind-down routines)
+
+**Pattern Types Covered:**
+`mood_dip_then_eat`, `late_night_eating_cluster`, `weekday_weekend_shift`, `meal_type_mood_association`, `symptom_correlation`, `mood_boost`, `delayed_trigger`, `energy_dip_trigger`, `sleep_impact_trigger`
+
+**Output Tiers (rendered in `RecommendationFeed`):**
+
+| Tier | Condition | UI Treatment |
+|------|-----------|-------------|
+| PREVENTIVE | `category = symptom_prevention` or `type = prevention_plan` | Top section, highest urgency |
+| HEALTHLAB EXPERIMENTS | Has `associatedExperimentId` | Hero card with Beaker icon; Accept navigates to HealthLab |
+| OPTIMIZATION | Everything else | Standard card layout |
+
+Active experiments are filtered from the feed (if the experiment is already running, the linked rec is hidden).
+
+---
 
 ### D. Adaptation & Feedback Loop
-- **Interactive Feedback**: Users respond with `Adopt`, `Maybe`, or `Reject`.
+- **Interactive Feedback**: Users respond with `Accept`, `Maybe`, or `Dismiss`.
 - **Dynamic Penalty Logic**: Consistently rejected intervention types receive a score penalty to demote them in future rankings.
 - **Feedback History**: Dedicated log of past recommendations and their given outcomes.
+- **Feedback Persistence**: Feedback is stored both in Firestore (via `RecommendationService.submitAction`) and locally (via `FeedbackStorageService` in AsyncStorage).
+
+---
 
 ### E. HealthLab — Behavioral Experimentation System
-A system for short, structured behavioral experiments (4–5 days) to measure causal effects of habits on mood, energy, and stress.
+A system for short, structured behavioral experiments (4–5 days) to measure causal effects of food habits on mood, energy, and symptoms.
 
 #### Experiment Lifecycle
 1. **Discovery**: `HealthLabScreen` shows available built-in experiments (e.g., "Protein Breakfast", "Hydration Boost", "Dairy-Free Week").
-2. **Activation**: Users can start/run multiple experiments concurrently.
-3. **Analysis Engine**: Computes experiment metrics against a 7-day pre-experiment baseline. Returns a delta % and confidence score (`high`, `medium`, `low`).
+2. **Entry Points**:
+   - Browse from HealthLab directly
+   - Tap "Start Experiment" CTA on an `InsightCard` with `experimentIdToStart`
+   - Accept a HEALTHLAB EXPERIMENTS tier recommendation (auto-navigates to `ExperimentDetail`)
+3. **Analysis Engine**: Computes experiment metrics against a 7-day pre-experiment baseline. Metrics tracked: `afternoon_energy` (energy `severity` values), `mood_stability` (mood `severity`), `stress_frequency` (stress events with `severity ≥ 1`). Returns delta % and confidence score (`high`, `medium`, `low`).
 4. **Smart UX**: Features retry logic for low-confidence results, experiment history archiving, and smart filtering of completed high-confidence studies.
+
+#### Experiment Definitions Key Fields
+- `targetGoals` — which user goals this experiment addresses
+- `targetSymptoms` — which physical symptoms this experiment targets
+- `metrics` — which mood dimensions to track during the run
 
 ---
 
@@ -111,5 +178,7 @@ A system for short, structured behavioral experiments (4–5 days) to measure ca
 - **Fast Experience**: The core logging path must remain under 30 seconds.
 - **Safe Fallback**: If confidence is too low (e.g., unidentifiable meal, sparse pattern history), the app will recommend a low-risk action or request more data rather than presenting speculative conclusions.
 - **Modular Architecture**: Logging, patterns, recommendations, and HealthLab are kept structurally independent for easy iteration.
+- **Privacy by Design**: User PII (name) stored locally only; Firestore stores only anonymous behavioral data keyed by UID.
+- **Adaptive Thresholds**: Pattern engine minimum event requirements scale with user-reported symptom frequency, preventing early users from waiting too long for their first insights.
 
 *(End of Product Specification)*

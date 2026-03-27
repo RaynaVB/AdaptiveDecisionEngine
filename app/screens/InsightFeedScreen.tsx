@@ -45,6 +45,7 @@ export default function InsightFeedScreen() {
             'improve_energy': ['energy', 'fatigue', 'crash', 'afternoon'],
             'improve_digestion': ['bloating', 'digestive', 'stomach', 'gas', 'reflux'],
             'improve_mood_clarity': ['mood', 'brain fog', 'clarity', 'anxiety', 'irritability'],
+            'improve_sleep': ['sleep', 'evening', 'bedtime', 'night', 'rest', 'insomnia'],
             'identify_food_triggers': ['trigger', 'correlation', 'symptom'],
             'understand_food_body_connection': ['correlation', 'pattern', 'association'],
             'build_healthier_habits': ['habit', 'timing', 'routine'],

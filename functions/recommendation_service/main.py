@@ -163,11 +163,12 @@ def handle_recompute(user_id, data, headers):
     user_ref = db.collection('users').document(user_id)
     
     # Fetch latest data for context
+    user_profile = (user_ref.get().to_dict() or {})
     meals = [d.to_dict() for d in user_ref.collection('meals').order_by('occurredAt', direction=firestore.Query.DESCENDING).get()]
     moods = [d.to_dict() for d in user_ref.collection('moods').order_by('occurredAt', direction=firestore.Query.DESCENDING).get()]
     symptoms = [d.to_dict() for d in user_ref.collection('symptoms').order_by('occurredAt', direction=firestore.Query.DESCENDING).get()]
 
-    patterns = run_pattern_engine(meals, moods, symptoms)
+    patterns = run_pattern_engine(meals, moods, symptoms, user_profile=user_profile)
 
     # Fetch latest stable insights to inform recommendations
     latest_insights = get_latest_insights(user_id)

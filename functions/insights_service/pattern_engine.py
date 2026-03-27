@@ -2,8 +2,21 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
-def run_pattern_engine(meals: List[Dict[str, Any]], moods: List[Dict[str, Any]], symptoms: List[Dict[str, Any]] = []) -> List[Dict[str, Any]]:
-    context = {"meals": meals, "moods": moods, "symptoms": symptoms}
+def get_frequency_factor(user_profile: Optional[Dict[str, Any]]) -> float:
+    """Scale min-event thresholds based on how often the user reports symptoms.
+    Users with frequent symptoms build patterns faster; those with rare symptoms need more evidence."""
+    freq = (user_profile or {}).get("symptomFrequency", "few_times_week")
+    return {
+        "most_meals":    0.6,   # very frequent → confirm with fewer events
+        "almost_daily":  0.75,
+        "few_times_week": 1.0,  # default
+        "rarely":        1.25,  # infrequent → require more evidence before surfacing
+    }.get(freq, 1.0)
+
+
+def run_pattern_engine(meals: List[Dict[str, Any]], moods: List[Dict[str, Any]], symptoms: List[Dict[str, Any]] = [], user_profile: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    freq_factor = get_frequency_factor(user_profile)
+    context = {"meals": meals, "moods": moods, "symptoms": symptoms, "freq_factor": freq_factor}
     insights = []
 
     # Run each analyzer and convert to Insight format
@@ -215,7 +228,8 @@ def analyze_weekday_weekend_shift(context: Dict[str, Any]) -> List[Dict[str, Any
     meals = context.get("meals", [])
     insights = []
     snacks = [m for m in meals if m.get("mealSlot") == "snack"]
-    if len(snacks) < 5: return []
+    min_snacks = max(3, round(5 * context.get("freq_factor", 1.0)))
+    if len(snacks) < min_snacks: return []
 
     weekday_snacks = 0
     weekend_snacks = 0
@@ -290,7 +304,8 @@ def analyze_mood_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]]:
     if not moods: return []
 
     mood_dips = [m for m in moods if m.get("symptomType") == "mood" and m.get("severity", 0) < 0]
-    if len(mood_dips) < 3: return []
+    min_dips = max(2, round(3 * context.get("freq_factor", 1.0)))
+    if len(mood_dips) < min_dips: return []
 
     # Fix 1: compute baseline ingredient frequency across all meals
     baseline = compute_ingredient_baseline(meals)
@@ -449,7 +464,8 @@ def analyze_positive_mood_ingredients(context: Dict[str, Any]) -> List[Dict[str,
     if not moods: return []
 
     high_moods = [m for m in moods if m.get("symptomType") == "mood" and m.get("severity", 0) >= 1]
-    if len(high_moods) < 2: return []
+    min_high = max(2, round(3 * context.get("freq_factor", 1.0)))
+    if len(high_moods) < min_high: return []
 
     # Fix 1: baseline for lift calculation
     baseline = compute_ingredient_baseline(meals)
@@ -584,7 +600,8 @@ def analyze_energy_dip_ingredients(context: Dict[str, Any]) -> List[Dict[str, An
     if not moods: return []
 
     low_energy = [m for m in moods if m.get("symptomType") == "energy" and m.get("severity", 0) < 0]
-    if len(low_energy) < 3: return []
+    min_energy = max(2, round(3 * context.get("freq_factor", 1.0)))
+    if len(low_energy) < min_energy: return []
 
     baseline = compute_ingredient_baseline(meals)
     trigger_counter: Dict[str, int] = {}
@@ -635,7 +652,8 @@ def analyze_sleep_impact_ingredients(context: Dict[str, Any]) -> List[Dict[str, 
     if not moods: return []
 
     poor_sleep = [m for m in moods if m.get("symptomType") == "sleep quality" and m.get("severity", 0) < 0]
-    if len(poor_sleep) < 3: return []
+    min_sleep = max(2, round(3 * context.get("freq_factor", 1.0)))
+    if len(poor_sleep) < min_sleep: return []
 
     baseline = compute_ingredient_baseline(meals)
     trigger_counter: Dict[str, int] = {}

@@ -202,7 +202,7 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
                 return (
                     <View style={styles.stepContainer}>
                         <Text style={styles.title}>Any foods you avoid?</Text>
-                        <Text style={styles.subtitle}>Search for specific ingredients icons you dislike or avoid.</Text>
+                        <Text style={styles.subtitle}>Search for specific ingredients you dislike or avoid.</Text>
                         
                         <View style={styles.searchContainer}>
                             <Search size={20} color={Colors.onSurfaceVariant} style={styles.searchIcon} />

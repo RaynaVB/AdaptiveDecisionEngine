@@ -31,6 +31,10 @@ export const GOAL_OPTIONS: OnboardingOption[] = [
     value: "improve_mood_clarity",
   },
   {
+    label: "Improve sleep quality",
+    value: "improve_sleep",
+  },
+  {
     label: "Build healthier eating habits",
     value: "build_healthier_habits",
   },
@@ -85,6 +89,7 @@ export const DIET_GROUPS: OptionGroup[] = [
     options: [
       { label: "Peanuts", value: "peanut_allergy" },
       { label: "Tree nuts", value: "tree_nut_allergy" },
+      { label: "Wheat / Gluten", value: "wheat_gluten_allergy" },
       { label: "Eggs", value: "egg_allergy" },
       { label: "Soy", value: "soy_allergy" },
       { label: "Fish/Shellfish", value: "fish_shellfish_allergy" },
