@@ -71,16 +71,6 @@ export default function InsightFeedScreen() {
         }, [])
     );
 
-    if (loading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-        );
-    }
-
-
-
     const triggers = insights.filter(i =>
         i.type === 'trigger_pattern' || i.type === 'mood_trigger' || i.type === 'correlation' ||
         i.type === 'energy_dip' || i.type === 'sleep_impact'
@@ -100,8 +90,13 @@ export default function InsightFeedScreen() {
             
             <TopBar userProfile={userProfile} />
 
-            <ScrollView 
-                contentContainerStyle={styles.scrollContent} 
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+            ) : (
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={loadInsights}/>}
             >
                 <View style={styles.pageHeader}>
@@ -188,6 +183,7 @@ export default function InsightFeedScreen() {
 
                 <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_INSIGHTS}</Text>
             </ScrollView>
+            )}
         </View>
     );
 }

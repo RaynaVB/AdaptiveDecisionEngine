@@ -129,20 +129,17 @@ export default function RecommendationFeedScreen() {
     const experiments = recommendations.filter(r => classifyTier(r) === 'experiment');
     const optimization = recommendations.filter(r => classifyTier(r) === 'optimization');
 
-    if (loading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-        );
-    }
-
     return (
         <View style={styles.container}>
             <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
 
             <TopBar userProfile={userProfile} />
 
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+            ) : (
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={loadRecommendations} />}
@@ -203,6 +200,7 @@ export default function RecommendationFeedScreen() {
 
                 <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_RECOMMENDATIONS}</Text>
             </ScrollView>
+            )}
 
         </View>
     );

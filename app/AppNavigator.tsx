@@ -164,13 +164,17 @@ export default function AppNavigator() {
             setUser(usr);
             if (usr) {
                 await getUserProfile(usr.uid);
+                let firstSnapshot = true;
                 unsubscribeProfile = onSnapshot(doc(db, 'users', usr.uid), (docSnap) => {
                     if (docSnap.exists()) {
                         setProfile(docSnap.data() as UserProfile);
                     }
+                    if (firstSnapshot) {
+                        firstSnapshot = false;
+                        setLoading(false);
+                    }
                 }, (error) => {
                     console.error("Profile snapshot listener failed:", error);
-                    // If permissions are denied, we still want to stop loading
                     setLoading(false);
                 });
             } else {
@@ -178,8 +182,8 @@ export default function AppNavigator() {
                 if (unsubscribeProfile) {
                     unsubscribeProfile();
                 }
+                setLoading(false);
             }
-            setLoading(false);
         });
 
         return () => {
