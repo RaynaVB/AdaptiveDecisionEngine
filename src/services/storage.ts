@@ -205,7 +205,7 @@ export const StorageService = {
 
             // 1. Fetch all raw event collections in parallel
             const [mealsSnap, moodsSnap, symptomsSnap, experimentsSnap,
-                   insightGensSnap, recGensSnap, weeklyGensSnap] = await Promise.all([
+                   insightGensSnap, recGensSnap, weeklyGensSnap, feedbackHistorySnap] = await Promise.all([
                 getDocs(collection(userRef, 'meals')),
                 getDocs(collection(userRef, 'moods')),
                 getDocs(collection(userRef, 'symptoms')),
@@ -213,6 +213,7 @@ export const StorageService = {
                 getDocs(collection(userRef, 'insight_generations')),
                 getDocs(collection(userRef, 'recommendation_generations')),
                 getDocs(collection(userRef, 'weekly_generations')),
+                getDocs(collection(userRef, 'feedback_history')),
             ]);
 
             const deletes: Promise<void>[] = [];
@@ -244,12 +245,15 @@ export const StorageService = {
                 deletes.push(deleteDoc(genDoc.ref));
             }
 
-            // 6. Delete ML bandit weights so the model starts fresh
+            // 6. Delete feedback history so suppression state resets with the data
+            feedbackHistorySnap.forEach(d => deletes.push(deleteDoc(d.ref)));
+
+            // 7. Delete ML bandit weights so the model starts fresh
             deletes.push(deleteDoc(doc(collection(userRef, 'ml_metadata'), 'bandit_weights')));
 
             await Promise.all(deletes);
 
-            // 7. Clear local AsyncStorage caches
+            // 8. Clear local AsyncStorage caches
             await Promise.all([
                 AsyncStorage.removeItem('@feedbacks'),
                 AsyncStorage.removeItem('veyra_streaks_meta'),

@@ -77,13 +77,14 @@ def run_recommendation_engine(
             if mood_count < template["minMoodEventsInWindow"]:
                 continue
 
-            # Cooldown check (24h)
+            # Cooldown check (5 days) — don't resurface a rejected/dismissed
+            # recommendation until enough time has passed for it to feel fresh.
             latest_rejection_str = latest_rejections.get(template["id"])
             if latest_rejection_str:
                 try:
                     rejection_time = datetime.fromisoformat(latest_rejection_str.replace('Z', '+00:00'))
-                    hours_since = (datetime.now().astimezone() - rejection_time).total_seconds() / 3600
-                    if hours_since < 24:
+                    days_since = (datetime.now().astimezone() - rejection_time).total_seconds() / 86400
+                    if days_since < 5:
                         continue
                 except Exception:
                     pass

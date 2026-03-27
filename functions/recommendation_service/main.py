@@ -7,6 +7,7 @@ from pattern_engine import run_pattern_engine
 from ml.bandit_model import ContextualBandit
 from ml.context_builder import build_context_vector
 from datetime import datetime, timedelta, timezone
+from typing import Dict, List
 
 # Initialize Firebase Admin
 try:
@@ -107,6 +108,61 @@ def is_generation_valid(user_id, generation_data):
     
     return True
 
+def get_feedback_history(user_id):
+    """
+    Reads persisted feedback from Firestore and returns two dicts used by the engine:
+
+    latest_rejections  → {templateId: iso_timestamp}
+        The most recent 'rejected' or 'dismissed' timestamp per template.
+        The engine uses this to hard-suppress any template rejected < 24 h ago.
+
+    rejection_rates    → {recommendationType: float}
+        Fraction of total feedback events that were rejections/dismissals, per type.
+        The engine uses this to penalise scores for types the user dislikes.
+    """
+    db = get_db()
+    try:
+        docs = db.collection('users').document(user_id) \
+                 .collection('feedback_history') \
+                 .order_by('actedAt', direction=firestore.Query.DESCENDING) \
+                 .limit(50).get()
+        history = [d.to_dict() for d in docs]
+    except Exception as e:
+        print(f"Warning: failed to load feedback history: {e}")
+        return {}, {}
+
+    latest_rejections = {}          # templateId → latest rejection timestamp
+    type_counts: Dict[str, List[int]] = {}  # type → [total, rejected_count]
+
+    for record in history:
+        template_id = record.get('templateId')
+        rec_type    = record.get('recommendationType', '')
+        outcome     = record.get('outcome', '')
+        acted_at    = record.get('actedAt', '')
+
+        # Aggregate per recommendation type
+        if rec_type:
+            if rec_type not in type_counts:
+                type_counts[rec_type] = [0, 0]
+            type_counts[rec_type][0] += 1
+            if outcome in ('rejected', 'dismissed'):
+                type_counts[rec_type][1] += 1
+
+        # Track the most recent rejection timestamp per template
+        if outcome in ('rejected', 'dismissed') and template_id:
+            existing = latest_rejections.get(template_id)
+            if not existing or acted_at > existing:
+                latest_rejections[template_id] = acted_at
+
+    rejection_rates = {
+        t: counts[1] / counts[0]
+        for t, counts in type_counts.items()
+        if counts[0] > 0
+    }
+
+    return latest_rejections, rejection_rates
+
+
 def get_latest_insights(user_id):
     """Fetch the latest generated insights for a user."""
     db = get_db()
@@ -173,10 +229,10 @@ def handle_recompute(user_id, data, headers):
     # Fetch latest stable insights to inform recommendations
     latest_insights = get_latest_insights(user_id)
 
-    # Simplified rejection logic for now
-    rejection_rates = {}
-    latest_rejections = {}
-    
+    # Load persisted feedback so the engine can suppress recently-rejected
+    # templates and penalise types the user consistently dismisses.
+    latest_rejections, rejection_rates = get_feedback_history(user_id)
+
     # Generate new recommendations
     new_recs = run_recommendation_engine(
         db,
@@ -248,7 +304,22 @@ def handle_post_action(user_id, generation_id, recommendation_id, data, headers)
     
     rec_ref.update({"action": action_data})
 
-    # Optional: update bandit if accepted
-    # (Leaving bandit logic out for now to ensure bridge works first)
+    # Persist to feedback_history so future recomputes honour user preferences.
+    # We look up the recommendation to get its templateId and type.
+    try:
+        rec_doc = rec_ref.get()
+        if rec_doc.exists:
+            rec_data = rec_doc.to_dict() or {}
+            template_id = rec_data.get('templateId')
+            rec_type    = rec_data.get('type')
+            if template_id:
+                user_ref.collection('feedback_history').add({
+                    "templateId":         template_id,
+                    "recommendationType": rec_type,
+                    "outcome":            state,
+                    "actedAt":            action_data["actedAt"],
+                })
+    except Exception as e:
+        print(f"Warning: failed to persist feedback history: {e}")
 
     return https_fn.Response(jsonify({"ok": True}).get_data(), status=200, headers=headers, mimetype='application/json')

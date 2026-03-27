@@ -62,7 +62,10 @@ export default function RecommendationFeedScreen() {
 
             const feedbackMap: Record<string, FeedbackOutcome | null> = {};
             for (const rec of recs) {
-                feedbackMap[rec.id] = rec.action?.state === 'none' ? null : (rec.action?.state as FeedbackOutcome);
+                const state = rec.action?.state;
+                // Treat missing action field (undefined) and explicit 'none' both as null —
+                // otherwise undefined !== null evaluates true and all fresh recs look acted-on.
+                feedbackMap[rec.id] = (!state || state === 'none') ? null : (state as FeedbackOutcome);
             }
 
             const sortedRecs = [...filteredRecs].sort((a, b) => {

@@ -80,17 +80,22 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
         <TouchableOpacity
           style={[
             styles.actionButton,
-            (actionState === 'accepted' || (!actionState && isHero)) ? styles.acceptedButtonPressed : styles.outlineButton
+            styles.outlineButton,
+            actionState === 'accepted' && styles.acceptedButtonPressed,
           ]}
           onPress={() => onAccept(recommendation)}
         >
-          <Check size={20} color={(actionState === 'accepted' || (!actionState && isHero)) ? Colors.onPrimaryContrast : Colors.primary} />
+          <Check size={20} color={actionState === 'accepted' ? Colors.onPrimaryContrast : Colors.primary} />
           <Text style={[
             styles.actionButtonLabel,
             styles.primaryButtonText,
-            { color: (actionState === 'accepted' || (!actionState && isHero)) ? Colors.onPrimaryContrast : Colors.onSurfaceVariant }
+            { color: actionState === 'accepted' ? Colors.onPrimaryContrast : Colors.onSurfaceVariant }
           ]}>
-            {isHero ? (recommendation.associatedExperimentId ? 'START' : 'ACCEPT') : (recommendation.cta?.label?.toUpperCase() || 'CHECK')}
+            {actionState === 'accepted'
+              ? 'DONE'
+              : isHero
+                ? (recommendation.associatedExperimentId ? 'START' : 'ACCEPT')
+                : (recommendation.cta?.label?.toUpperCase() || 'CHECK')}
           </Text>
         </TouchableOpacity>
 
