@@ -5,6 +5,9 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { updateUserProfile } from '../../src/services/userProfile';
 import { auth } from '../../src/services/firebaseConfig';
 import { StorageService } from '../../src/services/storage';
+import { InsightService } from '../../src/services/insightService';
+import { RecommendationService } from '../../src/services/recommendationService';
+import { WeeklyPatternsService } from '../../src/services/weeklyPatternsService';
 import { ChevronLeft, Trash2, RotateCcw, Database, ShieldAlert } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
@@ -20,34 +23,49 @@ export default function AdminScreen({ navigation }: Props) {
     const handleSeed = async () => {
         setSaving(true);
         try {
+            // Step 1: Write demo logs to Firestore
             await StorageService.seedDemoLogs();
-            Alert.alert('Success', 'Demo logs seeded!');
+
+            // Step 2: Trigger all three intelligence engines in parallel so
+            // insights, recommendations, and weekly story are ready immediately.
+            await Promise.all([
+                InsightService.recomputeInsights('demo_seed'),
+                RecommendationService.recomputeRecommendations('demo_seed'),
+                WeeklyPatternsService.recomputeWeekly('demo_seed'),
+            ]);
+
+            Alert.alert('Ready', 'Demo data seeded and intelligence generated. Navigate to any feed to see results.');
         } catch (e) {
-            Alert.alert('Error', 'Failed to seed logs.');
+            Alert.alert('Error', 'Seeding failed or intelligence generation timed out. Check console.');
+            console.error('[Admin] Seed error:', e);
         } finally {
             setSaving(false);
         }
     };
 
     const handleClearMyLogs = async () => {
-        Alert.alert('Confirm', 'Delete all YOUR logs?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete My Logs',
-                style: 'destructive',
-                onPress: async () => {
-                    setSaving(true);
-                    try {
-                        await StorageService.clearAllLogs();
-                        Alert.alert('Success', 'Your logs have been cleared.');
-                    } catch (e) {
-                        Alert.alert('Error', 'Failed to clear logs.');
-                    } finally {
-                        setSaving(false);
+        Alert.alert(
+            'Reset My Data',
+            'This will delete all your logs, insights, recommendations, experiments, and local caches. Use this to test the new-user experience.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Reset Everything',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setSaving(true);
+                        try {
+                            await StorageService.clearAllLogs();
+                            Alert.alert('Done', 'All your data has been cleared. The app is now in a clean new-user state.');
+                        } catch (e) {
+                            Alert.alert('Error', 'Failed to clear data. Check console for details.');
+                        } finally {
+                            setSaving(false);
+                        }
                     }
                 }
-            }
-        ]);
+            ]
+        );
     };
 
     const handleClearSystemLogs = async () => {
@@ -123,15 +141,15 @@ export default function AdminScreen({ navigation }: Props) {
                         <Database color={Colors.primary} size={20} style={{ marginRight: 12 }} />
                         <View>
                             <Text style={styles.adminButtonText}>Seed Demo Logs</Text>
-                            <Text style={styles.adminButtonSubtext}>Generate test data for your account</Text>
+                            <Text style={styles.adminButtonSubtext}>Write test data + generate insights, recs & weekly story</Text>
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.adminButton} onPress={handleClearMyLogs} disabled={saving}>
                         <Trash2 color={Colors.onSurfaceVariant} size={20} style={{ marginRight: 12 }} />
                         <View>
-                            <Text style={styles.adminButtonText}>Clear My Logs</Text>
-                            <Text style={styles.adminButtonSubtext}>Delete only your logs</Text>
+                            <Text style={styles.adminButtonText}>Reset My Data</Text>
+                            <Text style={styles.adminButtonSubtext}>Clears logs, insights, recs, experiments & cache</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

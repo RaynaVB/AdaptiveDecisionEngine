@@ -3,6 +3,7 @@ import { db, auth } from './firebaseConfig';
 import { MealEvent, MoodEvent } from '../models/types';
 import { SymptomEvent } from '../models/Symptom';
 import { generateSeedData } from '../dev/seedData';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const StorageService = {
     // Helper to get the current user's document path
@@ -199,25 +200,64 @@ export const StorageService = {
 
     async clearAllLogs(): Promise<void> {
         if (!auth.currentUser) return;
-        // In Firestore, deleting a collection directly from the client is not natively supported without iterating.
-        // We will query and delete each doc.
         try {
-            const mealsSnapshot = await getDocs(this.getMealsCollectionRef());
-            mealsSnapshot.forEach(docSnap => {
-                deleteDoc(docSnap.ref);
-            });
+            const userRef = this.getUserDocRef();
 
-            const moodsSnapshot = await getDocs(this.getMoodsCollectionRef());
-            moodsSnapshot.forEach(docSnap => {
-                deleteDoc(docSnap.ref);
-            });
+            // 1. Fetch all raw event collections in parallel
+            const [mealsSnap, moodsSnap, symptomsSnap, experimentsSnap,
+                   insightGensSnap, recGensSnap, weeklyGensSnap] = await Promise.all([
+                getDocs(collection(userRef, 'meals')),
+                getDocs(collection(userRef, 'moods')),
+                getDocs(collection(userRef, 'symptoms')),
+                getDocs(collection(userRef, 'experiments')),
+                getDocs(collection(userRef, 'insight_generations')),
+                getDocs(collection(userRef, 'recommendation_generations')),
+                getDocs(collection(userRef, 'weekly_generations')),
+            ]);
 
-            const symptomsSnapshot = await getDocs(this.getSymptomsCollectionRef());
-            symptomsSnapshot.forEach(docSnap => {
-                deleteDoc(docSnap.ref);
-            });
+            const deletes: Promise<void>[] = [];
+
+            // 2. Delete raw events + experiments
+            mealsSnap.forEach(d => deletes.push(deleteDoc(d.ref)));
+            moodsSnap.forEach(d => deletes.push(deleteDoc(d.ref)));
+            symptomsSnap.forEach(d => deletes.push(deleteDoc(d.ref)));
+            experimentsSnap.forEach(d => deletes.push(deleteDoc(d.ref)));
+
+            // 3. Delete insight generations + nested insights subcollection
+            for (const genDoc of insightGensSnap.docs) {
+                const insightsSnap = await getDocs(collection(genDoc.ref, 'insights'));
+                insightsSnap.forEach(d => deletes.push(deleteDoc(d.ref)));
+                deletes.push(deleteDoc(genDoc.ref));
+            }
+
+            // 4. Delete recommendation generations + nested recommendations subcollection
+            for (const genDoc of recGensSnap.docs) {
+                const recsSnap = await getDocs(collection(genDoc.ref, 'recommendations'));
+                recsSnap.forEach(d => deletes.push(deleteDoc(d.ref)));
+                deletes.push(deleteDoc(genDoc.ref));
+            }
+
+            // 5. Delete weekly pattern generations + nested items subcollection
+            for (const genDoc of weeklyGensSnap.docs) {
+                const itemsSnap = await getDocs(collection(genDoc.ref, 'items'));
+                itemsSnap.forEach(d => deletes.push(deleteDoc(d.ref)));
+                deletes.push(deleteDoc(genDoc.ref));
+            }
+
+            // 6. Delete ML bandit weights so the model starts fresh
+            deletes.push(deleteDoc(doc(collection(userRef, 'ml_metadata'), 'bandit_weights')));
+
+            await Promise.all(deletes);
+
+            // 7. Clear local AsyncStorage caches
+            await Promise.all([
+                AsyncStorage.removeItem('@feedbacks'),
+                AsyncStorage.removeItem('veyra_streaks_meta'),
+            ]);
+
         } catch (e) {
-            console.error('Failed to clear logs', e);
+            console.error('Failed to clear all data', e);
+            throw e;
         }
     },
 

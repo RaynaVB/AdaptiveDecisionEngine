@@ -1,5 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform, LayoutAnimation, UIManager, Image, Modal, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform, LayoutAnimation, UIManager, Image, Modal } from 'react-native';
 
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -7,18 +7,15 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { MealEvent, MoodEvent } from '../../src/models/types';
 import { SymptomEvent } from '../../src/models/Symptom';
 import { StorageService } from '../../src/services/storage';
-import { Plus, X, Sparkles, TrendingUp, LogOut, Beaker, Lightbulb, Menu, Settings, ShieldCheck, Utensils, Zap, Smile, CheckCircle2 } from 'lucide-react-native';
+import { X, Utensils, Zap, Smile, CheckCircle2 } from 'lucide-react-native';
 import { formatMealSummary } from '../../src/utils/mealSummary';
 import { Insight } from '../../src/models/types';
 import { InsightService } from '../../src/services/insightService';
 // Pattern Engine is now server-side. Local imports removed.
 import { auth } from '../../src/services/firebaseConfig';
-import { signOut } from 'firebase/auth';
-import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
+import { getUserProfile, UserProfile } from '../../src/services/userProfile';
 import { HealthLabService } from '../../src/services/healthLabService';
 import { ExperimentRun } from '../../src/models/healthlab';
-import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
-import { Play, ChevronRight, Beaker as BeakerIcon, Bell } from 'lucide-react-native';
 import { RecommendationService } from '../../src/services/recommendationService';
 import { WeeklyPatternsService } from '../../src/services/weeklyPatternsService';
 import { Recommendation, WeeklyItem } from '../../src/models/types';
@@ -172,6 +169,7 @@ export default function TimelineScreen() {
             .slice(0, 3);
         setMicroInsights(micro);
         setWeeklyInsights(insightsResponse.insights || []);
+        setWeeklyItems(weeklyResponse.items || []);
         
         if (auth.currentUser) {
             const profile = await getUserProfile(auth.currentUser.uid);
@@ -339,15 +337,30 @@ export default function TimelineScreen() {
         );
     };
 
+    const getMoodEmoji = (type: string, severity: number): string => {
+        if (severity > 0) {
+            if (type === 'energy') return '⚡';
+            if (type === 'sleep quality') return '🌙';
+            if (type === 'focus') return '🎯';
+            if (type === 'stress') return '😤';
+            return '😊';
+        }
+        if (severity < 0) {
+            if (type === 'energy') return '😴';
+            if (type === 'stress') return '😣';
+            if (type === 'sleep quality') return '😔';
+            if (type === 'focus') return '😵';
+            return '😟';
+        }
+        return '😐';
+    };
+
     const renderMoodItem = (item: MoodEvent) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
-        let emoji = '😐';
-        if (item.severity !== undefined && item.symptomType === 'mood') {
-            if (item.severity > 0) emoji = '😊';
-            else if (item.severity < 0) emoji = '😟';
-        }
+        const emoji = getMoodEmoji(item.symptomType, item.severity ?? 0);
+        const intensityStr = item.severity !== undefined ? `${item.severity > 0 ? '+' : ''}${item.severity}` : '';
+        const typeLabel = item.moodLabel || (item.symptomType.charAt(0).toUpperCase() + item.symptomType.slice(1).replace(/_/g, ' '));
 
         return (
             <View style={styles.timelineRow}>
@@ -357,15 +370,13 @@ export default function TimelineScreen() {
                         <Smile size={18} color={Colors.moodIcon} />
                     </View>
                 </View>
-                
+
                 <View style={[styles.card, styles.cardColumn, { flexDirection: 'row', alignItems: 'center', padding: Spacing.s4 }]}>
                     <Text style={{ fontSize: 32, marginRight: Spacing.s4 }}>{emoji}</Text>
                     <View style={{ flex: 1 }}>
-                        <Text style={[styles.summaryText, { fontSize: 17, marginBottom: 2 }]}>
-                            {item.moodLabel || (item.symptomType.charAt(0).toUpperCase() + item.symptomType.slice(1))}
-                        </Text>
+                        <Text style={[styles.summaryText, { fontSize: 17, marginBottom: 2 }]}>{typeLabel}</Text>
                         <Text style={styles.timeColumnText}>
-                            {timeString} {item.symptomType === 'mood' ? `• Intensity: ${item.severity > 0 ? '+' : ''}${item.severity}` : ''}
+                            {timeString}{intensityStr ? ` • ${intensityStr}` : ''}
                         </Text>
                     </View>
                 </View>
@@ -430,6 +441,14 @@ export default function TimelineScreen() {
                 keyExtractor={item => `${item.type}-${item.data.id}`}
                 contentContainerStyle={styles.listContent}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={Colors.primary} />}
+                ListEmptyComponent={
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateTitle}>Nothing here yet</Text>
+                        <Text style={styles.emptyStateBody}>
+                            Tap the + button to log a meal, mood, or symptom. Your recent activity will appear here.
+                        </Text>
+                    </View>
+                }
                 ListHeaderComponent={
                     <View style={{ paddingBottom: 24 }}>
                         <View style={styles.pageHeader}>
@@ -497,22 +516,11 @@ export default function TimelineScreen() {
                         {microInsights.length > 0 ? microInsights.map((insight, index) => (
                             <MicroInsightCard key={`insight-${insight.id || index}`} insight={insight} />
                         )) : (
-                            <MicroInsightCard 
-                                key="empty-insight" 
-                                insight={{
-                                    id: 'placeholder',
-                                    type: 'behavior_shift',
-                                    title: 'Log two meals to unlock your first insight',
-                                    summary: '',
-                                    confidenceLevel: 'low',
-                                    confidenceScore: 0,
-                                    priorityScore: 0,
-                                    category: 'lifestyle',
-                                    status: 'active',
-                                    window: { minHours: 0, maxHours: 0 },
-                                    supportingEvidence: {}
-                                } as any} 
-                            />
+                            <View style={styles.insightPlaceholder}>
+                                <Text style={styles.insightPlaceholderText}>
+                                    Log a few meals and moods to unlock your first personalized insight.
+                                </Text>
+                            </View>
                         )}
 
                         <View style={styles.recentActivityHeader}>
@@ -842,6 +850,37 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 12,
         right: 12,
+    },
+    emptyState: {
+        paddingHorizontal: Spacing.s4,
+        paddingTop: Spacing.s4,
+        paddingBottom: Spacing.s6,
+        alignItems: 'center',
+    },
+    emptyStateTitle: {
+        ...Typography.title,
+        fontSize: 17,
+        color: Colors.onSurfaceVariant,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    emptyStateBody: {
+        ...Typography.body,
+        fontSize: 14,
+        color: Colors.outline,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    insightPlaceholder: {
+        paddingHorizontal: Spacing.s1,
+        marginBottom: Spacing.s6,
+    },
+    insightPlaceholderText: {
+        ...Typography.body,
+        fontSize: 14,
+        color: Colors.onSurfaceVariant,
+        lineHeight: 22,
+        fontStyle: 'italic',
     },
     menuBackdrop: {
         flex: 1,
