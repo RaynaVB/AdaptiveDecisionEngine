@@ -179,13 +179,14 @@ def handle_recompute(user_id, data, headers):
     
     # Generate new recommendations
     new_recs = run_recommendation_engine(
-        db, 
-        user_id, 
-        patterns, 
+        db,
+        user_id,
+        patterns,
         {"meals": meals, "moods": moods, "symptoms": symptoms},
         rejection_rates,
         latest_rejections,
-        latest_insights # Pass stable insights to decision layer
+        latest_insights,  # Pass stable insights to decision layer
+        user_profile=user_profile,
     )
 
     # Create new generation doc

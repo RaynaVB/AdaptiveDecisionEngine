@@ -14,7 +14,8 @@ def run_recommendation_engine(
     context: Dict[str, Any],
     rejection_rates: Dict[str, float] = {},
     latest_rejections: Dict[str, str] = {},
-    latest_insights: List[Dict[str, Any]] = []
+    latest_insights: List[Dict[str, Any]] = [],
+    user_profile: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     # Normalize latest_insights to match Pattern structure for the candidate loop
     normalized_insights = []
@@ -166,8 +167,17 @@ def run_recommendation_engine(
                 "createdAt": datetime.now().isoformat()
             })
 
+    # Goal-awareness boost: +0.10 priority for templates that match the user's stated goals
+    user_goals = set((user_profile or {}).get("goals", []))
+    if user_goals:
+        for c in candidates:
+            template = next((t for t in ACTION_LIBRARY if t["id"] == c["templateId"]), None)
+            if template and user_goals & set(template.get("targetGoals") or []):
+                c["priorityScore"] = min(1.0, c["priorityScore"] + 0.10)
+                c["scores"]["goal_boost"] = True
+
     ranked = rank_recommendations(candidates)
-    
+
     # Add rank field
     for i, rec in enumerate(ranked):
         rec["rank"] = i + 1

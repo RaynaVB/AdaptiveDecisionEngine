@@ -2,6 +2,103 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
+# ── Onboarding → Engine vocabulary mappings ──────────────────────────────────
+
+# Maps pattern engine symptomType → onboarding symptom value(s)
+SYMPTOM_TYPE_TO_ONBOARDING: Dict[str, Any] = {
+    "bloating":     "bloating",
+    "gas":          "gas",
+    "stomach_pain": "stomach_pain",
+    "acid_reflux":  "acid_reflux",
+    "constipation": "constipation",
+    "diarrhea":     "diarrhea",
+    "headaches":    "headaches",
+    "skin_issues":  "skin_issues",
+    "energy":       ["fatigue", "energy_crashes"],
+    "sleep quality":["sleep_problems"],
+    "mood":         ["mood_swings", "anxiety", "irritability"],
+    "stress":       ["anxiety", "irritability"],
+    "focus":        ["brain_fog"],
+}
+
+# Maps user goal → insight types that directly address it
+GOAL_TO_INSIGHT_TYPES: Dict[str, List[str]] = {
+    "improve_energy":                   ["energy_dip", "energy_dip_trigger"],
+    "improve_sleep":                    ["sleep_impact", "sleep_impact_trigger"],
+    "improve_mood_clarity":             ["mood_association", "mood_boost"],
+    "improve_digestion":                ["trigger_pattern", "delayed_trigger"],
+    "identify_food_triggers":           ["trigger_pattern", "delayed_trigger", "correlation"],
+    "understand_food_body_connection":  ["trigger_pattern", "correlation", "mood_association"],
+    "build_healthier_habits":           ["timing_pattern", "behavior_shift"],
+}
+
+# Ingredient keywords that may match common onboarding sensitivities/allergies
+SENSITIVITY_KEYWORDS: Dict[str, List[str]] = {
+    "lactose_sensitive":     ["milk", "cheese", "yogurt", "butter", "cream", "dairy", "whey"],
+    "caffeine_sensitive":    ["coffee", "espresso", "tea", "energy drink", "caffeine", "matcha"],
+    "sugar_sensitive":       ["sugar", "candy", "syrup", "soda", "dessert", "chocolate", "honey"],
+    "wheat_gluten_allergy":  ["wheat", "bread", "pasta", "flour", "gluten", "cereal", "cracker"],
+    "alcohol_sensitive":     ["wine", "beer", "alcohol", "liquor", "spirits", "sake"],
+    "spicy_food_sensitive":  ["chili", "hot sauce", "pepper", "jalapeño", "sriracha", "cayenne"],
+    "fried_oily_food_sensitive": ["fried", "fries", "chips", "deep fried", "oil", "greasy"],
+}
+
+
+def check_sensitivity_flags(ingredient: str, user_profile: Optional[Dict[str, Any]]) -> List[str]:
+    """Return any known sensitivities/allergies that match the given ingredient."""
+    if not user_profile or not ingredient:
+        return []
+    user_flags = set(
+        user_profile.get("sensitivities", []) + user_profile.get("allergies", [])
+    )
+    if not user_flags:
+        return []
+    ing_lower = ingredient.lower()
+    return [
+        sensitivity
+        for sensitivity, keywords in SENSITIVITY_KEYWORDS.items()
+        if sensitivity in user_flags and any(kw in ing_lower for kw in keywords)
+    ]
+
+
+def boost_by_profile(
+    insights: List[Dict[str, Any]],
+    user_profile: Optional[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Post-processing pass: lift confidenceScore for insights that match the
+    user's stated goals (+0.10) or reported symptoms (+0.15). Capped at 1.0."""
+    if not user_profile:
+        return insights
+    user_goals = set(user_profile.get("goals", []))
+    user_symptoms = set(user_profile.get("symptoms", []))
+    if not user_goals and not user_symptoms:
+        return insights
+
+    for insight in insights:
+        boost = 0.0
+        itype = insight.get("type", "")
+
+        # Goal match
+        for goal, types in GOAL_TO_INSIGHT_TYPES.items():
+            if goal in user_goals and itype in types:
+                boost += 0.10
+                break
+
+        # Reported symptom match (via symptomType in metadata)
+        sym = (insight.get("metadata") or {}).get("symptomType", "")
+        if sym:
+            raw = SYMPTOM_TYPE_TO_ONBOARDING.get(sym, [])
+            mapped = [raw] if isinstance(raw, str) else raw
+            if any(s in user_symptoms for s in mapped):
+                boost += 0.15
+
+        if boost > 0:
+            insight["confidenceScore"] = min(1.0, insight.get("confidenceScore", 0.5) + boost)
+            insight["confidenceLevel"] = get_confidence_level(insight["confidenceScore"])
+
+    return insights
+
+
 def get_frequency_factor(user_profile: Optional[Dict[str, Any]]) -> float:
     """Scale min-event thresholds based on how often the user reports symptoms.
     Users with frequent symptoms build patterns faster; those with rare symptoms need more evidence."""
@@ -16,7 +113,7 @@ def get_frequency_factor(user_profile: Optional[Dict[str, Any]]) -> float:
 
 def run_pattern_engine(meals: List[Dict[str, Any]], moods: List[Dict[str, Any]], symptoms: List[Dict[str, Any]] = [], user_profile: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     freq_factor = get_frequency_factor(user_profile)
-    context = {"meals": meals, "moods": moods, "symptoms": symptoms, "freq_factor": freq_factor}
+    context = {"meals": meals, "moods": moods, "symptoms": symptoms, "freq_factor": freq_factor, "user_profile": user_profile}
     insights = []
 
     # Run each analyzer and convert to Insight format
@@ -30,8 +127,11 @@ def run_pattern_engine(meals: List[Dict[str, Any]], moods: List[Dict[str, Any]],
     insights.extend(analyze_energy_dip_ingredients(context))
     insights.extend(analyze_sleep_impact_ingredients(context))
 
-    # Fix 8: remove duplicate (ingredient, symptomType) pairs — prefer 0-6h over 6-24h
+    # Remove duplicate (ingredient, symptomType) pairs — prefer 0-6h over 6-24h
     insights = deduplicate_trigger_insights(insights)
+
+    # Boost confidence for insights matching user goals / reported symptoms
+    insights = boost_by_profile(insights, user_profile)
 
     return insights
 
@@ -452,7 +552,8 @@ def analyze_symptom_correlations(context: Dict[str, Any]) -> List[Dict[str, Any]
                 "window": {"minHours": 0, "maxHours": 6},
                 "supportingEvidence": {"matchCount": count, "sampleSize": len(events)},
                 "status": "active",
-                "metadata": {"triggerIngredient": ingredient, "symptomType": symptom_type}
+                "metadata": {"triggerIngredient": ingredient, "symptomType": symptom_type,
+                             "knownSensitivities": check_sensitivity_flags(ingredient, context.get("user_profile", {}))}
             })
     return insights
 
@@ -587,7 +688,8 @@ def analyze_delayed_symptom_triggers(context: Dict[str, Any]) -> List[Dict[str, 
             "window": {"minHours": 6, "maxHours": 24},
             "supportingEvidence": {"matchCount": top_count, "sampleSize": len(events)},
             "status": "active",
-            "metadata": {"triggerIngredient": top_trigger, "symptomType": symptom_type}  # Fix 8: dedup key
+            "metadata": {"triggerIngredient": top_trigger, "symptomType": symptom_type,  # Fix 8: dedup key
+                         "knownSensitivities": check_sensitivity_flags(top_trigger, context.get("user_profile", {}))}
         })
     return insights
 
@@ -639,7 +741,8 @@ def analyze_energy_dip_ingredients(context: Dict[str, Any]) -> List[Dict[str, An
                     "window": {"minHours": 0, "maxHours": 4},
                     "supportingEvidence": {"matchCount": count, "sampleSize": len(low_energy)},
                     "status": "active",
-                    "metadata": {"triggerIngredient": ingredient, "symptomType": "energy"}
+                    "metadata": {"triggerIngredient": ingredient, "symptomType": "energy",
+                                 "knownSensitivities": check_sensitivity_flags(ingredient, context.get("user_profile", {}))}
                 })
     return insights
 
@@ -693,7 +796,8 @@ def analyze_sleep_impact_ingredients(context: Dict[str, Any]) -> List[Dict[str, 
                     "window": {"minHours": 2, "maxHours": 8},
                     "supportingEvidence": {"matchCount": count, "sampleSize": len(poor_sleep)},
                     "status": "active",
-                    "metadata": {"triggerIngredient": ingredient, "symptomType": "sleep quality"}
+                    "metadata": {"triggerIngredient": ingredient, "symptomType": "sleep quality",
+                                 "knownSensitivities": check_sensitivity_flags(ingredient, context.get("user_profile", {}))}
                 })
     return insights
 

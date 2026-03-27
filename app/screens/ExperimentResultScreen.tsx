@@ -8,6 +8,8 @@ import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine'
 import { EXPERIMENT_LIBRARY } from '../../src/services/healthlab/definitions';
 import { ExperimentRun } from '../../src/models/healthlab';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import { InsightService } from '../../src/services/insightService';
+import { RecommendationService } from '../../src/services/recommendationService';
 
 type ExperimentResultScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'ExperimentResult'>;
@@ -140,9 +142,15 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
                         </TouchableOpacity>
                     )}
 
-                    <TouchableOpacity 
-                        style={styles.doneButton} 
-                        onPress={() => navigation.navigate('HealthLab')}
+                    <TouchableOpacity
+                        style={styles.doneButton}
+                        onPress={() => {
+                            // Fire-and-forget: recompute both feeds so the experiment result
+                            // is reflected in insights and recommendations immediately.
+                            InsightService.recomputeInsights('experiment_completed').catch(() => {});
+                            RecommendationService.recomputeRecommendations('experiment_completed').catch(() => {});
+                            navigation.navigate('HealthLab');
+                        }}
                     >
                         <Text style={styles.doneButtonText}>Finish Protocol</Text>
                     </TouchableOpacity>

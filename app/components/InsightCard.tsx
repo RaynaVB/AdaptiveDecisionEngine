@@ -68,7 +68,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
       {insight.actionableInsight?.experimentIdToStart && (
         <TouchableOpacity
           style={styles.experimentCta}
-          onPress={() => navigation.navigate('ExperimentDetail', { experimentId: insight.actionableInsight!.experimentIdToStart })}
+          onPress={() => navigation.navigate('ExperimentDetail', { experimentId: insight.actionableInsight!.experimentIdToStart, linkedInsightId: insight.id })}
         >
           <Beaker size={14} color={Colors.accent} />
           <Text style={styles.experimentCtaText}>

@@ -82,6 +82,20 @@ export const ExperimentEngine = {
         }
     },
 
+    async patchProvenance(runId: string, provenance: { linkedInsightId?: string; linkedRecommendationId?: string }): Promise<void> {
+        if (!auth.currentUser || (!provenance.linkedInsightId && !provenance.linkedRecommendationId)) return;
+        try {
+            const docRef = doc(this.getExperimentsCollectionRef(), runId);
+            const update: Record<string, string> = {};
+            if (provenance.linkedInsightId) update.linkedInsightId = provenance.linkedInsightId;
+            if (provenance.linkedRecommendationId) update.linkedRecommendationId = provenance.linkedRecommendationId;
+            await updateDoc(docRef, update);
+        } catch (e) {
+            // Non-critical — don't throw, provenance is metadata only
+            console.warn('Failed to patch experiment provenance', e);
+        }
+    },
+
     async abandonExperiment(runId: string): Promise<void> {
         if (!auth.currentUser) return;
         try {

@@ -40,6 +40,8 @@ class ActionTemplate(TypedDict):
     ctaType: Optional[str]
     ctaLabel: Optional[str]
     associatedExperimentId: Optional[str]
+    targetGoals: Optional[List[str]]
+    targetSymptomTypes: Optional[List[str]]
 
 ACTION_LIBRARY: List[ActionTemplate] = [
     {
@@ -58,6 +60,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "start_experiment",
         "ctaLabel": "Try Pause",
         "associatedExperimentId": "stress_reset_60s",
+        "targetGoals": ["improve_mood_clarity", "build_healthier_habits"],
+        "targetSymptomTypes": ["mood", "stress"],
     },
     {
         "id": "p1_timing_delay_10min",
@@ -75,6 +79,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "log_mood",
         "ctaLabel": "Try Buffer",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_mood_clarity", "build_healthier_habits"],
+        "targetSymptomTypes": ["mood", "stress"],
     },
     {
         "id": "p1_substitute_pairing",
@@ -92,6 +98,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "log_meal",
         "ctaLabel": "Log Pairing",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_mood_clarity", "build_healthier_habits"],
+        "targetSymptomTypes": ["mood", "stress"],
     },
     {
         "id": "p1_prevention_plan_pack_snack",
@@ -109,6 +117,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "set_goal",
         "ctaLabel": "Pick Snack",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_mood_clarity", "build_healthier_habits"],
+        "targetSymptomTypes": ["mood", "stress"],
     },
     {
         "id": "p2_timing_cutoff_soft",
@@ -124,6 +134,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "actionTemplate": "Pick a realistic kitchen close time (e.g., 9:00 PM) for 3 nights this week. If you eat after it, just log it—no judgment.",
         "whyTemplate": "Your logs show a cluster of late-night eating. A gentle cutoff can reduce the frequency without requiring big changes.",
         "associatedExperimentId": "no_late_snacks",
+        "targetGoals": ["build_healthier_habits", "improve_sleep"],
+        "targetSymptomTypes": ["sleep quality"],
     },
     {
         "id": "p2_prevention_plan_evening_snack",
@@ -139,6 +151,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "actionTemplate": "If late-night hunger is common, plan a small snack 1–2 hours after dinner (same time for a few days).",
         "whyTemplate": "Late-night eating often follows a long gap after dinner. A planned bridge snack can reduce unplanned late-night eating.",
         "associatedExperimentId": None,
+        "targetGoals": ["build_healthier_habits", "improve_sleep"],
+        "targetSymptomTypes": ["sleep quality"],
     },
     {
         "id": "p2_recovery_sleep_routine",
@@ -154,6 +168,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "actionTemplate": "Set a 15-minute wind-down: dim lights, screens down, and prepare for sleep. If you still want food, choose a light option.",
         "whyTemplate": "Your logs show more late-night eating. A consistent wind-down can reduce late-night impulses and support better rest.",
         "associatedExperimentId": None,
+        "targetGoals": ["build_healthier_habits", "improve_sleep"],
+        "targetSymptomTypes": ["sleep quality"],
     },
     {
         "id": "p3_timing_anchor_one_meal",
@@ -169,6 +185,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "actionTemplate": "Pick one meal (breakfast or lunch) to keep within a 1-hour window on weekends for the next 2 weekends.",
         "whyTemplate": "Your logs suggest weekend routines differ from weekdays. Anchoring one meal can stabilize the rest of the day without strict rules.",
         "associatedExperimentId": None,
+        "targetGoals": ["build_healthier_habits"],
+        "targetSymptomTypes": None,
     },
     {
         "id": "p3_prevention_plan_weekend_snacks",
@@ -184,6 +202,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "actionTemplate": "If weekends have more snacks, choose 1 planned snack time + 1 planned snack option for the weekend.",
         "whyTemplate": "Your data indicates weekend behavior shifts. A simple plan reduces randomness without restricting enjoyment.",
         "associatedExperimentId": None,
+        "targetGoals": ["build_healthier_habits"],
+        "targetSymptomTypes": None,
     },
     {
         "id": "p4_substitute_high_sugar_swap",
@@ -199,6 +219,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "actionTemplate": "If a certain meal type is followed by a mood dip in your logs, try swapping it once this week for a lighter alternative and compare.",
         "whyTemplate": "Your logs show an association between a meal type and later mood changes. A single controlled swap can test what works for you.",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_mood_clarity"],
+        "targetSymptomTypes": ["mood"],
     },
     {
         "id": "p4_recovery_after_heavy",
@@ -214,6 +236,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "actionTemplate": "After a heavier meal, take a 10-minute light walk or do gentle movement. Log how you feel 1–2 hours later.",
         "whyTemplate": "Your data suggests certain meals are associated with later mood/energy shifts. A small recovery routine may improve how you feel.",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_mood_clarity"],
+        "targetSymptomTypes": ["mood"],
     },
     {
         "id": "safe_soft_hydration",
@@ -234,6 +258,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "actionTemplate": "Before your next snack, drink a glass of water and wait 2 minutes. If you still want food, eat and log it.",
         "whyTemplate": "You’re still building consistent logs. This is a safe, low-effort step while the system learns your patterns.",
         "associatedExperimentId": "hydration_boost",
+        "targetGoals": None,
+        "targetSymptomTypes": None,
     },
     {
         "id": "mood_boost_double_down",
@@ -251,6 +277,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "log_meal",
         "ctaLabel": "Log Again",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_mood_clarity"],
+        "targetSymptomTypes": ["mood"],
     },
     {
         "id": "symptom_trigger_awareness",
@@ -268,6 +296,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "start_experiment",
         "ctaLabel": "Track Closely",
         "associatedExperimentId": None,
+        "targetGoals": ["identify_food_triggers", "improve_digestion"],
+        "targetSymptomTypes": None,
     },
     {
         "id": "trigger_substitution_experiment",
@@ -285,6 +315,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "start_experiment",
         "ctaLabel": "Start Swap",
         "associatedExperimentId": None,
+        "targetGoals": ["identify_food_triggers", "improve_digestion"],
+        "targetSymptomTypes": None,
     },
     {
         "id": "trigger_avoidance_plan",
@@ -302,6 +334,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "set_goal",
         "ctaLabel": "Set Reset",
         "associatedExperimentId": None,
+        "targetGoals": ["identify_food_triggers", "improve_digestion"],
+        "targetSymptomTypes": None,
     },
     {
         "id": "mood_boost_habit",
@@ -319,6 +353,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "log_meal",
         "ctaLabel": "Plan Meal",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_mood_clarity"],
+        "targetSymptomTypes": ["mood"],
     },
     # ── Energy Dip ────────────────────────────────────────────────────────────
     {
@@ -338,6 +374,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "log_mood",
         "ctaLabel": "Log Energy",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_energy"],
+        "targetSymptomTypes": ["energy"],
     },
     {
         "id": "energy_dip_swap",
@@ -356,6 +394,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "start_experiment",
         "ctaLabel": "Try Swap",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_energy"],
+        "targetSymptomTypes": ["energy"],
     },
     # ── Sleep Impact ──────────────────────────────────────────────────────────
     {
@@ -375,6 +415,8 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "log_mood",
         "ctaLabel": "Log Sleep",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_sleep"],
+        "targetSymptomTypes": ["sleep quality"],
     },
     {
         "id": "sleep_impact_timing",
@@ -393,5 +435,7 @@ ACTION_LIBRARY: List[ActionTemplate] = [
         "ctaType": "start_experiment",
         "ctaLabel": "Shift Timing",
         "associatedExperimentId": None,
+        "targetGoals": ["improve_sleep"],
+        "targetSymptomTypes": ["sleep quality"],
     },
 ]

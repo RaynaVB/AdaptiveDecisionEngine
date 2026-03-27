@@ -13,7 +13,7 @@ export type RootStackParamList = {
     Recommendations: undefined;
     FeedbackHistory: undefined;
     HealthLab: undefined;
-    ExperimentDetail: { experimentId: string };
+    ExperimentDetail: { experimentId: string; linkedInsightId?: string; linkedRecommendationId?: string };
     ExperimentHistory: undefined;
     ExperimentResult: { runId: string };
     Login: undefined;

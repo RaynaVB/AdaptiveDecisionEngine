@@ -32,7 +32,7 @@ The system delegates domain-specific logic to independent cloud function service
 
 3. **`insights_service`**
    - **Role:** Generates personalized health insights surfaced on the Insights Feed.
-   - **Mechanism:** Runs a 9-analyzer pattern engine over a rolling window of meal, mood, and symptom events. Fetches the user's `UserProfile` from Firestore on each recompute and uses `symptomFrequency` to dynamically scale minimum event thresholds (users with frequent symptoms can surface patterns sooner; users with rare symptoms require more evidence).
+   - **Mechanism:** Runs a 9-analyzer pattern engine over a rolling window of meal, mood, and symptom events. Fetches the user's full `UserProfile` from Firestore on each recompute. Uses `symptomFrequency` to dynamically scale minimum event thresholds (`get_frequency_factor()` returns 0.6×–1.25×). After all analyzers run, applies `boost_by_profile()` to adjust confidence scores based on the user's stated goals and reported symptoms.
    - **Active Analyzers:**
      1. `analyze_mood_dip_then_eat` — eating within 1h of a negative mood or high stress event
      2. `analyze_late_night_cluster` — contiguous eating after a configurable late-night cutoff
@@ -43,16 +43,24 @@ The system delegates domain-specific logic to independent cloud function service
      7. `analyze_delayed_symptom_triggers` — ingredient-level correlations with physical symptoms (6–24h window, stricter lift threshold)
      8. `analyze_energy_dip_ingredients` — ingredients correlated with low energy events (0–4h window)
      9. `analyze_sleep_impact_ingredients` — evening meals correlated with poor sleep quality (2–8h window)
+   - **Profile-Aware Confidence Boosting (`boost_by_profile`):** Applied as a post-processing step after deduplication. Each insight receives:
+     - **+0.10** if its `type` appears in `GOAL_TO_INSIGHT_TYPES[goal]` for any of the user's stated goals.
+     - **+0.15** if its `metadata.symptomType` maps (via `SYMPTOM_TYPE_TO_ONBOARDING`) to any symptom the user reported at onboarding.
+     - Scores are capped at 1.0; `confidenceLevel` is recomputed after boosting.
+   - **Sensitivity Flagging (`check_sensitivity_flags`):** Analyzers P6, P7, P8, and P9 populate `metadata.knownSensitivities` on each trigger insight. The helper checks the trigger ingredient name against `SENSITIVITY_KEYWORDS` (lactose, caffeine, sugar, wheat/gluten, alcohol) and the user's `sensitivities` + `allergies` lists. Result is a list of matched sensitivity keys (empty list if none).
+   - **Vocabulary Mapping Dicts:** `SYMPTOM_TYPE_TO_ONBOARDING` maps internal `symptomType` strings to onboarding values; `GOAL_TO_INSIGHT_TYPES` maps each of the 7 user goals to the insight types that directly address it; `SENSITIVITY_KEYWORDS` maps sensitivity keys to canonical ingredient keyword lists.
    - **Deduplication:** When the same (ingredient, symptomType) pair is flagged by both immediate and delayed analyzers, the 0–6h result is preferred.
    - **Lift Scoring:** All ingredient correlations use lift = `event_rate / baseline_rate` (threshold ≥ 1.5 for immediate, ≥ 2.0 for delayed) to avoid false positives from staple foods.
    - **Cache / TTL:** Cached for 12 hours; invalidated on new symptom log or 3+ new meals.
 
 4. **`recommendation_service`**
    - **Role:** Generates actionable, personalized interventions ranked for the Recommendations Feed.
-   - **Mechanism:** Runs a parallel pattern engine (same analyzers as insights_service, scoped for recommendation generation). Maps detected patterns to an **Action Library of 21 templates** across 5 recommendation types: `timing_intervention`, `substitution`, `prevention_plan`, `recovery`, `soft_intervention`. Applies a **Contextual Bandit Model** to score interventions based on ML confidence, expected impact, user feasibility, and past feedback history. Also fetches `UserProfile` to apply `symptomFrequency` threshold scaling.
+   - **Mechanism:** Runs a parallel pattern engine (same analyzers as insights_service, scoped for recommendation generation) with the same `symptomFrequency` threshold scaling. Maps detected patterns to an **Action Library of 21 templates** across 5 recommendation types: `timing_intervention`, `substitution`, `prevention_plan`, `recovery`, `soft_intervention`. Applies a **Contextual Bandit Model** to score interventions. Then applies a goal-aware priority boost.
+   - **Action Library Annotations:** Every template carries `targetGoals: Optional[List[str]]` and `targetSymptomTypes: Optional[List[str]]` fields that declare which user goals and symptom dimensions the template addresses.
+   - **Goal-Aware Priority Boost:** After the candidate loop, `run_recommendation_engine` receives the full `user_profile`. For any candidate whose template's `targetGoals` intersects the user's stated goals, `priorityScore` is boosted by **+0.10** (capped at 1.0) and `scores.goal_boost` is set to `True`. This ensures energy, sleep, and digestion templates rank above generic ones for users who selected the corresponding goals.
    - **Output Tiers (rendered in UI):**
      - `preventive` — symptom-prevention patterns with high urgency
-     - `experiment` — recommendations with an `associatedExperimentId` (link to HealthLab)
+     - `experiment` — recommendations with an `associatedExperimentId` (link to HealthLab); accept action navigates to `ExperimentDetail` with `linkedRecommendationId` for provenance
      - `optimization` — all other behavioral improvements
    - **Cache / TTL:** Cached for 6 hours; 5-minute debounce on rapid re-requests.
 
@@ -121,24 +129,28 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
   - Pattern engines use a `MOOD_DIMENSIONS` exclusion set to ensure physical and mood events are never mixed in the same correlation analysis.
 - **`UserProfile`** (`/users/{uid}` document):
   - `goals`, `symptoms`, `allergies`, `dietaryPreferences`, `sensitivities`, `avoidedFoods`, `symptomFrequency`.
-  - Fetched by both `insights_service` and `recommendation_service` on every recompute. `symptomFrequency` drives a `get_frequency_factor()` multiplier applied to all minimum event thresholds in the pattern engines.
+  - Fetched by both `insights_service` and `recommendation_service` on every recompute.
+  - `symptomFrequency` drives a `get_frequency_factor()` multiplier (0.6×–1.25×) applied to all minimum event thresholds.
+  - `goals` and `symptoms` drive post-processing confidence boosts in `boost_by_profile()` (insights engine) and priority boosts in `run_recommendation_engine()` (recommendation engine).
+  - `sensitivities` and `allergies` populate `metadata.knownSensitivities` on trigger insights via `check_sensitivity_flags()`.
   - PII (`name`) is stored locally on-device only (AsyncStorage), never written to Firestore.
 
 ### 4.2 Intelligence Outputs
 - **`Pattern`**: Extracted behavioral sequences. Includes `confidence`, `severity`, and an `actionableInsight`. Supports ingredient-level detection (e.g., specific triggers or boosters).
-- **`Insight`**: Generative intelligence containing `title`, `summary`, `supportingEvidence` (`matchCount`/`sampleSize`), `confidenceLevel`, and optional `actionableInsight.experimentIdToStart` for direct HealthLab navigation.
-- **`Recommendation`**: Produced by the recommender engine. Includes `priorityScore`, `confidenceScore`, `scores` (impact, feasibility, mlScore), feedback `action` state, and optional `associatedExperimentId` for HealthLab-linked interventions. Supports personalized string interpolation for ingredients (`{trigger}`) and symptoms (`{symptom}`).
+- **`Insight`**: Generative intelligence containing `title`, `summary`, `supportingEvidence` (`matchCount`/`sampleSize`), `confidenceLevel` (adjusted by `boost_by_profile`), and optional `actionableInsight.experimentIdToStart` for direct HealthLab navigation. Trigger insights (types: `trigger_pattern`, `delayed_trigger`, `energy_dip`, `sleep_impact`) carry `metadata.knownSensitivities: string[]` populated from the user's dietary profile.
+- **`Recommendation`**: Produced by the recommender engine. Includes `priorityScore` (boosted by +0.10 for goal-matched templates), `confidenceScore`, `scores` (impact, feasibility, mlScore, optional `goal_boost: true`), feedback `action` state, and optional `associatedExperimentId` for HealthLab-linked interventions. Supports personalized string interpolation for ingredients (`{trigger}`) and symptoms (`{symptom}`).
 
 ### 4.3 Experimentation Models
 - **`ExperimentDefinition`**: Template detailing `targetGoals`, `targetSymptoms`, target metrics (`afternoon_energy`, `mood_stability`, `stress_frequency`), required event types, and duration windows.
-- **`ExperimentRun`**: Instance of a user undertaking a definition. Tracks `baselineValue`, `experimentValue`, `resultDelta`, and `status` (active/completed/abandoned).
+- **`ExperimentRun`**: Instance of a user undertaking a definition. Tracks `baselineValue`, `experimentValue`, `resultDelta`, and `status` (active/completed/abandoned). Carries optional **provenance fields** — `linkedInsightId` and `linkedRecommendationId` — that record which insight or recommendation originated the run. These are persisted to Firestore by `ExperimentEngine.patchProvenance()` immediately after `HealthLabService.startExperiment()` resolves.
 
 ---
 
 ## 5. Execution Summary
 1. User interacts with `LogMeal`, `MoodLogger`, or `SymptomLogger`.
 2. Frontend writes structured payload to Firestore (triggering external Python `vision_service` if a meal photo needs parsing).
-3. On demand or on interval, `insights_service` fetches the user's `UserProfile`, computes a `freq_factor` from `symptomFrequency`, then runs the 9-analyzer pattern engine. New `Insight` records are materialized and cached.
-4. `recommendation_service` similarly fetches `UserProfile`, runs its parallel pattern engine with the same frequency scaling, maps patterns to Action Library templates, and applies Contextual Bandit weights based on historical feedback. New `Recommendation` records are persisted.
-5. The UI reads finalized intelligence into `InsightFeed` (4 sections, goal-sorted, with experiment CTAs) and `RecommendationFeed` (3-tier: preventive / HealthLab experiments / optimization).
-6. From either surface, users can navigate directly into HealthLab to start an experiment linked to a specific pattern or recommendation.
+3. On demand or on interval, `insights_service` fetches the user's full `UserProfile`. Computes `freq_factor` from `symptomFrequency`, then runs the 9-analyzer pattern engine. After deduplication, `boost_by_profile()` adjusts confidence scores based on `goals` (+0.10) and `symptoms` (+0.15). Trigger insights are decorated with `metadata.knownSensitivities` from the user's allergen profile. New `Insight` records are materialized and cached.
+4. `recommendation_service` similarly fetches `UserProfile`, runs its parallel pattern engine with the same frequency scaling, maps patterns to Action Library templates, applies Contextual Bandit weights, and applies a **+0.10 goal-aware priority boost** for templates whose `targetGoals` intersect the user's stated goals. New `Recommendation` records are persisted.
+5. The UI reads finalized intelligence into `InsightFeed` (4 sections, goal-sorted, with experiment CTAs carrying `linkedInsightId`) and `RecommendationFeed` (3-tier: preventive / HealthLab experiments / optimization; experiment tier accept carries `linkedRecommendationId`).
+6. From either surface, users navigate to `ExperimentDetail`. On experiment start, `ExperimentEngine.patchProvenance()` writes `linkedInsightId` or `linkedRecommendationId` to the `ExperimentRun` document, completing the pattern → insight/recommendation → experiment provenance chain.
+7. When the user taps "Finish Protocol" on `ExperimentResultScreen`, `InsightService.recomputeInsights('experiment_completed')` and `RecommendationService.recomputeRecommendations('experiment_completed')` are fired asynchronously. Both feeds reflect the completed experiment's data on the user's next visit.

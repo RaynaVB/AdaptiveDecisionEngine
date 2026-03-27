@@ -45,9 +45,9 @@ A 6-step profile capture that personalizes the entire app experience from first 
 | Step | What's Collected | How It's Used |
 |------|-----------------|---------------|
 | 1. Name | Stored locally on-device only (never in Firestore) | Personalization only |
-| 2. Goals | Up to 3 of 7 options (see below) | `InsightFeed` sorts by goal-relevant keywords; `sortByGoalRelevance()` uses per-goal keyword maps |
-| 3. Symptoms | Multi-select across Digestive, Energy, Mental, Physical groups | Primary focus for pattern engine; surfaces on `InsightFeed` sensitivity profile card |
-| 4. Dietary profile | Allergies (incl. wheat/gluten), dietary preferences (vegan, gluten-free, etc.), sensitivities (lactose, caffeine, sugar, etc.) | Displayed on sensitivity profile card; foundation for future allergen flagging in engines |
+| 2. Goals | Up to 3 of 7 options (see below) | `InsightFeed` sorts by goal-relevant keywords; pattern engine applies **+0.10 confidence boost** to insights whose type directly addresses a selected goal; recommender applies **+0.10 priority boost** to action templates whose `targetGoals` intersect the user's goals |
+| 3. Symptoms | Multi-select across Digestive, Energy, Mental, Physical groups | Pattern engine applies **+0.15 confidence boost** to insights whose `symptomType` maps to a reported symptom; surfaces on `InsightFeed` sensitivity profile card |
+| 4. Dietary profile | Allergies (incl. wheat/gluten), dietary preferences (vegan, gluten-free, etc.), sensitivities (lactose, caffeine, sugar, etc.) | Displayed on sensitivity profile card; **insight metadata includes a `knownSensitivities` flag** when a trigger ingredient matches a user's reported sensitivity or allergy |
 | 5. Avoided foods | Ingredient-level search (2,500+ item database) | Saved to `avoidedFoods` in UserProfile |
 | 6. Symptom frequency | Rarely / Few times a week / Almost daily / After most meals | **Directly calibrates pattern engine thresholds** — users with frequent symptoms unlock patterns sooner |
 
@@ -109,6 +109,15 @@ Detects behavioral clusters using a rolling data window. Minimum event threshold
 - **Per-event `seen` sets**: Prevents multi-meal window inflation.
 - **Deduplication**: Same (ingredient, symptomType) pair detected by both P6 and P7 → P6 preferred.
 
+**Profile-Aware Confidence Boosting (`boost_by_profile`):**
+After deduplication, every insight's `confidenceScore` is adjusted based on the user's profile:
+- **+0.10** if the insight type directly addresses one of the user's stated goals (e.g., `energy_dip` insight + `improve_energy` goal).
+- **+0.15** if the insight's `symptomType` maps to a symptom the user reported during onboarding (e.g., `energy` insight + `fatigue` symptom).
+- Scores are capped at 1.0; `confidenceLevel` is recomputed after boosting.
+
+**Sensitivity Flagging:**
+Trigger insights produced by P6, P7, P8, and P9 include a `knownSensitivities` list in their `metadata` field. This list is populated when the trigger ingredient matches a user's known sensitivities or allergies (e.g., a coffee-triggered energy dip for a `caffeine_sensitive` user → `knownSensitivities: ["caffeine_sensitive"]`).
+
 **Insight Types → UI Sections:**
 - `trigger_pattern`, `mood_trigger`, `correlation`, `energy_dip`, `sleep_impact` → **TRIGGERS**
 - `protective`, `mood_boost` → **PROTECTORS**
@@ -117,7 +126,7 @@ Detects behavioral clusters using a rolling data window. Minimum event threshold
 
 **Goal-Aware Sorting:** `InsightFeed` sorts results by keyword match against the user's selected goals. Each goal maps to a set of keywords (e.g., `improve_sleep` → `['sleep', 'evening', 'bedtime', 'night', 'rest', 'insomnia']`).
 
-**InsightCard CTA:** When an insight has `actionableInsight.experimentIdToStart`, the card renders a "Start Experiment" button that navigates directly to the `ExperimentDetail` screen.
+**InsightCard CTA:** When an insight has `actionableInsight.experimentIdToStart`, the card renders a "Start Experiment" button that navigates directly to the `ExperimentDetail` screen, passing `linkedInsightId` to establish provenance.
 
 ---
 
@@ -132,15 +141,22 @@ Transforms detected patterns into ranked, actionable interventions using a **Con
 - `prevention_plan` — proactive planning (default snack, bridge snack, weekend plan, trigger avoidance)
 - `recovery` — post-event resets (movement after heavy meals, wind-down routines)
 
+Each template carries two annotation fields that enable goal-aware ranking:
+- `targetGoals` — which user goals this template addresses (e.g., `["improve_energy"]`)
+- `targetSymptomTypes` — which pattern symptom dimensions this template targets (e.g., `["energy"]`)
+
 **Pattern Types Covered:**
 `mood_dip_then_eat`, `late_night_eating_cluster`, `weekday_weekend_shift`, `meal_type_mood_association`, `symptom_correlation`, `mood_boost`, `delayed_trigger`, `energy_dip_trigger`, `sleep_impact_trigger`
+
+**Goal-Aware Priority Boost:**
+After the candidate ranking loop, the engine applies a **+0.10 `priorityScore` boost** to any recommendation whose template's `targetGoals` intersects the user's stated goals. The boost is recorded in `scores.goal_boost = true` for traceability.
 
 **Output Tiers (rendered in `RecommendationFeed`):**
 
 | Tier | Condition | UI Treatment |
 |------|-----------|-------------|
 | PREVENTIVE | `category = symptom_prevention` or `type = prevention_plan` | Top section, highest urgency |
-| HEALTHLAB EXPERIMENTS | Has `associatedExperimentId` | Hero card with Beaker icon; Accept navigates to HealthLab |
+| HEALTHLAB EXPERIMENTS | Has `associatedExperimentId` | Hero card with Beaker icon; Accept navigates to HealthLab with `linkedRecommendationId` |
 | OPTIMIZATION | Everything else | Standard card layout |
 
 Active experiments are filtered from the feed (if the experiment is already running, the linked rec is hidden).
@@ -164,8 +180,10 @@ A system for short, structured behavioral experiments (4–5 days) to measure ca
    - Browse from HealthLab directly
    - Tap "Start Experiment" CTA on an `InsightCard` with `experimentIdToStart`
    - Accept a HEALTHLAB EXPERIMENTS tier recommendation (auto-navigates to `ExperimentDetail`)
-3. **Analysis Engine**: Computes experiment metrics against a 7-day pre-experiment baseline. Metrics tracked: `afternoon_energy` (energy `severity` values), `mood_stability` (mood `severity`), `stress_frequency` (stress events with `severity ≥ 1`). Returns delta % and confidence score (`high`, `medium`, `low`).
-4. **Smart UX**: Features retry logic for low-confidence results, experiment history archiving, and smart filtering of completed high-confidence studies.
+3. **Provenance Chain**: When an experiment is started from an `InsightCard` or a recommendation, the originating `linkedInsightId` or `linkedRecommendationId` is passed through the navigation route and persisted to the `ExperimentRun` document in Firestore via `ExperimentEngine.patchProvenance()`. This creates a traceable chain from pattern → insight/recommendation → experiment run.
+4. **Analysis Engine**: Computes experiment metrics against a 7-day pre-experiment baseline. Metrics tracked: `afternoon_energy` (energy `severity` values), `mood_stability` (mood `severity`), `stress_frequency` (stress events with `severity ≥ 1`). Returns delta % and confidence score (`high`, `medium`, `low`).
+5. **Completion Feedback Loop**: When the user taps "Finish Protocol" on `ExperimentResultScreen`, the app fire-and-forgets calls to `InsightService.recomputeInsights('experiment_completed')` and `RecommendationService.recomputeRecommendations('experiment_completed')`. Both feeds are refreshed immediately, so the completed experiment's data is reflected the next time the user opens either feed.
+6. **Smart UX**: Features retry logic for low-confidence results, experiment history archiving, and smart filtering of completed high-confidence studies.
 
 #### Experiment Definitions Key Fields
 - `targetGoals` — which user goals this experiment addresses

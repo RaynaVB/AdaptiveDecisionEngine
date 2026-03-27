@@ -176,7 +176,7 @@ export default function RecommendationFeedScreen() {
                                 onAccept={(r) => {
                                     handleFeedback(r, 'accepted');
                                     if (r.associatedExperimentId) {
-                                        navigation.navigate('ExperimentDetail', { experimentId: r.associatedExperimentId });
+                                        navigation.navigate('ExperimentDetail', { experimentId: r.associatedExperimentId, linkedRecommendationId: r.id });
                                     }
                                 }}
                                 onMaybe={(r) => handleFeedback(r, 'maybe')}

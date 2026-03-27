@@ -5,6 +5,7 @@ import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
 import { ArrowLeft, Beaker, Play, Info, CheckCircle, AlertTriangle, ChevronLeft } from 'lucide-react-native';
 import { HealthLabService } from '../../src/services/healthLabService';
+import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { ExperimentDefinition, ExperimentRun } from '../../src/models/healthlab';
 import { MICRO_DISCLAIMER_EXPERIMENTS } from '../constants/legal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
@@ -15,7 +16,7 @@ type ExperimentDetailScreenProps = {
 };
 
 export default function ExperimentDetailScreen({ navigation, route }: ExperimentDetailScreenProps) {
-    const { experimentId, experiment: initialExperiment } = route.params as any;
+    const { experimentId, experiment: initialExperiment, linkedInsightId, linkedRecommendationId } = route.params as any;
     const [loading, setLoading] = useState(true);
     const [definition, setDefinition] = useState<ExperimentDefinition | null>(initialExperiment || null);
     const [activeRun, setActiveRun] = useState<ExperimentRun | null>(null);
@@ -70,7 +71,14 @@ export default function ExperimentDetailScreen({ navigation, route }: Experiment
         if (!tid) return;
         try {
             setLoading(true);
-            await HealthLabService.startExperiment(tid);
+            const run = await HealthLabService.startExperiment(tid);
+            // Patch provenance if this experiment was triggered from an insight or recommendation
+            if (run && (linkedInsightId || linkedRecommendationId)) {
+                const runId = (run as any).runId || (run as any).id;
+                if (runId) {
+                    ExperimentEngine.patchProvenance(runId, { linkedInsightId, linkedRecommendationId });
+                }
+            }
             Alert.alert("Success", "Experiment started!");
             await loadRun();
         } catch (e) {

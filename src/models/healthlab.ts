@@ -44,6 +44,10 @@ export interface ExperimentRun {
     resultDelta?: number; // percentage change
     confidenceScore?: ExperimentConfidence;
     
+    // Provenance — which insight or recommendation originated this run
+    linkedInsightId?: string;
+    linkedRecommendationId?: string;
+
     // Metadata
     createdAt: string;
     updatedAt: string;
