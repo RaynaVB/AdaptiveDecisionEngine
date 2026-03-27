@@ -98,10 +98,11 @@ def handle_get_recommended(user_id, headers):
     # 3. Fetch Active / Completed Experiments
     experiments_ref = user_ref.collection('experiments')
     active_docs = experiments_ref.where('status', '==', 'active').get()
-    active_ids = [doc.to_dict().get('id') for doc in active_docs]
-    
+    # templateId is canonical; fall back to legacy 'id' field for old docs
+    active_ids = [d.to_dict().get('templateId') or d.to_dict().get('id') for d in active_docs]
+
     completed_docs = experiments_ref.where('status', '==', 'completed').get()
-    completed_ids = [doc.to_dict().get('id') for doc in completed_docs]
+    completed_ids = [d.to_dict().get('templateId') or d.to_dict().get('id') for d in completed_docs]
 
     # 4. Calculate Scores
     scored_experiments = calculate_experiment_scores(user_profile, insights, active_ids, completed_ids)
@@ -118,9 +119,9 @@ def handle_get_active(user_id, headers):
     active_experiments = []
     for doc in active_docs:
         exp = doc.to_dict()
-        exp['runId'] = doc.id  # Keep firestore doc id separate
-        # The template ID is already in exp['id']
-        template_id = exp.get('id')
+        exp['runId'] = doc.id
+        # templateId is canonical; fall back to legacy 'id' field for old docs
+        template_id = exp.get('templateId') or exp.get('experimentId') or exp.get('id')
         template = next((t for t in EXPERIMENT_TEMPLATES if t['id'] == template_id), None)
         if template:
             exp['template'] = template
@@ -147,27 +148,33 @@ def handle_start_experiment(user_id, data, headers):
         return https_fn.Response(jsonify({"error": "Experiment already active"}).get_data(), status=400, headers=headers, mimetype='application/json')
 
     now = datetime.now(timezone.utc)
+    now_iso = now.isoformat().replace('+00:00', 'Z')
     duration = template.get('durationDays', 5)
-    ends_at = now + timedelta(days=duration)
-    
+    ends_at = (now + timedelta(days=duration)).isoformat().replace('+00:00', 'Z')
+
+    # Create the doc ref first so we can embed its ID in the document fields.
+    doc_ref = user_ref.collection('experiments').document()
+    run_id = doc_ref.id
+
     experiment_data = {
-        "id": template_id,
+        "id": run_id,           # Firestore document ID
+        "runId": run_id,        # alias — frontend uses this field
+        "templateId": template_id,   # canonical template identifier
+        "experimentId": template_id, # legacy alias for frontend compatibility
         "status": "active",
-        "startedAt": now.isoformat().replace('+00:00', 'Z'),
-        "endsAt": ends_at.isoformat().replace('+00:00', 'Z'),
+        "startedAt": now_iso,
+        "startDate": now_iso,   # alias — frontend uses this field
+        "endsAt": ends_at,
         "linkedInsightIds": linked_insight_ids,
         "progress": {
             "daysCompleted": 0,
             "adherenceScore": 1.0
         },
-        "createdAt": now.isoformat().replace('+00:00', 'Z'),
-        "updatedAt": now.isoformat().replace('+00:00', 'Z')
+        "createdAt": now_iso,
+        "updatedAt": now_iso,
     }
 
-    doc_ref = user_ref.collection('experiments').document()
     doc_ref.set(experiment_data)
-    
-    experiment_data['id'] = doc_ref.id
     return https_fn.Response(jsonify(experiment_data).get_data(), status=201, headers=headers, mimetype='application/json')
 
 def handle_complete_experiment(user_id, experiment_id, headers):
@@ -183,8 +190,8 @@ def handle_complete_experiment(user_id, experiment_id, headers):
     if exp_data.get('status') != 'active':
         return https_fn.Response(jsonify({"error": "Experiment not active"}).get_data(), status=400, headers=headers, mimetype='application/json')
 
-    # 1. Get Template
-    template_id = exp_data.get('id')
+    # 1. Get Template — templateId is canonical; fall back to legacy 'id' for old docs
+    template_id = exp_data.get('templateId') or exp_data.get('experimentId') or exp_data.get('id')
     template = next((t for t in EXPERIMENT_TEMPLATES if t['id'] == template_id), None)
     if not template:
         return https_fn.Response(jsonify({"error": "Template not found"}).get_data(), status=404, headers=headers, mimetype='application/json')

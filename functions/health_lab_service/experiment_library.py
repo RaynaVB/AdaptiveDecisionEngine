@@ -1,152 +1,177 @@
 # functions/health_lab_service/experiment_library.py
+# Single source of truth for experiment templates (Python side).
+# IDs here MUST match EXPERIMENT_LIBRARY in src/services/healthlab/definitions.ts
 
 EXPERIMENT_TEMPLATES = [
-    {
-        "id": "dairy_elimination",
-        "name": "Dairy Elimination",
-        "category": "elimination",
-        "durationDays": 5,
-        "targetSymptoms": ["bloating", "gas", "stomach_pain"],
-        "targetGoals": ["improve_digestion", "identify_food_triggers"],
-        "targetMetric": "symptom_frequency",
-        "requiredEvents": ["meal_log", "symptom_log"],
-        "dietaryTags": ["dairy"],
-        "instructions": [
-            "Remove all milk, cheese, yogurt, and butter.",
-            "Check labels for whey, casein, or milk solids.",
-            "Log all meals and symptoms daily."
-        ],
-        "dailyRequirements": {
-            "meals": True,
-            "symptoms": True
-        },
-        "difficulty": "medium",
-        "tags": ["dairy", "digestion", "milk", "cheese", "yogurt", "butter", "whey", "lactose"]
-    },
-    {
-        "id": "gluten_elimination",
-        "name": "Gluten Elimination",
-        "category": "elimination",
-        "durationDays": 7,
-        "targetSymptoms": ["bloating", "fatigue", "brain_fog"],
-        "targetGoals": ["improve_digestion", "improve_energy"],
-        "targetMetric": "avg_energy",
-        "requiredEvents": ["meal_log", "symptom_log", "energy_log"],
-        "dietaryTags": ["gluten"],
-        "instructions": [
-            "Avoid wheat, barley, rye, and malt.",
-            "Focus on naturally gluten-free foods like rice, quinoa, and potatoes.",
-            "Log all meals and symptoms."
-        ],
-        "dailyRequirements": {
-            "meals": True,
-            "symptoms": True
-        },
-        "difficulty": "medium",
-        "tags": ["gluten", "digestion", "wheat", "barley", "rye", "bread", "pasta"]
-    },
     {
         "id": "high_protein_breakfast",
         "name": "High-Protein Breakfast",
         "category": "addition",
+        "hypothesis": "Eating 25–30 g of protein within 1 hour of waking stabilises blood sugar and prevents the afternoon energy crash.",
         "durationDays": 5,
-        "targetSymptoms": ["fatigue", "energy_crashes"],
-        "targetGoals": ["improve_energy", "stable_energy"],
+        "baselineWindowDays": 7,
         "targetMetric": "afternoon_energy",
+        "targetGoals": ["improve_energy"],
+        "targetSymptoms": ["fatigue", "energy_crashes"],
         "requiredEvents": ["meal_log", "energy_log"],
-        "instructions": [
-            "Eat at least 25-30g of protein within 1 hour of waking up.",
-            "Examples: Eggs, Greek yogurt, protein shake, smoked salmon.",
-            "Record your energy levels at 10 AM, 2 PM, and 4 PM."
-        ],
-        "dailyRequirements": {
-            "meals": True,
-            "mood": True
-        },
         "difficulty": "easy",
-        "tags": ["protein", "energy", "eggs", "meat", "chicken", "fish", "tofu", "beans"]
+        "instructions": [
+            "Eat at least 25–30 g of protein within 1 hour of waking up.",
+            "Good sources: eggs, Greek yogurt, protein shake, smoked salmon.",
+            "Log your meal and rate your energy at 2 PM and 4 PM each day.",
+        ],
+        "tags": ["protein", "energy", "breakfast", "eggs", "meat", "fish", "tofu"],
+    },
+    {
+        "id": "protein_snack_3pm",
+        "name": "Protein Snack at 3 PM",
+        "category": "addition",
+        "hypothesis": "A dedicated protein snack at 3:00 PM prevents the afternoon energy slump by providing a steady fuel source.",
+        "durationDays": 5,
+        "baselineWindowDays": 7,
+        "targetMetric": "afternoon_energy",
+        "targetGoals": ["improve_energy"],
+        "targetSymptoms": ["fatigue", "energy_crashes"],
+        "requiredEvents": ["snack_log", "energy_log"],
+        "difficulty": "easy",
+        "instructions": [
+            "Eat a protein-rich snack (10–20 g) between 2:30 PM and 3:30 PM every day.",
+            "Good options: nuts, hard-boiled eggs, cheese, jerky, Greek yogurt.",
+            "Log the snack and rate your energy at 4 PM.",
+        ],
+        "tags": ["protein", "energy", "snack", "afternoon", "nuts", "eggs"],
     },
     {
         "id": "hydration_boost",
         "name": "Hydration Boost",
         "category": "behavior",
-        "durationDays": 3,
-        "targetSymptoms": ["fatigue", "headaches", "brain_fog"],
-        "targetGoals": ["improve_energy", "build_healthier_habits"],
+        "hypothesis": "Drinking 500 ml of water before every major meal improves energy and mood stability throughout the day.",
+        "durationDays": 5,
+        "baselineWindowDays": 7,
         "targetMetric": "avg_energy",
-        "requiredEvents": ["mood_log"],
-        "instructions": [
-            "Drink 500ml of water immediately upon waking.",
-            "Drink 500ml of water before every major meal.",
-            "Aim for a total of 2.5L - 3L per day."
-        ],
-        "dailyRequirements": {
-            "mood": True
-        },
+        "targetGoals": ["improve_energy", "build_healthier_habits"],
+        "targetSymptoms": ["fatigue", "headaches", "brain_fog"],
+        "requiredEvents": ["meal_log", "mood_log"],
         "difficulty": "easy",
-        "tags": ["hydration", "energy", "water", "fluids"]
+        "instructions": [
+            "Drink 500 ml (about 2 cups) of water immediately upon waking.",
+            "Drink 500 ml before each major meal (breakfast, lunch, dinner).",
+            "Aim for 2.5–3 L total per day. Log your mood and energy each evening.",
+        ],
+        "tags": ["hydration", "water", "energy", "mood", "fluids"],
     },
     {
         "id": "caffeine_cutoff",
         "name": "Caffeine Cutoff",
         "category": "timing",
+        "hypothesis": "Stopping all caffeine after 1:00 PM improves sleep quality and reduces late-day anxiety.",
         "durationDays": 5,
-        "targetSymptoms": ["sleep_problems", "anxiety"],
-        "targetGoals": ["improve_sleep", "reduce_anxiety"],
+        "baselineWindowDays": 7,
         "targetMetric": "mood_stability",
-        "requiredEvents": ["mood_log", "sleep_log"],
+        "targetGoals": ["improve_sleep"],
+        "targetSymptoms": ["sleep_problems", "anxiety"],
+        "requiredEvents": ["mood_log", "symptom_log"],
+        "difficulty": "medium",
         "instructions": [
             "No caffeine (coffee, tea, soda, energy drinks) after 1:00 PM.",
             "Switch to herbal tea or decaf in the afternoon.",
-            "Log your sleep quality and anxiety levels."
+            "Log your sleep quality and anxiety level each evening.",
         ],
-        "dailyRequirements": {
-            "mood": True,
-            "symptoms": True
-        },
-        "difficulty": "medium",
-        "tags": ["caffeine", "sleep", "anxiety", "coffee", "tea", "soda", "energy drink"]
+        "tags": ["caffeine", "sleep", "anxiety", "coffee", "tea", "soda"],
     },
     {
         "id": "early_dinner",
         "name": "Early Dinner",
         "category": "timing",
+        "hypothesis": "Finishing your last meal at least 3 hours before bed reduces digestive symptoms and improves sleep quality.",
         "durationDays": 5,
-        "targetSymptoms": ["acid_reflux", "sleep_problems", "bloating"],
-        "targetGoals": ["improve_digestion", "improve_sleep"],
+        "baselineWindowDays": 7,
         "targetMetric": "symptom_frequency",
+        "targetGoals": ["improve_digestion", "improve_sleep"],
+        "targetSymptoms": ["acid_reflux", "sleep_problems", "bloating"],
         "requiredEvents": ["meal_log", "symptom_log"],
-        "instructions": [
-            "Finish your last meal at least 3 hours before bed (ideally by 7:00 PM).",
-            "Avoid snacking after dinner.",
-            "Log your digestion and sleep quality."
-        ],
-        "dailyRequirements": {
-            "meals": True,
-            "symptoms": True
-        },
         "difficulty": "medium",
-        "tags": ["timing", "digestion", "sleep"]
+        "instructions": [
+            "Finish your last meal by 7:00 PM (or at least 3 hours before bed).",
+            "Avoid snacking after dinner.",
+            "Log your digestion and rate your sleep quality each morning.",
+        ],
+        "tags": ["timing", "digestion", "sleep", "dinner", "fasting"],
     },
     {
         "id": "regular_meal_timing",
         "name": "Regular Meal Timing",
         "category": "timing",
+        "hypothesis": "Eating breakfast, lunch, and dinner at consistent times each day stabilises blood sugar and reduces mood swings.",
         "durationDays": 5,
-        "targetSymptoms": ["mood_swings", "energy_crashes", "anxiety"],
-        "targetGoals": ["stable_energy", "improve_mood_clarity"],
+        "baselineWindowDays": 7,
         "targetMetric": "mood_stability",
+        "targetGoals": ["improve_mood_clarity", "improve_energy"],
+        "targetSymptoms": ["mood_swings", "energy_crashes"],
         "requiredEvents": ["meal_log", "mood_log"],
-        "instructions": [
-            "Eat breakfast, lunch, and dinner at consistent times each day.",
-            "Do not skip meals or wait more than 5 hours between meals.",
-            "Log your mood and energy throughout the day."
-        ],
-        "dailyRequirements": {
-            "meals": True,
-            "mood": True
-        },
         "difficulty": "easy",
-        "tags": ["timing", "mood", "energy"]
-    }
+        "instructions": [
+            "Eat breakfast, lunch, and dinner at the same times each day.",
+            "Do not skip meals or wait more than 5 hours between meals.",
+            "Log your meals and rate your mood and energy throughout the day.",
+        ],
+        "tags": ["timing", "mood", "energy", "routine", "circadian"],
+    },
+    {
+        "id": "dairy_elimination",
+        "name": "Dairy Elimination",
+        "category": "elimination",
+        "hypothesis": "Removing dairy for a week reveals whether it is contributing to bloating, gas, or digestive discomfort.",
+        "durationDays": 7,
+        "baselineWindowDays": 7,
+        "targetMetric": "symptom_frequency",
+        "targetGoals": ["identify_food_triggers", "improve_digestion"],
+        "targetSymptoms": ["bloating", "gas", "stomach_pain"],
+        "requiredEvents": ["meal_log", "symptom_log"],
+        "difficulty": "medium",
+        "instructions": [
+            "Remove all milk, cheese, yogurt, and butter from your diet.",
+            "Check food labels for whey, casein, or milk solids.",
+            "Log all meals and any symptoms each day.",
+        ],
+        "tags": ["dairy", "digestion", "milk", "cheese", "yogurt", "lactose", "bloating"],
+    },
+    {
+        "id": "gluten_elimination",
+        "name": "Gluten Elimination",
+        "category": "elimination",
+        "hypothesis": "Avoiding gluten for a week reveals whether it is contributing to bloating, fatigue, or brain fog.",
+        "durationDays": 7,
+        "baselineWindowDays": 7,
+        "targetMetric": "symptom_frequency",
+        "targetGoals": ["identify_food_triggers", "improve_digestion", "improve_energy"],
+        "targetSymptoms": ["bloating", "fatigue", "brain_fog"],
+        "requiredEvents": ["meal_log", "symptom_log"],
+        "difficulty": "medium",
+        "instructions": [
+            "Avoid all wheat, barley, rye, and malt.",
+            "Focus on naturally gluten-free foods: rice, quinoa, potatoes, and whole proteins.",
+            "Log all meals and any digestive or energy symptoms each day.",
+        ],
+        "tags": ["gluten", "digestion", "wheat", "barley", "bread", "pasta", "brain_fog"],
+    },
+    {
+        "id": "stress_reset_60s",
+        "name": "60-Second Stress Reset",
+        "category": "stress",
+        "hypothesis": "Taking a 60-second breathing pause whenever you feel stressed reduces overall stress frequency and intensity.",
+        "durationDays": 5,
+        "baselineWindowDays": 7,
+        "targetMetric": "stress_frequency",
+        "targetGoals": ["improve_mood_clarity"],
+        "targetSymptoms": ["stress", "anxiety"],
+        "requiredEvents": ["mood_log"],
+        "difficulty": "easy",
+        "instructions": [
+            "Any time you notice stress rising, pause and breathe slowly for 60 seconds.",
+            "Inhale for 4 counts, hold for 4, exhale for 6. Repeat until the minute is up.",
+            "Log your stress level in the app each evening.",
+        ],
+        "tags": ["stress", "breathing", "anxiety", "mindfulness", "calm"],
+    },
 ]

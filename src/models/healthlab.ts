@@ -1,6 +1,14 @@
 // src/models/healthlab.ts
 
-export type ExperimentCategory = 'nutrition' | 'timing' | 'energy' | 'stress' | 'symptom';
+export type ExperimentCategory =
+    | 'nutrition'
+    | 'timing'
+    | 'energy'
+    | 'stress'
+    | 'symptom'
+    | 'elimination'
+    | 'addition'
+    | 'behavior';
 export type ExperimentMetricType = 
     | 'avg_mood' 
     | 'avg_energy' 
@@ -24,14 +32,20 @@ export interface ExperimentDefinition {
     durationDays: number;
     baselineWindowDays: number;
     targetMetric: ExperimentMetricType;
-    requiredEvents: string[]; // e.g. ["breakfast_log", "energy_log"]
+    requiredEvents: string[];     // e.g. ["meal_log", "energy_log"]
+    targetGoals?: string[];       // e.g. ["improve_energy"]
+    targetSymptoms?: string[];    // e.g. ["fatigue", "bloating"]
+    instructions?: string[];      // step-by-step user guidance
+    difficulty?: 'easy' | 'medium' | 'hard';
+    tags?: string[];              // keyword tags for search/matching
 }
 
 export interface ExperimentRun {
-    id: string; // This is the template ID
-    runId: string; // This is the Firestore document ID
+    id: string;              // Firestore document ID
+    runId: string;           // Firestore document ID (alias — use either)
     userId: string;
-    experimentId?: string; // Legacy
+    templateId?: string;     // Canonical template identifier (e.g. "high_protein_breakfast")
+    experimentId?: string;   // Legacy alias for templateId
     template?: ExperimentDefinition;
     startDate?: string; // ISO string
     startedAt?: string; // Backend uses startedAt

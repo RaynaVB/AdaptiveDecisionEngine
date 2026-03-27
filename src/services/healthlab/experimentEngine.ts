@@ -16,7 +16,8 @@ export const ExperimentEngine = {
     },
 
     getExperimentsCollectionRef() {
-        return collection(this.getUserDocRef(), 'experiment_runs');
+        // Canonical path — matches what the backend cloud function reads/writes.
+        return collection(this.getUserDocRef(), 'experiments');
     },
 
     async getActiveExperiments(): Promise<ExperimentRun[]> {
@@ -55,25 +56,28 @@ export const ExperimentEngine = {
         }
     },
 
-    async startExperiment(experimentId: string): Promise<ExperimentRun | null> {
+    async startExperiment(templateId: string): Promise<ExperimentRun | null> {
         if (!auth.currentUser) return null;
-        
+
         try {
-            // Support multiple active experiments - removed auto-abandon logic
             const now = new Date().toISOString();
-            const id = uuidv4();
+            // Use auto-ID ref so the doc ID is a stable Firestore-generated ID,
+            // consistent with what the backend cloud function creates.
+            const docRef = doc(this.getExperimentsCollectionRef());
+            const runId = docRef.id;
             const newRun: ExperimentRun = {
-                id,
-                runId: id,
+                id: runId,          // Firestore doc ID
+                runId,              // alias
                 userId: auth.currentUser.uid,
-                experimentId,
-                startDate: now,
+                templateId,         // canonical template identifier
+                experimentId: templateId, // legacy alias
+                startDate: now,     // frontend alias
+                startedAt: now,     // backend field name
                 status: 'active',
                 createdAt: now,
                 updatedAt: now
             };
 
-            const docRef = doc(this.getExperimentsCollectionRef(), id);
             await setDoc(docRef, newRun);
             return newRun;
         } catch (e) {
@@ -119,7 +123,9 @@ export const ExperimentEngine = {
             if (!docSnap.exists()) throw new Error("Experiment run not found");
             
             const runData = docSnap.data() as ExperimentRun;
-            const definition = EXPERIMENT_LIBRARY.find(e => e.id === runData.experimentId);
+            // templateId is canonical; experimentId is the legacy alias
+            const effectiveTemplateId = runData.templateId || runData.experimentId;
+            const definition = EXPERIMENT_LIBRARY.find(e => e.id === effectiveTemplateId);
             if (!definition) throw new Error("Definition not found");
 
             const meals = await StorageService.getMealEvents();
@@ -135,7 +141,8 @@ export const ExperimentEngine = {
                 new Date()
             );
 
-            const resultDocRef = doc(this.getExperimentsCollectionRef(), runData.id);
+            // runId is the Firestore doc ID; fall back to id if runId missing (legacy docs)
+            const resultDocRef = doc(this.getExperimentsCollectionRef(), runData.runId || runData.id);
             await updateDoc(resultDocRef, {
                 status: 'completed',
                 endDate: new Date().toISOString(),
@@ -165,7 +172,7 @@ export const ExperimentEngine = {
             // Use the existing active run — but backdate its startDate to 3 days ago
             // so the analysis engine has a real experimental window to work with.
             runId = active.id;
-            experimentId = active.experimentId || 'protein_breakfast';
+            experimentId = active.templateId || active.experimentId || 'high_protein_breakfast';
             const now = new Date();
             startOfExperiment = new Date(now);
             startOfExperiment.setDate(now.getDate() - 5);
@@ -196,22 +203,24 @@ export const ExperimentEngine = {
             const now = new Date();
             startOfExperiment = new Date(now);
             startOfExperiment.setDate(now.getDate() - 5); 
-            runId = uuidv4();
-            experimentId = 'protein_breakfast';
+            experimentId = 'high_protein_breakfast';
+            const seedDocRef = doc(this.getExperimentsCollectionRef());
+            runId = seedDocRef.id;
 
             const run: ExperimentRun = {
                 id: runId,
-                runId: runId,
+                runId,
                 userId: auth.currentUser.uid,
+                templateId: experimentId,
                 experimentId,
                 startDate: startOfExperiment.toISOString(),
+                startedAt: startOfExperiment.toISOString(),
                 status: 'active',
                 createdAt: startOfExperiment.toISOString(),
                 updatedAt: now.toISOString()
             };
 
-            const docRef = doc(this.getExperimentsCollectionRef(), runId);
-            await setDoc(docRef, run);
+            await setDoc(seedDocRef, run);
         }
 
         // Helper: create a date at a given day offset + hour from startOfExperiment
