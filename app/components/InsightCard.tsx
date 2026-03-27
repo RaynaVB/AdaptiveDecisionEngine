@@ -1,17 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Insight } from '../../src/models/types';
-import { Sparkles, Shield, TrendingUp, AlertTriangle } from 'lucide-react-native';
+import { Sparkles, Shield, TrendingUp, AlertTriangle, Beaker } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../src/models/navigation';
 
 interface InsightCardProps {
   insight: Insight;
 }
 
 export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const isPrediction = insight.type === 'prediction';
-  const isTrigger = insight.type === 'correlation' || insight.type === 'trigger_pattern' || insight.type === 'mood_trigger';
-  const isProtective = insight.type === 'protective';
+  const isTrigger = insight.type === 'correlation' || insight.type === 'trigger_pattern' || insight.type === 'mood_trigger'
+    || insight.type === 'energy_dip' || insight.type === 'sleep_impact';
+  const isProtective = insight.type === 'protective' || insight.type === 'mood_boost';
   
   let iconColor = Colors.accent;
   let badgeBg = Colors.surfaceContainerLow;
@@ -60,6 +65,17 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
           CONFIDENCE: {(insight.confidenceLevel || 'medium').toUpperCase()}
         </Text>
       </View>
+      {insight.actionableInsight?.experimentIdToStart && (
+        <TouchableOpacity
+          style={styles.experimentCta}
+          onPress={() => navigation.navigate('ExperimentDetail', { experimentId: insight.actionableInsight!.experimentIdToStart })}
+        >
+          <Beaker size={14} color={Colors.accent} />
+          <Text style={styles.experimentCtaText}>
+            {insight.actionableInsight.label?.toUpperCase() || 'START EXPERIMENT'}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -130,5 +146,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.outline,
     fontWeight: '700',
+  },
+  experimentCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: Radii.lg,
+    backgroundColor: Colors.accentContainer,
+    alignSelf: 'flex-start',
+  },
+  experimentCtaText: {
+    ...Typography.label,
+    fontSize: 11,
+    color: Colors.accent,
+    fontWeight: '800',
   },
 });

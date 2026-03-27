@@ -80,8 +80,11 @@ export default function InsightFeedScreen() {
 
 
 
-    const triggers = insights.filter(i => i.type === 'trigger_pattern' || i.type === 'mood_trigger' || i.type === 'correlation');
-    const protectors = insights.filter(i => i.type === 'protective');
+    const triggers = insights.filter(i =>
+        i.type === 'trigger_pattern' || i.type === 'mood_trigger' || i.type === 'correlation' ||
+        i.type === 'energy_dip' || i.type === 'sleep_impact'
+    );
+    const protectors = insights.filter(i => i.type === 'protective' || i.type === 'mood_boost');
     const emerging = insights.filter(i => i.type === 'timing_pattern' || i.type === 'behavior_shift' || i.type === 'mood_association');
     const predictions = insights.filter(i => i.type === 'prediction');
 

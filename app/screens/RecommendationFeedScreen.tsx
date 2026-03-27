@@ -126,7 +126,8 @@ export default function RecommendationFeedScreen() {
     };
 
     const preventive = recommendations.filter(r => classifyTier(r) === 'preventive');
-    const optimization = recommendations.filter(r => classifyTier(r) !== 'preventive');
+    const experiments = recommendations.filter(r => classifyTier(r) === 'experiment');
+    const optimization = recommendations.filter(r => classifyTier(r) === 'optimization');
 
     if (loading) {
         return (
@@ -158,6 +159,35 @@ export default function RecommendationFeedScreen() {
                             <View style={styles.sectionLine} />
                         </View>
                         {preventive.map(rec => renderCard(rec, 'preventive'))}
+                    </View>
+                )}
+
+                {experiments.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Beaker size={14} color={Colors.accent} />
+                            <Text style={[styles.sectionLabel, styles.experimentSectionLabel]}>HEALTHLAB EXPERIMENTS</Text>
+                            <View style={styles.sectionLine} />
+                        </View>
+                        {experiments.map(rec => (
+                            <RecommendationCard
+                                key={rec.id}
+                                recommendation={rec}
+                                onAccept={(r) => {
+                                    handleFeedback(r, 'accepted');
+                                    if (r.associatedExperimentId) {
+                                        navigation.navigate('ExperimentDetail', { experimentId: r.associatedExperimentId });
+                                    }
+                                }}
+                                onMaybe={(r) => handleFeedback(r, 'maybe')}
+                                onDismiss={(r) => handleFeedback(r, 'rejected')}
+                                actionState={feedbacks[rec.id]}
+                                isActed={feedbacks[rec.id] !== null}
+                                variant="hero"
+                                headerLabel="HEALTHLAB"
+                                headerIcon={<Beaker size={16} color={Colors.accent} />}
+                            />
+                        ))}
                     </View>
                 )}
 
@@ -215,6 +245,10 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: '800',
         letterSpacing: 1.5,
+    },
+    experimentSectionLabel: {
+        color: Colors.accent,
+        marginLeft: 6,
     },
     sectionLine: {
         flex: 1,
