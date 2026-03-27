@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Typography, Spacing } from '../constants/Theme';
+import { View, Text, StyleSheet, ViewStyle, Image } from 'react-native';
+import { Colors, Typography, Spacing, Radii } from '../constants/Theme';
 
 interface AppHeaderProps {
   showTagline?: boolean;
@@ -10,7 +10,14 @@ interface AppHeaderProps {
 const AppHeader: React.FC<AppHeaderProps> = ({ showTagline = false, style }) => {
   return (
     <View style={[styles.container, style]}>
-      <Text style={styles.appName}>Veyra</Text>
+      <View style={styles.topRow}>
+        <Image 
+          source={require('../../assets/icon.png')} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.appName}>Veyra</Text>
+      </View>
       {showTagline && (
         <Text style={styles.tagline}>Understand Your Patterns</Text>
       )}
@@ -22,6 +29,17 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.s3,
+    marginBottom: Spacing.s1,
+  },
+  logo: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.lg,
   },
   appName: {
     ...Typography.headline,

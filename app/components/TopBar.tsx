@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform, Alert, Image } from 'react-native';
 import { Menu, Bell, Settings, LogOut, ShieldCheck, Home } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../../src/services/firebaseConfig';
@@ -37,6 +37,11 @@ export const TopBar: React.FC<TopBarProps> = ({
     return (
         <View style={styles.container}>
             <View style={styles.leftSection}>
+                <Image 
+                    source={require('../../assets/icon.png')} 
+                    style={styles.logo}
+                    resizeMode="contain"
+                />
                 <Text style={styles.title}>{title}</Text>
             </View>
 
@@ -118,6 +123,12 @@ const styles = StyleSheet.create({
     leftSection: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: Spacing.s2,
+    },
+    logo: {
+        width: 32,
+        height: 32,
+        borderRadius: Radii.md,
     },
     rightSection: {
         flexDirection: 'row',
