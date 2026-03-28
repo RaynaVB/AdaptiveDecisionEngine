@@ -223,3 +223,30 @@ export interface WeeklyPatternsResponse {
   generation: WeeklyGeneration;
   items: WeeklyItem[];
 }
+
+// --- Pattern Alerts ---
+
+export type PatternAlertType =
+  | 'energy_dip_streak'
+  | 'symptom_streak'
+  | 'mood_dip_pattern'
+  | 'stress_spike';
+
+export interface PatternAlertEvidence {
+  streakLength: number;
+  metricAvg: number;
+  days: string[];
+}
+
+export interface PatternAlert {
+  id: string;
+  type: PatternAlertType;
+  title: string;
+  summary: string;
+  suggestedExperimentId: string;
+  evidence: PatternAlertEvidence;
+  status: 'active' | 'dismissed';
+  createdAt: string;
+  expiresAt: string;
+  userId: string;
+}

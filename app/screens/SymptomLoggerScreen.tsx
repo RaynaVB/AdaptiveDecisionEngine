@@ -11,6 +11,7 @@ import Slider from '@react-native-community/slider';
 import { NotificationService } from '../../src/services/NotificationService';
 import { Clock, Check, Trash2 } from 'lucide-react-native';
 import { RecommendationService } from '../../src/services/recommendationService';
+import { PatternAlertService } from '../../src/services/patternAlertService';
 import { Colors, Shadows, Radii, Typography } from '../constants/Theme';
 
 type SymptomLoggerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SymptomLogger'>;
@@ -134,6 +135,9 @@ export default function SymptomLoggerScreen() {
         
         RecommendationService.recomputeRecommendations('symptom_logged')
             .catch(err => console.error("Failed to recompute recommendations:", err));
+
+        PatternAlertService.scanForAlerts()
+            .catch(err => console.warn('[PatternAlerts] scan failed:', err));
 
         navigation.goBack();
     };

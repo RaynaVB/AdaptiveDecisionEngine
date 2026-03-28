@@ -28,7 +28,17 @@ The system delegates domain-specific logic to independent cloud function service
 
 2. **`health_lab_service`**
    - **Role:** Drives the behavioral experimentation lifecycle.
-   - **Mechanism:** Aggregates logs to compute pre-experiment baselines vs. active experiment periods. Matches ingredient-based insights to templates (e.g., matching "Milk" to "Dairy Elimination") using fuzzy title matching. Outputs statistical deltas for targeted metrics and confidence scoring.
+   - **Mechanism:** Aggregates logs to compute pre-experiment baselines vs. active experiment periods. Matches experiments using `templateId` (canonical) with `experimentId` as a backward-compatible alias. All experiment runs are stored at `users/{uid}/experiments/{runId}`. Outputs statistical deltas for 8 targeted metrics and confidence scoring.
+   - **Experiment Library:** 9 canonical templates defined in both `experiment_library.py` (backend) and `src/services/healthlab/definitions.ts` (frontend) with identical IDs: `high_protein_breakfast`, `protein_snack_3pm`, `hydration_boost`, `caffeine_cutoff`, `early_dinner`, `regular_meal_timing`, `dairy_elimination`, `gluten_elimination`, `stress_reset_60s`.
+   - **Analytics Metrics (8 total):**
+     - `avg_energy` — mean `severity` of all `energy`-type mood logs in the window
+     - `afternoon_energy` — mean `severity` of energy logs logged between 12:00–18:00
+     - `next_day_energy` — mean `severity` of energy logs logged between 06:00–10:00
+     - `avg_mood` — mean `severity` of all `mood`-type logs
+     - `mood_stability` — `1 − mean(|severity|)` across mood and energy logs
+     - `stress_frequency` — count of stress logs with `severity ≥ 1` (inverted: +2 = Stressed)
+     - `symptom_frequency` — count of physical symptom events
+     - `symptom_severity` — mean `severity` of physical symptom events
 
 3. **`insights_service`**
    - **Role:** Generates personalized health insights surfaced on the Insights Feed.
@@ -64,7 +74,21 @@ The system delegates domain-specific logic to independent cloud function service
      - `optimization` — all other behavioral improvements
    - **Cache / TTL:** Cached for 6 hours; 5-minute debounce on rapid re-requests.
 
-5. **`weekly_patterns_service`**
+5. **`pattern_alerts_service`**
+   - **Role:** Real-time short-window pattern detection. Detects emerging patterns forming in the last 3–5 days and writes `PatternAlert` documents to Firestore for immediate surfacing on the Timeline.
+   - **Mechanism:** Triggered via HTTP POST from the client (`PatternAlertService.scanForAlerts()`) after each mood or symptom log (subject to a 2-hour client-side debounce). Runs 4 independent detectors, each wrapped in a `try/except` so one failure cannot block the others.
+   - **Detectors:**
+     1. `detect_energy_dip_streak` — 3+ afternoon energy logs (`severity ≤ −1`, hour 12–18) on distinct calendar dates in the last 5 days
+     2. `detect_symptom_streak` — same physical `symptomType` on 3+ distinct calendar dates in the last 5 days
+     3. `detect_mood_dip_pattern` — 3+ mood logs (`severity ≤ −1`) on any days in the last 4 days
+     4. `detect_stress_spike` — 3+ stress logs (`severity ≥ +1`) in the last 3 days (inverted scale: +2 = Stressed, threshold is ≥ 1 not ≤ −1)
+   - **Deduplication:** Before writing, checks `pattern_alerts` for an existing active, non-expired doc of the same `type`. Returns `{ "created": N, "skipped": M }`.
+   - **TTL:** Alerts expire 72 hours after creation (`expiresAt = createdAt + 72h`).
+   - **Firestore Path:** `users/{userId}/pattern_alerts/{alertId}` (subcollection under the existing user document; covered by existing wildcard Firestore rules — no rules changes required).
+   - **ISO timestamp consistency:** All `createdAt`/`expiresAt` values use `Z` suffix format (`datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')`). Client-side filtering matches this format exactly.
+   - **Deployment:** Registered as the `patternalerts` codebase in `firebase.json`. Deployed independently via `deploy-patternalerts.yml` GitHub Actions workflow (triggers on `functions/pattern_alerts_service/**`).
+
+6. **`weekly_patterns_service`**
    - **Role:** Detects weekly behavioral clusters for the Weekly Patterns screen.
    - **Mechanism:** Scans time-series data to locate high-level behavioral clusters. Outputs patterns with `confidence`, `severity`, and optional `actionableInsight` references.
 
@@ -101,17 +125,20 @@ The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` 
   - `SymptomLogger`: Focused interface for physical symptoms (bloating, headache, etc.) on a **1–3** scale.
   - `MealDetail`: Read/write structured breakdown of a single logged meal event.
 - **Feed & Timeline**
-  - `Timeline`: 7-day chronologic feed of completed meals, moods, and symptoms.
+  - `Timeline`: 7-day chronologic feed of completed meals, moods, and symptoms. On load, fetches active pattern alerts and renders `EmergingPatternCard` components above the weekly intelligence section. Also fires a background `scanForAlerts()` call (2-hour debounce enforced in service layer).
 - **Intelligence Surfaces**
   - `InsightFeed`: AI-generated insights organized into four sections — PREDICTIONS, TRIGGERS (incl. energy dip and sleep impact types), PROTECTORS (incl. mood boost type), EMERGING. Insights are sorted by goal relevance using keyword matching against the user's selected goals. Insights with an `actionableInsight.experimentIdToStart` render a tappable "Start Experiment" CTA that navigates directly to HealthLab.
   - `WeeklyPatterns`: Visual display of behavioral patterns over the last evaluated cycle.
   - `RecommendationFeed`: Personalized interventions in three tiers — PREVENTIVE (symptom-linked), HEALTHLAB EXPERIMENTS (recs with `associatedExperimentId`, accept navigates to HealthLab), OPTIMIZATION (all other). Features Accept/Maybe/Dismiss feedback.
   - `FeedbackHistory`: Archive of users' interactions with past recommendations.
 - **HealthLab (Experimentation)**
-  - `HealthLab`: The experiment discovery dashboard.
+  - `HealthLab`: The experiment discovery dashboard. Includes a "Run Experiment Simulation" button that seeds a completed run and fires recompute calls, enabling end-to-end result flow testing without waiting for a real 5-day run.
   - `ExperimentDetail`: Setup, hypothesis, and control toggles for an active run.
   - `ExperimentResult`: Post-experiment output (delta, metric impact, confidence).
   - `ExperimentHistory`: Archive of completed/abandoned runs.
+- **Components**
+  - `ActiveExperimentCard`: Shown on Timeline and HealthLab. Displays experiment name, progress bar (day N / total with percent label), and a nudge row ("Log today: Meals · Energy") derived from the experiment's `requiredEvents`. Template lookup uses `templateId || experimentId || id` for backward compatibility.
+  - `EmergingPatternCard`: Amber card (`Colors.warning`) rendered on Timeline. Shows "EMERGING PATTERN" label with `AlertTriangle` icon, alert title, summary, evidence pill ("N days in a row"), and a "Test This" CTA. Dismiss (X) and CTA are independent actions.
 
 ---
 
@@ -141,8 +168,13 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
 - **`Recommendation`**: Produced by the recommender engine. Includes `priorityScore` (boosted by +0.10 for goal-matched templates), `confidenceScore`, `scores` (impact, feasibility, mlScore, optional `goal_boost: true`), feedback `action` state, and optional `associatedExperimentId` for HealthLab-linked interventions. Supports personalized string interpolation for ingredients (`{trigger}`) and symptoms (`{symptom}`).
 
 ### 4.3 Experimentation Models
-- **`ExperimentDefinition`**: Template detailing `targetGoals`, `targetSymptoms`, target metrics (`afternoon_energy`, `mood_stability`, `stress_frequency`), required event types, and duration windows.
-- **`ExperimentRun`**: Instance of a user undertaking a definition. Tracks `baselineValue`, `experimentValue`, `resultDelta`, and `status` (active/completed/abandoned). Carries optional **provenance fields** — `linkedInsightId` and `linkedRecommendationId` — that record which insight or recommendation originated the run. These are persisted to Firestore by `ExperimentEngine.patchProvenance()` immediately after `HealthLabService.startExperiment()` resolves.
+- **`ExperimentDefinition`**: Template detailing `templateId` (canonical), `targetGoals`, `targetSymptoms`, target metrics (from the 8-metric set), `instructions`, `difficulty`, required event types, and duration windows. Frontend and backend definitions are identical.
+- **`ExperimentRun`**: Instance of a user undertaking a definition. Stored at `users/{uid}/experiments/{runId}`. Carries both `templateId` (canonical) and `experimentId` (backward-compatible alias). Tracks `baselineValue`, `experimentValue`, `resultDelta`, and `status` (active/completed/abandoned). Carries optional **provenance fields** — `linkedInsightId` and `linkedRecommendationId` — that record which insight or recommendation originated the run. These are persisted to Firestore by `ExperimentEngine.patchProvenance()` immediately after `HealthLabService.startExperiment()` resolves.
+
+### 4.4 Pattern Alerts
+- **`PatternAlertType`**: `'energy_dip_streak' | 'symptom_streak' | 'mood_dip_pattern' | 'stress_spike'`
+- **`PatternAlertEvidence`**: `{ streakLength: number; metricAvg: number; days: string[] }`
+- **`PatternAlert`**: `{ id, type, title, summary, suggestedExperimentId, evidence, status: 'active'|'dismissed', createdAt, expiresAt, userId }`. Stored at `users/{uid}/pattern_alerts/{alertId}`. 72-hour TTL; at most 4 active alerts per user at any time.
 
 ---
 
@@ -150,16 +182,20 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
 
 The system uses automated GitHub Actions for Continuous Deployment of backend services to Firebase.
 
-- **Independent Service Deployment**: Each cloud function codebase is managed by a dedicated GitHub workflow (`deploy-recommendations.yml`, `deploy-insights.yml`, etc.).
-- **Path-Based Triggers**: Deployments are only triggered when changes are merged into the specific service directory (e.g., `functions/insights_service/**`).
-- **Selective Middleware**: Uses `firebase deploy --only functions:<codebase>` to ensure isolation between service updates.
-- **Security**: Authentication is handled via a dedicated Google Cloud Service Account (`FIREBASE_SERVICE_ACCOUNT_ADAPTIVEHEALTHENGINE`) stored in GitHub Secrets.
+- **Independent Service Deployment**: Each cloud function codebase is managed by a dedicated GitHub workflow. Current workflows: `deploy-vision.yml`, `deploy-insights.yml`, `deploy-recommendations.yml`, `deploy-healthlab.yml`, `deploy-weekly.yml`, `deploy-patternalerts.yml`.
+- **Path-Based Triggers**: Deployments are only triggered when changes are pushed to the specific service directory (e.g., `functions/pattern_alerts_service/**` → `deploy-patternalerts.yml`).
+- **Selective Deploy**: Uses `firebase deploy --only functions:<codebase>` to ensure isolation between service updates — only the modified function is redeployed.
+- **Security**: Authentication is handled via a dedicated Google Cloud Service Account (`FIREBASE_SERVICE_ACCOUNT_ADAPTIVEHEALTHENGINE`) stored in GitHub Secrets. Each workflow writes the secret to `credentials.json` and sets `GOOGLE_APPLICATION_CREDENTIALS` for the deploy step.
 
 ## 7. Execution Summary
 1. User interacts with `LogMeal`, `MoodLogger`, or `SymptomLogger`.
 2. Frontend writes structured payload to Firestore (triggering external Python `vision_service` if a meal photo needs parsing).
-3. On demand or on interval, `insights_service` fetches the user's full `UserProfile`. Computes `freq_factor` from `symptomFrequency`, then runs the 9-analyzer pattern engine. After deduplication, `boost_by_profile()` adjusts confidence scores based on `goals` (+0.10) and `symptoms` (+0.15). Trigger insights are decorated with `metadata.knownSensitivities` from the user's allergen profile. New `Insight` records are materialized and cached.
-4. `recommendation_service` similarly fetches `UserProfile`, runs its parallel pattern engine with the same frequency scaling, maps patterns to Action Library templates, applies Contextual Bandit weights, and applies a **+0.10 goal-aware priority boost** for templates whose `targetGoals` intersect the user's stated goals. New `Recommendation` records are persisted.
-5. The UI reads finalized intelligence into `InsightFeed` (4 sections, goal-sorted, with experiment CTAs carrying `linkedInsightId`) and `RecommendationFeed` (3-tier: preventive / HealthLab experiments / optimization; experiment tier accept carries `linkedRecommendationId`).
-6. From either surface, users navigate to `ExperimentDetail`. On experiment start, `ExperimentEngine.patchProvenance()` writes `linkedInsightId` or `linkedRecommendationId` to the `ExperimentRun` document, completing the pattern → insight/recommendation → experiment provenance chain.
-7. When the user taps "Finish Protocol" on `ExperimentResultScreen`, `InsightService.recomputeInsights('experiment_completed')` and `RecommendationService.recomputeRecommendations('experiment_completed')` are fired asynchronously. Both feeds reflect the completed experiment's data on the user's next visit.
+3. After each mood or symptom save, `MoodLoggerScreen` / `SymptomLoggerScreen` fires `PatternAlertService.scanForAlerts()` (non-blocking, fire-and-forget). The service enforces a 2-hour debounce via AsyncStorage before making the HTTP call. `pattern_alerts_service` runs 4 independent short-window detectors over the last 3–5 days of Firestore data, deduplicates by `(type, active, non-expired)`, and writes new `PatternAlert` documents to `users/{uid}/pattern_alerts/`.
+4. On demand or on interval, `insights_service` fetches the user's full `UserProfile`. Computes `freq_factor` from `symptomFrequency`, then runs the 9-analyzer pattern engine. After deduplication, `boost_by_profile()` adjusts confidence scores based on `goals` (+0.10) and `symptoms` (+0.15). Trigger insights are decorated with `metadata.knownSensitivities` from the user's allergen profile. New `Insight` records are materialized and cached.
+5. `recommendation_service` similarly fetches `UserProfile`, runs its parallel pattern engine with the same frequency scaling, maps patterns to Action Library templates, applies Contextual Bandit weights, and applies a **+0.10 goal-aware priority boost** for templates whose `targetGoals` intersect the user's stated goals. New `Recommendation` records are persisted.
+6. The UI reads finalized intelligence into:
+   - `Timeline` — renders `EmergingPatternCard` for active, non-expired pattern alerts above the weekly intelligence section; fires a background `scanForAlerts()` on load.
+   - `InsightFeed` — 4 sections, goal-sorted, with experiment CTAs carrying `linkedInsightId`.
+   - `RecommendationFeed` — 3-tier: preventive / HealthLab experiments / optimization; experiment tier accept carries `linkedRecommendationId`.
+7. From any surface (`InsightCard`, recommendation, `EmergingPatternCard`), users navigate to `ExperimentDetail`. On experiment start, `ExperimentEngine.patchProvenance()` writes `linkedInsightId` or `linkedRecommendationId` to `users/{uid}/experiments/{runId}`, completing the pattern → insight/recommendation → experiment provenance chain.
+8. When the user taps "Finish Protocol" on `ExperimentResultScreen`, `InsightService.recomputeInsights('experiment_completed')` and `RecommendationService.recomputeRecommendations('experiment_completed')` are fired asynchronously. Both feeds reflect the completed experiment's data on the user's next visit.

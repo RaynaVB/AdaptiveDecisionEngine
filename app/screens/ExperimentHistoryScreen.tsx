@@ -75,7 +75,16 @@ export default function ExperimentHistoryScreen({ navigation }: ExperimentHistor
             <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
             
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity 
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.navigate('HealthLab');
+                        }
+                    }} 
+                    style={styles.backButton}
+                >
                     <ChevronLeft size={24} color={Colors.onSurface} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>History</Text>

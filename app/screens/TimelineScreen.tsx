@@ -18,12 +18,14 @@ import { HealthLabService } from '../../src/services/healthLabService';
 import { ExperimentRun } from '../../src/models/healthlab';
 import { RecommendationService } from '../../src/services/recommendationService';
 import { WeeklyPatternsService } from '../../src/services/weeklyPatternsService';
-import { Recommendation, WeeklyItem } from '../../src/models/types';
+import { Recommendation, WeeklyItem, PatternAlert } from '../../src/models/types';
+import { PatternAlertService } from '../../src/services/patternAlertService';
 
 // New Homepage Components
 import { HeroAction } from '../components/home/HeroAction';
 import { HeadsUp } from '../components/home/HeadsUp';
 import { ActiveExperimentCard } from '../components/ActiveExperimentCard';
+import { EmergingPatternCard } from '../components/EmergingPatternCard';
 import { WeeklyIntelligence } from '../components/home/WeeklyIntelligence';
 import { WeekAtAGlance, WeekAtGlanceData } from '../components/home/WeekAtAGlance';
 import { MicroInsightCard } from '../components/home/MicroInsightCard';
@@ -65,6 +67,10 @@ export default function TimelineScreen() {
     const [headsUpItems, setHeadsUpItems] = useState<string[]>([]);
     const [microInsights, setMicroInsights] = useState<Insight[]>([]);
     const [dismissedRecIds, setDismissedRecIds] = useState<Set<string>>(new Set());
+
+    // Pattern Alerts State
+    const [patternAlerts, setPatternAlerts] = useState<PatternAlert[]>([]);
+    const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
 
     // Week at a Glance State
     const [weekAtGlanceData, setWeekAtGlanceData] = useState<{ label: string; score: number; dateStr: string; displayDate: string; events: TimelineItem[] }[]>([]);
@@ -136,21 +142,40 @@ export default function TimelineScreen() {
         }
     };
 
+    const handleStartFromAlert = async (experimentId: string) => {
+        await handleStartExperimentFocus(experimentId);
+    };
+
+    const handleDismissAlert = async (alertId: string) => {
+        try {
+            await PatternAlertService.dismissAlert(alertId);
+            setDismissedAlertIds(prev => new Set(prev).add(alertId));
+            setPatternAlerts(prev => prev.filter(a => a.id !== alertId));
+        } catch (e) {
+            console.error('[PatternAlerts] Failed to dismiss alert:', e);
+        }
+    };
+
     const loadData = async () => {
         setLoading(true);
-        const [loadedMeals, loadedMoods, loadedSymptoms, activeExps, recsResponse, weeklyResponse, insightsResponse] = await Promise.all([
+        const [loadedMeals, loadedMoods, loadedSymptoms, activeExps, recsResponse, weeklyResponse, insightsResponse, alertsResult] = await Promise.all([
             StorageService.getMealEvents(),
             StorageService.getMoodEvents(),
             StorageService.getSymptomEvents(),
             HealthLabService.getActiveExperiments().catch(() => []),
             RecommendationService.getRecommendations().catch(() => ({ recommendations: [] })),
             WeeklyPatternsService.getWeeklySummary().catch(() => ({ items: [] })),
-            InsightService.getInsights().catch(() => ({ insights: [] }))
+            InsightService.getInsights().catch(() => ({ insights: [] })),
+            PatternAlertService.getActiveAlerts().catch(() => [] as PatternAlert[]),
         ]);
         
+        // Pattern alerts — filter out locally dismissed
+        const activeAlerts = (alertsResult as PatternAlert[]).filter(a => !dismissedAlertIds.has(a.id));
+        setPatternAlerts(activeAlerts);
+
         // Filter out recommendations that have been acted upon (local or backend state)
-        const allRecs = (recsResponse.recommendations || []).filter(r => 
-            !dismissedRecIds.has(r.id) && 
+        const allRecs = (recsResponse.recommendations || []).filter(r =>
+            !dismissedRecIds.has(r.id) &&
             (r.action?.state === 'none' || !r.action?.state)
         );
         
@@ -272,6 +297,9 @@ export default function TimelineScreen() {
         }
 
         setLoading(false);
+
+        // Trigger a background pattern scan (2h debounce enforced inside the service)
+        PatternAlertService.scanForAlerts().catch(() => {});
     };
 
     useFocusEffect(
@@ -478,8 +506,18 @@ export default function TimelineScreen() {
                             />
                         ))}
 
+                        {/* 3b. Emerging Pattern Alerts */}
+                        {patternAlerts.map(alert => (
+                            <EmergingPatternCard
+                                key={`alert-${alert.id}`}
+                                alert={alert}
+                                onStartExperiment={handleStartFromAlert}
+                                onDismiss={handleDismissAlert}
+                            />
+                        ))}
+
                         {/* 4. Weekly Intelligence */}
-                        <WeeklyIntelligence 
+                        <WeeklyIntelligence
                             items={weeklyItems} 
                             onStartTest={handleStartTest}
                         />

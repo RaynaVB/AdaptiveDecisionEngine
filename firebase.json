@@ -30,6 +30,11 @@
       "codebase": "vision",
       "source": "functions/vision_service",
       "runtime": "python312"
+    },
+    {
+      "codebase": "patternalerts",
+      "source": "functions/pattern_alerts_service",
+      "runtime": "python312"
     }
   ],
   "emulators": {

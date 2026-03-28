@@ -174,21 +174,121 @@ Active experiments are filtered from the feed (if the experiment is already runn
 ### E. HealthLab — Behavioral Experimentation System
 A system for short, structured behavioral experiments (4–5 days) to measure causal effects of food habits on mood, energy, and symptoms.
 
+#### Canonical Experiment Library (9 Templates)
+
+All experiments are defined in `src/services/healthlab/definitions.ts` (frontend) and `functions/health_lab_service/experiment_library.py` (backend). Both files use an identical set of 9 templates — the single source of truth for experiment IDs and metadata.
+
+| `templateId` | Name | Duration | Primary Metric |
+|---|---|---|---|
+| `high_protein_breakfast` | High-Protein Breakfast | 5 days | `afternoon_energy` |
+| `protein_snack_3pm` | 3 PM Protein Snack | 4 days | `afternoon_energy` |
+| `hydration_boost` | Hydration Boost | 5 days | `avg_energy` |
+| `caffeine_cutoff` | Caffeine Before Noon | 5 days | `next_day_energy` |
+| `early_dinner` | Early Dinner (Before 7 PM) | 5 days | `next_day_energy` |
+| `regular_meal_timing` | Regular Meal Timing | 7 days | `mood_stability` |
+| `dairy_elimination` | Dairy-Free Week | 7 days | `symptom_frequency` |
+| `gluten_elimination` | Gluten-Free Week | 7 days | `symptom_frequency` |
+| `stress_reset_60s` | 60-Second Stress Reset | 5 days | `stress_frequency` |
+
+#### Firestore Path & Document Format
+All experiment runs are stored at `users/{uid}/experiments/{runId}`. Each `ExperimentRun` document carries both `templateId` (canonical identifier) and `experimentId` (backward-compatible alias) so that pre-existing documents from earlier builds remain readable.
+
 #### Experiment Lifecycle
-1. **Discovery**: `HealthLabScreen` shows available built-in experiments (e.g., "Protein Breakfast", "Hydration Boost", "Dairy-Free Week").
+1. **Discovery**: `HealthLabScreen` shows all 9 available experiments. The "Run Experiment Simulation" button seeds a completed run for testing the full result flow.
 2. **Entry Points**:
    - Browse from HealthLab directly
    - Tap "Start Experiment" CTA on an `InsightCard` with `experimentIdToStart`
    - Accept a HEALTHLAB EXPERIMENTS tier recommendation (auto-navigates to `ExperimentDetail`)
+   - Tap "Test This" on an `EmergingPatternCard` (navigates with the pattern's `suggestedExperimentId`)
 3. **Provenance Chain**: When an experiment is started from an `InsightCard` or a recommendation, the originating `linkedInsightId` or `linkedRecommendationId` is passed through the navigation route and persisted to the `ExperimentRun` document in Firestore via `ExperimentEngine.patchProvenance()`. This creates a traceable chain from pattern → insight/recommendation → experiment run.
-4. **Analysis Engine**: Computes experiment metrics against a 7-day pre-experiment baseline. Metrics tracked: `afternoon_energy` (energy `severity` values), `mood_stability` (mood `severity`), `stress_frequency` (stress events with `severity ≥ 1`). Returns delta % and confidence score (`high`, `medium`, `low`).
-5. **Completion Feedback Loop**: When the user taps "Finish Protocol" on `ExperimentResultScreen`, the app fire-and-forgets calls to `InsightService.recomputeInsights('experiment_completed')` and `RecommendationService.recomputeRecommendations('experiment_completed')`. Both feeds are refreshed immediately, so the completed experiment's data is reflected the next time the user opens either feed.
-6. **Smart UX**: Features retry logic for low-confidence results, experiment history archiving, and smart filtering of completed high-confidence studies.
+4. **Active Experiment Card Nudge**: `ActiveExperimentCard` (displayed on `TimelineScreen` and `HealthLabScreen`) shows a progress bar (day N / total days), a percent-complete label, and a contextual nudge row ("Log today: Meals · Energy") derived from the experiment's `requiredEvents` field. This keeps the user aware of what to log during an active run.
+5. **Analysis Engine**: Computes experiment metrics against a 7-day pre-experiment baseline using these 8 metrics:
+   - `avg_energy` — average of all `energy` mood logs
+   - `afternoon_energy` — average energy logs logged between 12:00–18:00
+   - `next_day_energy` — average energy logs logged between 06:00–10:00
+   - `avg_mood` — average of all `mood` logs
+   - `mood_stability` — `1 − mean(|severity|)` across mood and energy logs
+   - `stress_frequency` — count of stress logs with `severity ≥ 1` (inverted scale: +2 = Stressed)
+   - `symptom_frequency` — count of physical symptom events
+   - `symptom_severity` — average `severity` across physical symptom events
+   Returns delta % and confidence score (`high`, `medium`, `low`).
+6. **Completion Feedback Loop**: When the user taps "Finish Protocol" on `ExperimentResultScreen`, the app fire-and-forgets calls to `InsightService.recomputeInsights('experiment_completed')` and `RecommendationService.recomputeRecommendations('experiment_completed')`. Both feeds are refreshed immediately, so the completed experiment's data is reflected the next time the user opens either feed.
+7. **Smart UX**: Features retry logic for low-confidence results, experiment history archiving, and smart filtering of completed high-confidence studies.
 
 #### Experiment Definitions Key Fields
+- `templateId` — canonical identifier shared by frontend and backend
 - `targetGoals` — which user goals this experiment addresses
 - `targetSymptoms` — which physical symptoms this experiment targets
 - `metrics` — which mood dimensions to track during the run
+- `instructions` — step-by-step guidance shown in `ExperimentDetail`
+- `difficulty` — `easy`, `medium`, or `hard`
+
+---
+
+### F. Pattern Alerts — Real-Time Emerging Pattern Detection
+
+A lightweight background scan that detects short-term patterns forming in the most recent 3–5 days and surfaces them as **Emerging Pattern** cards on the Timeline — before the user runs a full experiment or waits for the weekly report.
+
+#### Detection Logic (`pattern_alerts_service`)
+
+Four detectors run independently (one failure does not block the others):
+
+| Detector | Window | Condition | Suggested Experiment |
+|---|---|---|---|
+| `energy_dip_streak` | Last 5 days | 3+ afternoon energy logs (hour 12–18, `severity ≤ −1`) on distinct calendar dates | `protein_snack_3pm` (≤3 days streak) or `high_protein_breakfast` (4+ days) |
+| `symptom_streak` | Last 5 days | Same `symptomType` on 3+ distinct calendar dates | `dairy_elimination` (digestive), `gluten_elimination` (neurological), `dairy_elimination` (default) |
+| `mood_dip_pattern` | Last 4 days | 3+ mood logs (`symptomType='mood'`, `severity ≤ −1`) on any days | `regular_meal_timing` |
+| `stress_spike` | Last 3 days | 3+ stress logs (`severity ≥ +1`) — inverted scale; +2 = Stressed | `stress_reset_60s` |
+
+**Stress severity is inverted**: the slider runs from −2 (Relaxed) to +2 (Stressed), so the threshold is `≥ 1`, not `≤ −1`.
+
+#### Firestore Schema
+
+**Collection:** `users/{userId}/pattern_alerts/{alertId}`
+
+```
+{
+  type:                  'energy_dip_streak' | 'symptom_streak' | 'mood_dip_pattern' | 'stress_spike',
+  title:                 string,
+  summary:               string,
+  suggestedExperimentId: string,
+  evidence: {
+    streakLength: number,
+    metricAvg:    number,
+    days:         string[],  // ISO date strings
+  },
+  status:    'active' | 'dismissed',
+  createdAt: string,          // ISO UTC
+  expiresAt: string,          // createdAt + 72 hours
+  userId:    string,
+}
+```
+
+**Deduplication**: No new alert is written if an active, non-expired doc of the same `type` already exists for the user (`(userId, type)` key). The scan returns `{ "created": N, "skipped": M }`.
+
+**TTL**: Alerts expire 72 hours after creation. Expired alerts are filtered client-side in `getActiveAlerts()` (no composite Firestore index required — single `where('status', '==', 'active')` query with client-side `expiresAt > now` filter; max 4 active alerts per user makes this negligible).
+
+#### Frontend Integration
+
+- **`PatternAlertService`** (`src/services/patternAlertService.ts`):
+  - `scanForAlerts(force?)` — POSTs to `…/v1/users/{uid}/pattern-alerts/scan`. Enforces a 2-hour debounce via AsyncStorage key `veyra_pattern_alerts_last_scan`. Non-blocking — never throws to the caller.
+  - `getActiveAlerts()` — Direct Firestore read with client-side expiry filtering. Returns `PatternAlert[]`.
+  - `dismissAlert(alertId)` — Sets `status: 'dismissed'` via `updateDoc`.
+
+- **Scan Triggers**: `MoodLoggerScreen` and `SymptomLoggerScreen` each call `PatternAlertService.scanForAlerts()` (fire-and-forget) after saving a log. The 2-hour debounce inside the service prevents redundant network calls.
+
+- **`EmergingPatternCard`** (`app/components/EmergingPatternCard.tsx`): Amber card (`Colors.warning`) rendered on `TimelineScreen` after active experiment cards. Displays:
+  - "EMERGING PATTERN" header with `AlertTriangle` icon
+  - Alert title and summary
+  - Evidence pill: "N days in a row"
+  - "Test This" CTA → calls `onStartExperiment(alert.suggestedExperimentId)` (navigates to `ExperimentDetail`)
+  - Dismiss X → calls `onDismiss(alertId)` (optimistic local removal + Firestore write)
+  The CTA and dismiss are independent actions — tapping CTA does not dismiss.
+
+- **`TimelineScreen` integration**: On `loadData()`, `PatternAlertService.getActiveAlerts()` is included in the `Promise.all`. After `setLoading(false)`, `PatternAlertService.scanForAlerts()` runs in the background. Dismissed alerts are tracked in a local `Set` for optimistic UI updates without waiting for Firestore.
+
+#### Deployment
+`pattern_alerts_service` is a Python 3.12 Cloud Function registered in `firebase.json` under the `patternalerts` codebase. A dedicated GitHub Actions workflow (`deploy-patternalerts.yml`) deploys it independently when changes are pushed to `functions/pattern_alerts_service/**`.
 
 ---
 

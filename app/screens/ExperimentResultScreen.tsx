@@ -42,7 +42,11 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
         setLoading(true);
         try {
             await ExperimentEngine.startExperiment(run.id);
-            navigation.goBack();
+            if (navigation.canGoBack()) {
+                navigation.goBack();
+            } else {
+                navigation.navigate('HealthLab');
+            }
         } catch (e) {
             Alert.alert("Error", e instanceof Error ? e.message : "Failed to retry experiment");
         } finally {
@@ -71,7 +75,16 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
             <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
             
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity 
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.navigate('HealthLab');
+                        }
+                    }} 
+                    style={styles.backButton}
+                >
                     <ChevronLeft size={24} color={Colors.onSurface} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Results</Text>

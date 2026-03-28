@@ -1,0 +1,43 @@
+name: Deploy Pattern Alerts Service
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/pattern_alerts_service/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node SDK
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Create venv and Install Dependencies
+        working-directory: functions/pattern_alerts_service
+        run: |
+          python -m venv venv
+          ./venv/bin/pip install -r requirements.txt
+
+      - name: Deploy to Firebase
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > credentials.json
+          firebase deploy --only functions:patternalerts --project adaptivehealthengine
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADAPTIVEHEALTHENGINE }}
+          GOOGLE_APPLICATION_CREDENTIALS: credentials.json
