@@ -8,6 +8,7 @@ on:
       - 'functions/health_lab_service/**'
   workflow_dispatch:
 
+jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
