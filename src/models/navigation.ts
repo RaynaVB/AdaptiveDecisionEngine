@@ -24,4 +24,5 @@ export type RootStackParamList = {
     OnboardingComplete: undefined;
     Settings: undefined;
     Admin: undefined;
+    PrivacyPolicy: undefined;
 };

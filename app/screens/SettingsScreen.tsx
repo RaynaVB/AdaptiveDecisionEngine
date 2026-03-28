@@ -5,7 +5,7 @@ import { RootStackParamList } from '../../src/models/navigation';
 import { updateUserProfile, saveLocalPII, getLocalPII, getUserProfile, UserProfile, isInternalUser } from '../../src/services/userProfile';
 import { auth, db } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
-import { LogOut, ChevronLeft, Save, Search, X, ShieldCheck, ChevronRight } from 'lucide-react-native';
+import { LogOut, ChevronLeft, Save, Search, X, ShieldCheck, FileText, ChevronRight } from 'lucide-react-native';
 import { MEDICAL_DISCLAIMER_FULL } from '../constants/legal';
 import { ChipSelect } from '../components/ChipSelect';
 import { ingredientService } from '../../src/services/IngredientService';
@@ -303,13 +303,23 @@ export default function SettingsScreen({ navigation }: Props) {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Legal</Text>
-                        <TouchableOpacity 
-                            style={styles.legalItem}
+                        <TouchableOpacity
+                            style={[styles.legalItem, { marginBottom: 10 }]}
                             onPress={() => Alert.alert("Medical Disclaimer", MEDICAL_DISCLAIMER_FULL)}
                         >
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <ShieldCheck color={Colors.onSurfaceVariant} size={20} style={{ marginRight: 12 }} />
                                 <Text style={styles.legalItemText}>Medical Disclaimer</Text>
+                            </View>
+                            <ChevronRight color={Colors.outline} size={20} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.legalItem}
+                            onPress={() => navigation.navigate('PrivacyPolicy')}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <FileText color={Colors.onSurfaceVariant} size={20} style={{ marginRight: 12 }} />
+                                <Text style={styles.legalItemText}>Privacy Policy</Text>
                             </View>
                             <ChevronRight color={Colors.outline} size={20} />
                         </TouchableOpacity>

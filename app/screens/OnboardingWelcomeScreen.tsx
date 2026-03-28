@@ -13,6 +13,7 @@ type Props = {
     navigation: OnboardingWelcomeScreenNavigationProp;
 };
 
+
 export default function OnboardingWelcomeScreen({ navigation }: Props) {
     const [accepted, setAccepted] = useState(false);
 
@@ -43,8 +44,8 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
             </ScrollView>
 
             <View style={styles.footer}>
-                <TouchableOpacity 
-                    style={styles.checkboxContainer} 
+                <TouchableOpacity
+                    style={styles.checkboxContainer}
                     onPress={() => setAccepted(!accepted)}
                     activeOpacity={0.7}
                 >
@@ -54,7 +55,11 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
                         <Circle size={24} color={Colors.outline} />
                     )}
                     <Text style={styles.checkboxText}>
-                        I have read and agree to the medical disclaimer
+                        I have read and agree to the{' '}
+                        <Text style={styles.checkboxLink} onPress={() => navigation.navigate('PrivacyPolicy')}>
+                            Privacy Policy
+                        </Text>
+                        {' '}and Medical Disclaimer above
                     </Text>
                 </TouchableOpacity>
 
@@ -195,6 +200,11 @@ const styles = StyleSheet.create({
         color: Colors.onSurfaceVariant,
         flex: 1,
         lineHeight: 20,
+    },
+    checkboxLink: {
+        color: Colors.primary,
+        fontWeight: '700',
+        textDecorationLine: 'underline',
     },
     button: {
         backgroundColor: Colors.primary,
