@@ -192,7 +192,10 @@ A system for short, structured behavioral experiments (4–5 days) to measure ca
 
 ---
 
-## 5. Non-Functional Requirements
+## 6. Infrastructure & Deployment
+
+- **Independent Backend Services**: Each intelligence engine is a decoupled Python service.
+- **Automated Independent CI/CD**: Backend functions are independently deployed via GitHub Actions using path-based triggers. Only the service directory modified is pushed to production (`firebase deploy --only functions:<codebase>`).
 - **Fast Experience**: The core logging path must remain under 30 seconds.
 - **Safe Fallback**: If confidence is too low (e.g., unidentifiable meal, sparse pattern history), the app will recommend a low-risk action or request more data rather than presenting speculative conclusions.
 - **Modular Architecture**: Logging, patterns, recommendations, and HealthLab are kept structurally independent for easy iteration.

@@ -1,0 +1,28 @@
+name: Deploy Weekly Patterns Service
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/weekly_patterns_service/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions:weeklypatterns --project adaptivehealthengine
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADAPTIVEHEALTHENGINE }}

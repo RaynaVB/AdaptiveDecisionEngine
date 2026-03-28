@@ -146,7 +146,16 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
 
 ---
 
-## 5. Execution Summary
+## 6. CI/CD & Deployment
+
+The system uses automated GitHub Actions for Continuous Deployment of backend services to Firebase.
+
+- **Independent Service Deployment**: Each cloud function codebase is managed by a dedicated GitHub workflow (`deploy-recommendations.yml`, `deploy-insights.yml`, etc.).
+- **Path-Based Triggers**: Deployments are only triggered when changes are merged into the specific service directory (e.g., `functions/insights_service/**`).
+- **Selective Middleware**: Uses `firebase deploy --only functions:<codebase>` to ensure isolation between service updates.
+- **Security**: Authentication is handled via a dedicated Google Cloud Service Account (`FIREBASE_SERVICE_ACCOUNT_ADAPTIVEHEALTHENGINE`) stored in GitHub Secrets.
+
+## 7. Execution Summary
 1. User interacts with `LogMeal`, `MoodLogger`, or `SymptomLogger`.
 2. Frontend writes structured payload to Firestore (triggering external Python `vision_service` if a meal photo needs parsing).
 3. On demand or on interval, `insights_service` fetches the user's full `UserProfile`. Computes `freq_factor` from `symptomFrequency`, then runs the 9-analyzer pattern engine. After deduplication, `boost_by_profile()` adjusts confidence scores based on `goals` (+0.10) and `symptoms` (+0.15). Trigger insights are decorated with `metadata.knownSensitivities` from the user's allergen profile. New `Insight` records are materialized and cached.
