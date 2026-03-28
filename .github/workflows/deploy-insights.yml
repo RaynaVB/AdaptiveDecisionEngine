@@ -8,19 +8,24 @@ on:
       - 'functions/insights_service/**'
   workflow_dispatch:
 
-jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
+      - name: Setup Node SDK
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
 
       - name: Create venv and Install Dependencies
         working-directory: functions/insights_service
@@ -29,8 +34,9 @@ jobs:
           ./venv/bin/pip install -r requirements.txt
 
       - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only functions:insights --project adaptivehealthengine
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > credentials.json
+          firebase deploy --only functions:insights --project adaptivehealthengine
         env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADAPTIVEHEALTHENGINE }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADAPTIVEHEALTHENGINE }}
+          GOOGLE_APPLICATION_CREDENTIALS: credentials.json
