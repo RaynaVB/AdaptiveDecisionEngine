@@ -22,6 +22,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Create venv and Install Dependencies
+        working-directory: functions/weekly_patterns_service
+        run: |
+          python -m venv venv
+          ./venv/bin/pip install -r requirements.txt
+
       - name: Deploy to Firebase
         uses: w9jds/firebase-action@master
         with:
