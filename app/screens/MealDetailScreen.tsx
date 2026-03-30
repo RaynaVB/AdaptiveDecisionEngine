@@ -17,6 +17,15 @@ type MealDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'M
 
 const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
+const determineMealSlot = (date: Date): MealSlot => {
+    const hour = date.getHours();
+    if (hour >= 5 && hour < 11) return 'breakfast';
+    if (hour >= 11 && hour < 15) return 'lunch';
+    if (hour >= 15 && hour < 17) return 'snack';
+    if (hour >= 17 && hour < 24) return 'dinner';
+    return 'snack';
+};
+
 export default function MealDetailScreen() {
     const navigation = useNavigation<MealDetailScreenNavigationProp>();
     const route = useRoute<MealDetailScreenRouteProp>();
@@ -178,28 +187,24 @@ export default function MealDetailScreen() {
                 )}
 
                 <View style={styles.inputSection}>
-                    {!meal.photoUri ? (
+                    <View style={styles.dishNameContainer}>
+                        <Text style={styles.dishNameLabel}>Meal Name</Text>
+                        <TextInput
+                            style={styles.dishNameInput}
+                            value={confirmedDish?.label || textDescription}
+                            onChangeText={(newLabel) => {
+                                if (confirmedDish) setConfirmedDish({ ...confirmedDish, label: newLabel });
+                                else setTextDescription(newLabel);
+                            }}
+                            placeholder="Meal Name..."
+                        />
+                    </View>
+
+                    {meal.photoUri && textDescription && (
                         <View style={styles.section}>
-                            <Text style={styles.label}>Description</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                value={textDescription}
-                                onChangeText={setTextDescription}
-                                placeholder="Description..."
-                                multiline
-                            />
+                            <Text style={styles.label}>AI Description</Text>
+                            <Text style={styles.bodyText}>{textDescription}</Text>
                         </View>
-                    ) : (
-                        confirmedDish && (
-                            <View style={styles.dishNameContainer}>
-                                <Text style={styles.dishNameLabel}>Dish Name</Text>
-                                <TextInput
-                                    style={styles.dishNameInput}
-                                    value={confirmedDish.label}
-                                    onChangeText={(newLabel) => setConfirmedDish({ ...confirmedDish, label: newLabel })}
-                                />
-                            </View>
-                        )
                     )}
                 </View>
 
@@ -510,4 +515,5 @@ const styles = StyleSheet.create({
     resultItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.surfaceContainer },
     resultText: { fontSize: 16, color: Colors.onSurface },
     noResultsText: { textAlign: 'center', marginTop: 20, ...Typography.body, color: Colors.onSurfaceVariant },
+    bodyText: { ...Typography.body, fontSize: 16, color: Colors.onSurface, lineHeight: 22 },
 });

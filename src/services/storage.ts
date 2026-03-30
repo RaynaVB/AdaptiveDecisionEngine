@@ -301,5 +301,62 @@ export const StorageService = {
             console.error('Failed to clear all system logs', e);
             throw e;
         }
+    },
+
+    // RECIPE LIBRARY
+    getRecipesCollectionRef() {
+        return collection(this.getUserDocRef(), 'recipes');
+    },
+
+    /**
+     * Normalize a meal name for consistent document indexing.
+     */
+    _normalizeMealName(name: string): string {
+        return name.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    },
+
+    async getRecipe(mealName: string): Promise<{ dishLabel: string, ingredients: any[], questions?: any[] } | null> {
+        if (!auth.currentUser) return null;
+        try {
+            const normalizedName = this._normalizeMealName(mealName);
+            const recipeDocRef = doc(this.getRecipesCollectionRef(), normalizedName);
+            const recipeSnap = await getDoc(recipeDocRef);
+            
+            if (recipeSnap.exists()) {
+                return recipeSnap.data() as any;
+            }
+            return null;
+        } catch (e) {
+            console.error('Failed to fetch recipe', e);
+            return null;
+        }
+    },
+
+    async saveRecipe(mealName: string, ingredients: any[], questions?: any[]): Promise<void> {
+        if (!auth.currentUser || !mealName) return;
+        try {
+            const normalizedName = this._normalizeMealName(mealName);
+            const recipeDocRef = doc(this.getRecipesCollectionRef(), normalizedName);
+            
+            await setDoc(recipeDocRef, this._sanitize({
+                dishLabel: mealName,
+                ingredients,
+                questions,
+                updatedAt: new Date().toISOString()
+            }), { merge: true });
+        } catch (e) {
+            console.error('Failed to save recipe', e);
+        }
+    },
+
+    async getAllRecipes(): Promise<Array<{ dishLabel: string, ingredients: any[], questions?: any[] }>> {
+        if (!auth.currentUser) return [];
+        try {
+            const recipeSnap = await getDocs(this.getRecipesCollectionRef());
+            return recipeSnap.docs.map(doc => doc.data() as any);
+        } catch (e) {
+            console.error('Failed to fetch all recipes', e);
+            return [];
+        }
     }
 };

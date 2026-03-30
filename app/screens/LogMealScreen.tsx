@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { v4 as uuidv4 } from 'uuid';
-import { Camera, X, Check, Plus, ChevronDown, Search, Image as ImageIcon, Utensils, Clock, Users, Moon, Meh, Zap } from 'lucide-react-native';
+import { Camera, X, Check, Plus, ChevronDown, Search, Image as ImageIcon, Utensils, Clock, Users, Moon, Meh, Zap, Type, ImagePlus } from 'lucide-react-native';
 import { Modal } from 'react-native';
 import { useEffect } from 'react';
 import { Ingredient } from '../../src/models/Ingredient';
@@ -17,7 +17,7 @@ import { MealSlot, MealEvent, MealReason, ConfirmedIngredient, MealQuestion } fr
 import { StorageService } from '../../src/services/storage';
 import { NotificationService } from '../../src/services/NotificationService';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { analyzeFoodImage, uploadImageToFirebase, VisionAnalysisResult } from '../../src/services/visionService';
+import { analyzeFoodImage, analyzeFoodText, uploadImageToFirebase, VisionAnalysisResult } from '../../src/services/visionService';
 import { auth } from '../../src/services/firebaseConfig';
 import { ingredientService } from '../../src/services/IngredientService';
 import { RecommendationService } from '../../src/services/recommendationService';
@@ -35,7 +35,7 @@ const determineMealSlot = (date: Date): MealSlot => {
     if (hour >= 5 && hour < 11) return 'breakfast';
     if (hour >= 11 && hour < 15) return 'lunch';
     if (hour >= 15 && hour < 17) return 'snack';
-    if (hour >= 17 && hour < 22) return 'dinner';
+    if (hour >= 17 && hour < 24) return 'dinner'; // Extended to midnight
     return 'snack';
 };
 
@@ -57,11 +57,17 @@ export default function LogMealScreen() {
     const [analysisQuestions, setAnalysisQuestions] = useState<MealQuestion[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
+    const [mealNameQuery, setMealNameQuery] = useState('');
+    const [entryMethod, setEntryMethod] = useState<'none' | 'photo' | 'text'>('none');
+    
+    // Recipe Typeahead State
+    const [allUserRecipes, setAllUserRecipes] = useState<any[]>([]);
+    const [filteredSuggestions, setFilteredSuggestions] = useState<any[]>([]);
 
     const isSaveDisabled = isSaving ||
         loggingState === 'analyzing' ||
         (photoUri && loggingState !== 'review_ready') ||
-        (!photoUri && !textDescription.trim());
+        (!photoUri && !textDescription.trim() && !mealNameQuery.trim());
 
 
     const [showSearchModal, setShowSearchModal] = useState(false);
@@ -76,6 +82,27 @@ export default function LogMealScreen() {
             setSearchResults([]);
         }
     }, [searchQuery]);
+
+    // Fetch all user recipes for typeahead on mount
+    useEffect(() => {
+        const fetchRecipes = async () => {
+            const recipes = await StorageService.getAllRecipes();
+            setAllUserRecipes(recipes);
+        };
+        fetchRecipes();
+    }, []);
+
+    // Filter suggestions based on query
+    useEffect(() => {
+        if (mealNameQuery.length > 0) {
+            const filtered = allUserRecipes.filter(r => 
+                r.dishLabel.toLowerCase().includes(mealNameQuery.toLowerCase())
+            ).slice(0, 5); // Limit to top 5
+            setFilteredSuggestions(filtered);
+        } else {
+            setFilteredSuggestions([]);
+        }
+    }, [mealNameQuery, allUserRecipes]);
 
     const toggleIngredient = (id: string) => {
         setIngredients(prev => prev.map(ing => {
@@ -120,27 +147,24 @@ export default function LogMealScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Ingredients</Text>
 
-                    {confirmedIngs.length > 0 && (
-                        <>
-                            <Text style={styles.subTitle}>Confirmed</Text>
-                            <View style={styles.ingredientsRow}>
-                                {confirmedIngs.map(ing => (
-                                    <TouchableOpacity
-                                        key={ing.ingredientId}
-                                        style={styles.ingredientChipConfirmed}
-                                        onPress={() => toggleIngredient(ing.ingredientId)}
-                                    >
-                                        <Text style={styles.ingredientTextConfirmed}>{ing.canonicalName}</Text>
-                                        <X color={Colors.onPrimaryContrast} size={14} style={{ marginLeft: 4 }} />
-                                    </TouchableOpacity>
-                                ))}
-                                <TouchableOpacity style={styles.addChip} onPress={() => setShowSearchModal(true)}>
-                                    <Plus color={Colors.primary} size={16} />
-                                    <Text style={styles.addChipText}>Add</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </>
-                    )}
+                    <View style={styles.ingredientsRow}>
+                        {confirmedIngs.length > 0 && confirmedIngs.map(ing => (
+                            <TouchableOpacity
+                                key={ing.ingredientId}
+                                style={styles.ingredientChipConfirmed}
+                                onPress={() => toggleIngredient(ing.ingredientId)}
+                            >
+                                <Text style={styles.ingredientTextConfirmed}>{ing.canonicalName}</Text>
+                                <X color={Colors.onPrimaryContrast} size={14} style={{ marginLeft: 4 }} />
+                            </TouchableOpacity>
+                        ))}
+
+                        {/* Always show Add chip in review state */}
+                        <TouchableOpacity style={styles.addChip} onPress={() => setShowSearchModal(true)}>
+                            <Plus color={Colors.primary} size={16} />
+                            <Text style={styles.addChipText}>Add</Text>
+                        </TouchableOpacity>
+                    </View>
 
                     {suggestedIngs.length > 0 && (
                         <>
@@ -370,6 +394,91 @@ export default function LogMealScreen() {
         }
     };
 
+    const handleMethodSelect = (method: 'camera' | 'library' | 'text') => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        if (method === 'camera') {
+            setEntryMethod('photo');
+            pickImage(true);
+        } else if (method === 'library') {
+            setEntryMethod('photo');
+            pickImage(false);
+        } else {
+            setEntryMethod('text');
+        }
+    };
+
+    const resetEntryMethod = () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setEntryMethod('none');
+        setPhotoUri(undefined);
+        setMealNameQuery('');
+        setLoggingState('idle');
+        setIngredients([]);
+        setConfirmedDish(null);
+    };
+
+    const handleTextAnalysis = async (overrideName?: string) => {
+        const query = overrideName || mealNameQuery;
+        if (!query.trim()) return;
+
+        try {
+            setLoggingState('analyzing');
+            setStatusMessage('Searching your library...');
+
+            // 1. Check Recipe Library first
+            const previousRecipe = await StorageService.getRecipe(query);
+
+            if (previousRecipe) {
+                setStatusMessage('Found in your library!');
+                setConfirmedDish({ label: previousRecipe.dishLabel });
+                setIngredients(previousRecipe.ingredients);
+                if (previousRecipe.questions) {
+                    setAnalysisQuestions(previousRecipe.questions);
+                }
+                setTimeout(() => {
+                    setLoggingState('review_ready');
+                    setStatusMessage('');
+                }, 800);
+                return;
+            }
+
+            // 2. Fallback to AI Analysis
+            setStatusMessage('Asking AI for ingredients...');
+            const analysis = await analyzeFoodText(query);
+
+            setAnalysisResult(analysis);
+            setConfirmedDish({ label: analysis.dishName });
+
+            // Map Ingredients
+            const suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients);
+            const initialIngredients: ConfirmedIngredient[] = suggestedIngs.map(ing => ({
+                ingredientId: ing.ingredient_id,
+                canonicalName: ing.canonical_name,
+                confirmedStatus: 'suggested',
+                source: 'inferred_dish_prior',
+                confidence: 0.8
+            }));
+
+            setIngredients(initialIngredients);
+            setTextDescription(mealNameQuery); // Sync with raw text field
+
+            // Map Questions
+            setAnalysisQuestions(analysis.potentialQuestions.map(q => ({
+                questionId: q.id,
+                text: q.text,
+                answer: ''
+            })));
+
+            setLoggingState('review_ready');
+            setStatusMessage('');
+        } catch (error) {
+            console.error('Text Analysis Error:', error);
+            setLoggingState('failed');
+            setStatusMessage('Failed to get suggestions');
+            Alert.alert("Error", "Could not get ingredient suggestions. You can still add them manually.");
+        }
+    };
+
     const handleSave = async () => {
         if (!textDescription && !photoUri) {
             Alert.alert('Required', 'Please add a photo or text description.');
@@ -409,6 +518,11 @@ export default function LogMealScreen() {
                 newMeal.photoUri = remoteUrl;
             }
 
+            // Save/Update Recipe in Library if dish name exists
+            if (confirmedDish?.label) {
+                await StorageService.saveRecipe(confirmedDish.label, ingredients, analysisQuestions);
+            }
+
             await StorageService.addMealEvent(newMeal);
             await NotificationService.handleUserLoggedActivity('meal');
 
@@ -441,90 +555,166 @@ export default function LogMealScreen() {
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Log your meal</Text>
                     <Text style={styles.headerSubtitle}>
-                        Take a picture of your meal or upload an image and we'll help you identify it.
+                        Choose a method to get started and we will help you log your meal with ingredients.
                     </Text>
                 </View>
 
-                {/* Photo Section */}
-                <View style={styles.inputSection}>
-                    {!photoUri ? (
-                        <TouchableOpacity
-                            style={styles.imagePlaceholder}
-                            onPress={() => pickImage(true)}
-                        >
-                            <Image
-                                source={require('../../assets/meal_placeholder_bg.png')}
-                                style={styles.placeholderBg}
-                            />
-                            <View style={styles.placeholderOverlay} />
-                            <View style={styles.placeholderContent}>
-                                <Camera color={Colors.onPrimaryContrast} size={48} strokeWidth={1} />
-                                <Text style={styles.placeholderText}>Tap to capture or select meal photo</Text>
-                            </View>
-                            <View style={styles.pillToggleContainer}>
-                                <View style={styles.pillToggle}>
-                                    <View style={[styles.pillIcon, { backgroundColor: Colors.primary }]}>
-                                        <Camera color={Colors.onPrimaryContrast} size={20} />
-                                    </View>
-                                    <TouchableOpacity style={styles.pillIcon} onPress={() => pickImage(false)}>
-                                        <ImageIcon color={Colors.onSurfaceVariant} size={20} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
+                {/* Unified Logging Section */}
+                <View style={styles.loggingSectionContainer}>
+                    <Image
+                        source={require('../../assets/meal_placeholder_bg.png')}
+                        style={styles.loggingSectionBg}
+                    />
+                    <View style={styles.loggingSectionOverlay} />
+
+                    {entryMethod !== 'none' && (
+                        <TouchableOpacity onPress={resetEntryMethod} style={styles.closeSectionButton}>
+                            <X color={Colors.onPrimaryContrast} size={20} strokeWidth={3} />
                         </TouchableOpacity>
-                    ) : (
-                        <View style={styles.photoPreviewContainer}>
-                            <Image source={{ uri: photoUri }} style={[styles.photoPreview, loggingState === 'analyzing' && { opacity: 0.5 }]} />
-
-                            {/* Focus Corners Overlay */}
-                            <View style={styles.focusCorners}>
-                                <View style={[styles.corner, styles.topLeft]} />
-                                <View style={[styles.corner, styles.topRight]} />
-                                <View style={[styles.corner, styles.bottomLeft]} />
-                                <View style={[styles.corner, styles.bottomRight]} />
-                            </View>
-
-                            <View style={styles.pillToggleContainer}>
-                                <View style={styles.pillToggle}>
-                                    <TouchableOpacity style={styles.pillIcon} onPress={() => pickImage(true)}>
-                                        <Camera color={Colors.onSurfaceVariant} size={20} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.pillIcon} onPress={() => pickImage(false)}>
-                                        <ImageIcon color={Colors.onSurfaceVariant} size={20} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            <TouchableOpacity style={styles.removePhoto} onPress={() => setPhotoUri(undefined)}>
-                                <X color={Colors.onPrimaryContrast} size={16} />
-                            </TouchableOpacity>
-
-                            {loggingState === 'analyzing' && (
-                                <View style={styles.analyzingOverlay}>
-                                    <ActivityIndicator size="large" color={Colors.primary} />
-                                    <Text style={styles.analyzingText}>{statusMessage || 'Analyzing...'}</Text>
-                                </View>
-                            )}
-                        </View>
                     )}
 
-                    {/* Dish Name (Adjustable during review) */}
-                    {loggingState === 'review_ready' && confirmedDish && (
-                        <View style={styles.dishNameContainer}>
-                            <Text style={styles.dishNameLabel}>Detected Dish</Text>
+                    <View style={styles.loggingSectionContent}>
+                        {/* Method Selection (Initial State) */}
+                        {entryMethod === 'none' && (
+                            <View style={styles.methodSelectorInner}>
+                                <TouchableOpacity
+                                    style={[styles.methodCardRefined, { backgroundColor: 'rgba(52, 199, 89, 0.15)' }]}
+                                    onPress={() => handleMethodSelect('camera')}
+                                >
+                                    <View style={[styles.methodIconCircle, { backgroundColor: Colors.primary }]}>
+                                        <Camera color={Colors.onPrimaryContrast} size={28} />
+                                    </View>
+                                    <Text style={styles.methodLabelRefined}>Camera</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.methodCardRefined, { backgroundColor: 'rgba(0, 122, 255, 0.15)' }]}
+                                    onPress={() => handleMethodSelect('library')}
+                                >
+                                    <View style={[styles.methodIconCircle, { backgroundColor: '#007AFF' }]}>
+                                        <ImagePlus color={Colors.onPrimaryContrast} size={28} />
+                                    </View>
+                                    <Text style={styles.methodLabelRefined}>Gallery</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.methodCardRefined, { backgroundColor: 'rgba(175, 82, 222, 0.15)' }]}
+                                    onPress={() => handleMethodSelect('text')}
+                                >
+                                    <View style={[styles.methodIconCircle, { backgroundColor: '#AF52DE' }]}>
+                                        <Type color={Colors.onPrimaryContrast} size={28} />
+                                    </View>
+                                    <Text style={styles.methodLabelRefined}>Type Meal</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* Text Entry Mode */}
+                        {entryMethod === 'text' && (
+                            <View style={styles.activeTextContainer}>
+                                <Text style={[styles.activeTextLabel, { color: Colors.onPrimaryContrast }]}>Enter Meal Name</Text>
+                                <View style={styles.activeInputWrapper}>
+                                    <TextInput
+                                        style={styles.activeTextInput}
+                                        placeholder="Enter meal name..."
+                                        placeholderTextColor="rgba(255,255,255,0.6)"
+                                        value={mealNameQuery}
+                                        onChangeText={setMealNameQuery}
+                                        onSubmitEditing={() => handleTextAnalysis()}
+                                        autoFocus
+                                    />
+                                    <TouchableOpacity
+                                        style={[styles.activeSuggestBtn, !mealNameQuery.trim() && { opacity: 0.5 }]}
+                                        onPress={() => handleTextAnalysis()}
+                                        disabled={!mealNameQuery.trim() || loggingState === 'analyzing'}
+                                    >
+                                        <Zap color={Colors.onPrimaryContrast} size={20} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Recipe Typeahead Suggestions */}
+                                {filteredSuggestions.length > 0 && loggingState !== 'analyzing' && (
+                                    <View style={styles.suggestionContainer}>
+                                        {filteredSuggestions.map((suggestion, idx) => (
+                                            <TouchableOpacity 
+                                                key={idx} 
+                                                style={styles.suggestionItem}
+                                                onPress={() => {
+                                                    const selected = suggestion.dishLabel;
+                                                    setMealNameQuery(selected);
+                                                    setFilteredSuggestions([]);
+                                                    // Pass name directly to avoid state race condition
+                                                    handleTextAnalysis(selected);
+                                                }}
+                                            >
+                                                <Zap color={Colors.primary} size={14} style={{ marginRight: 8 }} />
+                                                <Text style={styles.suggestionText}>{suggestion.dishLabel}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+
+                                {loggingState === 'analyzing' && (
+                                    <View style={styles.analyzingPill}>
+                                        <ActivityIndicator size="small" color={Colors.onPrimaryContrast} />
+                                        <Text style={styles.analyzingPillText}>{statusMessage || 'Analyzing...'}</Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+
+                        {/* Photo Entry Mode */}
+                        {entryMethod === 'photo' && (
+                            <View style={styles.activePhotoContainer}>
+                                {!photoUri ? (
+                                    <TouchableOpacity style={styles.photoCaptureOverlay} onPress={() => pickImage(true)}>
+                                        <Camera color={Colors.onPrimaryContrast} size={48} strokeWidth={1} />
+                                        <Text style={styles.photoCaptureText}>Tap to Capture</Text>
+                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={styles.photoResultContainer}>
+                                        <Image source={{ uri: photoUri }} style={[styles.photoResultImg, loggingState === 'analyzing' && { opacity: 0.6 }]} />
+
+                                        <View style={styles.pillToggleOverlay}>
+                                            <View style={styles.pillToggleRefined}>
+                                                <TouchableOpacity style={styles.pillIconSmall} onPress={() => pickImage(true)}>
+                                                    <Camera color={Colors.onSurfaceVariant} size={18} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.pillIconSmall} onPress={() => pickImage(false)}>
+                                                    <ImagePlus color={Colors.onSurfaceVariant} size={18} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+
+                                        {loggingState === 'analyzing' && (
+                                            <View style={styles.analyzingOverlayRefined}>
+                                                <ActivityIndicator size="large" color={Colors.onPrimaryContrast} />
+                                                <Text style={styles.analyzingTextLarge}>{statusMessage || 'Identifying...'}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                {/* Analysis Results / Dish Name */}
+                {(loggingState === 'review_ready' || entryMethod === 'text' && confirmedDish) && confirmedDish && (
+                    <View style={styles.reviewContext}>
+                        <View style={styles.dishNameContainerRefined}>
+                            <Text style={styles.dishLabelRefinedSmall}>Detected Meal</Text>
                             <TextInput
-                                style={styles.dishNameInput}
+                                style={styles.dishNameInputRefined}
                                 value={confirmedDish.label}
                                 onChangeText={(newLabel) => setConfirmedDish({ ...confirmedDish, label: newLabel })}
                             />
                         </View>
-                    )}
-                </View>
+                        {renderReviewSection()}
+                    </View>
+                )}
 
-                {renderReviewSection()}
-
-
-                {/* Why are you eating? / Emotional Driver */}
+                {/* Emotional Driver */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Emotional Driver</Text>
                     <View style={styles.emotionalGrid}>
@@ -632,6 +822,270 @@ const styles = StyleSheet.create({
     header: { marginBottom: 24, marginTop: 8 },
     headerTitle: { ...Typography.headline, fontSize: 32, marginBottom: 8, color: Colors.onSurface },
     headerSubtitle: { ...Typography.body, fontSize: 16, color: Colors.onSurfaceVariant, lineHeight: 22 },
+    loggingSectionContainer: {
+        width: '100%',
+        height: 240,
+        borderRadius: Radii.xl,
+        overflow: 'hidden',
+        position: 'relative',
+        marginBottom: 24,
+        backgroundColor: Colors.surfaceLowest,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+    },
+    loggingSectionBg: {
+        ...StyleSheet.absoluteFillObject,
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    loggingSectionOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.65)',
+    },
+    loggingSectionContent: {
+        ...StyleSheet.absoluteFillObject,
+        padding: 20,
+        justifyContent: 'center',
+    },
+    closeSectionButton: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        zIndex: 10,
+        padding: 8,
+    },
+    methodSelectorInner: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    methodCardRefined: {
+        flex: 1,
+        height: 120,
+        borderRadius: Radii.xl,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    methodIconCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    methodLabelRefined: {
+        fontSize: 13,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        color: Colors.onPrimaryContrast,
+        textShadowColor: 'rgba(0,0,0,0.7)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+    },
+
+    activeTextContainer: {
+        alignItems: 'center',
+    },
+    activeTextLabel: {
+        color: Colors.onPrimaryContrast,
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 16,
+        opacity: 0.8,
+    },
+    suggestionContainer: {
+        width: '100%',
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        borderRadius: Radii.md,
+        marginTop: 8,
+        padding: 4,
+        maxHeight: 200,
+        ...Shadows.ambient,
+    },
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.05)',
+    },
+    suggestionText: {
+        color: Colors.onSurface,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    activeInputWrapper: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255,255,255,0.25)',
+        borderRadius: Radii.lg,
+        padding: 4,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    activeTextInput: {
+        flex: 1,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 18,
+        color: Colors.onPrimaryContrast,
+        fontWeight: '500',
+    },
+    activeSuggestBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: Radii.md,
+        backgroundColor: Colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    analyzingPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        marginTop: 16,
+        gap: 8,
+    },
+    analyzingPillText: {
+        color: Colors.onPrimaryContrast,
+        fontWeight: '600',
+        fontSize: 14,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+
+    activePhotoContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    photoCaptureOverlay: {
+        alignItems: 'center',
+        gap: 12,
+    },
+    photoCaptureText: {
+        color: Colors.onPrimaryContrast,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    photoResultContainer: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: Radii.xl,
+        overflow: 'hidden',
+    },
+    photoResultImg: {
+        ...StyleSheet.absoluteFillObject,
+        resizeMode: 'cover',
+    },
+    pillToggleOverlay: {
+        position: 'absolute',
+        bottom: 12,
+        width: '100%',
+        alignItems: 'center',
+    },
+    pillToggleRefined: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        padding: 3,
+        borderRadius: 25,
+        gap: 3,
+    },
+    pillIconSmall: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    analyzingOverlayRefined: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    analyzingTextLarge: {
+        color: Colors.onPrimaryContrast,
+        fontWeight: 'bold',
+        fontSize: 18,
+        marginTop: 16,
+    },
+
+    reviewContext: {
+        marginTop: 8,
+        marginBottom: 24,
+    },
+    dishNameContainerRefined: {
+        marginBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.surfaceContainer,
+        paddingBottom: 8,
+    },
+    dishLabelRefinedSmall: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: Colors.onSurfaceVariant,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    dishNameInputRefined: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: Colors.onSurface,
+        padding: 0,
+    },
+
+    manualEntryContainer: { marginBottom: 24 },
+    inputLabel: { ...Typography.label, fontSize: 12, marginBottom: 8, color: Colors.onSurfaceVariant, letterSpacing: 1 },
+    manualInputRow: { flexDirection: 'row', gap: 10 },
+    manualTextInput: {
+        flex: 1,
+        backgroundColor: Colors.surfaceLowest,
+        borderRadius: Radii.lg,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 16,
+        color: Colors.onSurface,
+        borderWidth: 1,
+        borderColor: Colors.surfaceContainer,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    suggestButton: {
+        backgroundColor: Colors.primary,
+        borderRadius: Radii.lg,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        gap: 6,
+    },
+    suggestButtonText: { color: Colors.onPrimaryContrast, fontWeight: 'bold', fontSize: 14 },
+    manualAnalyzing: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20, backgroundColor: Colors.primarySubtle, padding: 12, borderRadius: Radii.md },
+    manualAnalyzingText: { color: Colors.primary, fontWeight: '600' },
 
     section: { marginBottom: 32 },
     sectionTitle: { ...Typography.label, fontSize: 12, marginBottom: 16, color: Colors.onSurfaceVariant, letterSpacing: 1 },

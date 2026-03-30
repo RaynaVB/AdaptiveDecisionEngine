@@ -40,10 +40,13 @@ def handle_analyze_food(data, headers):
             3. dishName: The specific name of the dish.
             4. visibleComponents: A comprehensive list of individual ingredients clearly seen in the image. Be specific.
             5. suggestedIngredients: A list of ingredients that are almost certainly present in this dish but not explicitly visible. Be exhaustive.
+               IMPORTANT: Always include base components (e.g. crust, dough, flour), sauces (e.g. tomato sauce, cream, pesto), and all primary seasonings or fats. 
+               For a burger or sandwich, this MUST include "bun" or "bread". For a pizza, this MUST include "crust" and "tomato sauce".
             6. tags: Select relevant tags from this exact list: [{', '.join(VALID_TAGS)}].
             7. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
                Format each question as an object: {{"id": "unique_id", "text": "Question text?"}}.
-               IMPORTANT: Each question MUST be a Yes/No question. Use specific ingredient checks like "Was there any butter?" or "Does this contain dairy?" NOT "Was this A or B?".
+               CONSTRAINT: Questions MUST be about a SINGULAR, SPECIFIC ingredient candidate (e.g. "Was there garlic?", "Is there peanut oil?"). 
+               PROHIBITED: Do NOT ask vague questions like "Was a specific oil used?" or "Does this have any allergens?". Each question MUST correspond to a specific YES/NO ingredient check.
 
             Return ONLY a strict JSON object. If isFood is false, the other fields can be empty/null, but still return the object.
         """
@@ -97,6 +100,71 @@ def handle_analyze_food(data, headers):
     except Exception as e:
         return https_fn.Response(jsonify({"error": str(e)}).get_data(), status=500, headers=headers, mimetype='application/json')
 
+def handle_analyze_text(data, headers):
+    dish_name = data.get('dishName')
+
+    if not dish_name:
+        return https_fn.Response(jsonify({"error": "Missing dishName"}).get_data(), status=400, headers=headers, mimetype='application/json')
+
+    try:
+        prompt = f"""
+            Analyze this dish name "{dish_name}" for a medical-grade symptom tracking app. It is critical to identify ALL possible ingredients that could trigger symptoms (e.g., dairy, gluten, specific spices, oils, legumes).
+            
+            Provide the following structured data based on the dish name:
+            1. description: A brief summary of what this dish typically contains.
+            2. dishName: The canonical name of the dish.
+            3. suggestedIngredients: A comprehensive list of ingredients typically present in this dish. Be specific and exhaustive.
+               IMPORTANT: Always include base components (e.g. crust, dough, flour, bread, bun), sauces (e.g. tomato sauce, cream, gravy), and all primary seasonings or fats. 
+               Never skip "obvious" components like "bun" for a burger or "crust" for a pizza.
+            4. tags: Select relevant tags from this exact list: [{', '.join(VALID_TAGS)}].
+            5. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
+               Format each question as an object: {{"id": "unique_id", "text": "Question text?"}}.
+               CONSTRAINT: Questions MUST be about a SINGULAR, SPECIFIC ingredient candidate (e.g. "Was there garlic?", "Is there peanut oil?", "Does this contain MSG?"). 
+               PROHIBITED: Do NOT ask vague questions like "Was a specific oil used?" or "Does this have any allergens?". Each question MUST correspond to a specific YES/NO ingredient check.
+
+            Return ONLY a strict JSON object.
+        """
+
+        payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": prompt}
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json"
+            }
+        }
+
+        api_headers = {
+            "Content-Type": "application/json",
+            "x-ios-bundle-identifier": "com.raynab.Veyra"
+        }
+
+        resp = requests.post(FIREBASE_ML_URL, headers=api_headers, json=payload)
+        
+        if resp.status_code != 200:
+            return https_fn.Response(jsonify({"error": f"Firebase ML API error: {resp.status_code}", "details": resp.text}).get_data(), status=500, headers=headers, mimetype='application/json')
+            
+        result_json = resp.json()
+        
+        try:
+            text_response = result_json['candidates'][0]['content']['parts'][0]['text']
+            result_data = json.loads(text_response)
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            return https_fn.Response(jsonify({"error": "Failed to parse Gemini response", "raw": result_json}).get_data(), status=500, headers=headers, mimetype='application/json')
+        
+        safe_tags = [t for t in result_data.get('tags', []) if t in VALID_TAGS]
+        result_data['tags'] = safe_tags
+
+        return https_fn.Response(jsonify(result_data).get_data(), status=200, headers=headers, mimetype='application/json')
+
+    except Exception as e:
+        return https_fn.Response(jsonify({"error": str(e)}).get_data(), status=500, headers=headers, mimetype='application/json')
+
 @https_fn.on_request(memory=options.MemoryOption.MB_512, invoker="public")
 def vision_service(req: https_fn.Request) -> https_fn.Response:
     if req.method == 'OPTIONS':
@@ -115,6 +183,10 @@ def vision_service(req: https_fn.Request) -> https_fn.Response:
         if 'analyze-food' in path and req.method == 'POST':
             data = req.get_json()
             return handle_analyze_food(data, headers)
+        
+        if 'analyze-text' in path and req.method == 'POST':
+            data = req.get_json()
+            return handle_analyze_text(data, headers)
 
         return https_fn.Response(jsonify({"error": "Not Found"}).get_data(), status=404, headers=headers, mimetype='application/json')
 

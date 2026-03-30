@@ -92,3 +92,56 @@ export async function analyzeFoodImage(base64Image: string, mimeType: string = '
         throw error;
     }
 }
+
+/**
+ * Calls the Python Vision Service to suggest ingredients for a dish name.
+ */
+export async function analyzeFoodText(dishName: string): Promise<VisionAnalysisResult> {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+        const token = await user.getIdToken();
+        const response = await fetch(`${BASE_URL}/v1/analyze-text`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                dishName
+            }),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Failed to analyze text: ${response.status} ${response.statusText}. ${errorBody.slice(0, 100)}`);
+        }
+
+        const data = await response.json();
+        
+        const rawQuestions = data.potentialQuestions || [];
+        const potentialQuestions = rawQuestions.map((q: any, index: number) => {
+            if (typeof q === 'string') {
+                return { id: `q_${index}`, text: q };
+            }
+            if (typeof q === 'object' && q.text) {
+                return { id: q.id || `q_${index}`, text: q.text };
+            }
+            return null;
+        }).filter(Boolean) as Array<{ id: string; text: string }>;
+
+        return {
+            isFood: true, // We assume it's food if they typed it as a meal
+            description: data.description || '',
+            dishName: data.dishName || dishName,
+            visibleComponents: [], // No visible components for text
+            suggestedIngredients: data.suggestedIngredients || [],
+            potentialQuestions
+        };
+
+    } catch (error) {
+        console.error("Error analyzing text with Vision Service:", error);
+        throw error;
+    }
+}

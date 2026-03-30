@@ -66,10 +66,12 @@ A 6-step profile capture that personalizes the entire app experience from first 
 
 #### 1. AI-Powered Ingredient Capture
 - **Visual & Text Dual-Mode**: Supports both camera/gallery uploads and manual text entries.
-- **Multi-Step AI Analysis**: Gemini 2.0 Flash provides real-time extraction, identifying dishes and ingredients.
+- **Recipe Library (Persistent User Caching)**: Before calling the AI, the system checks the user's `recipes` collection. If a meal with the same name was logged previously, those ingredients are pre-filled instantly.
+- **Multi-Step AI Analysis**: Gemini 2.5 Flash provides real-time extraction. For images, it identifies dishes and ingredients. For text, it suggests typical ingredients based on the dish name.
 - **Canonical Ingredient Database**: Maps extracted food items against a structured 2,500+ item ingredient library.
 - **Binary Clarification Questions**: AI asks simplified Yes/No/Not Sure questions (e.g., "Is this dairy-free?") for quick confirmation.
 - **Dish Name Attribution**: Identifies primary "Dish Name" (e.g., "Street Tacos") over generic descriptions.
+- **Continuous Learning**: Changes made to suggested ingredients are saved back to the user's Recipe Library, ensuring the next entry for that meal is more accurate.
 
 #### 2. Specialized Mood & Symptom Tracking
 - **Decoupled Logging Interfaces**: Dedicated screens for mental and physical states to optimize UX:

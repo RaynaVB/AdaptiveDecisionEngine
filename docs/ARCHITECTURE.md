@@ -24,7 +24,9 @@ The system delegates domain-specific logic to independent cloud function service
 
 1. **`vision_service`**
    - **Role:** ML-powered ingredient and dish extraction.
-   - **Mechanism:** Integrates with Gemini 2.0 Flash to analyze meal photos and text descriptions, extract dish names, identify canonical ingredients against a 2,500+ item database, and generate binary clarification questions.
+   - **Mechanism:** Integrates with Gemini 2.5 Flash to:
+     - **Image Analysis**: Analyze meal photos to extract dish names, identify canonical ingredients against a 2,500+ item database, and generate binary clarification questions.
+     - **Text Analysis**: Analyze manual meal name entries (e.g., "Chicken Curry") to suggest typical ingredients, tags, and follow-up questions when a previous user entry is not found.
 
 2. **`health_lab_service`**
    - **Role:** Drives the behavioral experimentation lifecycle.
@@ -162,7 +164,14 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
   - `sensitivities` and `allergies` populate `metadata.knownSensitivities` on trigger insights via `check_sensitivity_flags()`.
   - PII (`name`) is stored locally on-device only (AsyncStorage), never written to Firestore.
 
-### 4.2 Intelligence Outputs
+### 4.2 Recipe Library
+- **`Recipe`** (`/users/{uid}/recipes/{normalizedMealName}` document):
+  - Acts as a persistent caching layer for the user's frequent meals.
+  - Stores `dishLabel`, a snapshot of `confirmedIngredients`, and `questions`.
+  - Automatically populated/updated when a user saves a meal with a dish name.
+  - Used to pre-fill ingredients for manual entries before falling back to AI analysis.
+
+### 4.3 Intelligence Outputs
 - **`Pattern`**: Extracted behavioral sequences. Includes `confidence`, `severity`, and an `actionableInsight`. Supports ingredient-level detection (e.g., specific triggers or boosters).
 - **`Insight`**: Generative intelligence containing `title`, `summary`, `supportingEvidence` (`matchCount`/`sampleSize`), `confidenceLevel` (adjusted by `boost_by_profile`), and optional `actionableInsight.experimentIdToStart` for direct HealthLab navigation. Trigger insights (types: `trigger_pattern`, `delayed_trigger`, `energy_dip`, `sleep_impact`) carry `metadata.knownSensitivities: string[]` populated from the user's dietary profile.
 - **`Recommendation`**: Produced by the recommender engine. Includes `priorityScore` (boosted by +0.10 for goal-matched templates), `confidenceScore`, `scores` (impact, feasibility, mlScore, optional `goal_boost: true`), feedback `action` state, and optional `associatedExperimentId` for HealthLab-linked interventions. Supports personalized string interpolation for ingredients (`{trigger}`) and symptoms (`{symptom}`).
