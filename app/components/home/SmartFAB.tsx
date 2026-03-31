@@ -38,9 +38,12 @@ export const SmartFAB: React.FC<SmartFABProps> = ({
 
   // Primary action logic
   const getPrimaryAction = () => {
+    // Priority 1: Active Experiment (Purple)
     if (hasActiveExperiment) return { label: 'Log Progress', icon: <Beaker size={24} color={Colors.onPrimaryContrast} />, action: onLogProgress, color: Colors.experiment };
+    // Priority 2: Evening Symptoms (Red)
     if (isEvening()) return { label: 'Log Symptoms', icon: <Thermometer size={24} color={Colors.onPrimaryContrast} />, action: onLogSymptom, color: Colors.error };
-    return { label: 'Log Meal', icon: <Utensils size={24} color={Colors.onPrimaryContrast} />, action: onLogMeal, color: Colors.interactive };
+    // Priority 3: Default Log (Purple)
+    return { label: 'Log Meal', icon: <Utensils size={24} color={Colors.onPrimaryContrast} />, action: onLogMeal, color: Colors.accent };
   };
 
   const primary = getPrimaryAction();

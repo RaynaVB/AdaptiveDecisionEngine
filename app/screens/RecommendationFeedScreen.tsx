@@ -18,6 +18,7 @@ import { MICRO_DISCLAIMER_RECOMMENDATIONS } from '../constants/legal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 import { TopBar } from '../components/TopBar';
 import { RecommendationCard } from '../components/RecommendationCard';
+import { SmartFAB } from '../components/home/SmartFAB';
 
 type RecsScreenProp = StackNavigationProp<RootStackParamList, 'Recommendations'>;
 
@@ -204,6 +205,14 @@ export default function RecommendationFeedScreen() {
                 <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_RECOMMENDATIONS}</Text>
             </ScrollView>
             )}
+
+            <SmartFAB 
+                hasActiveExperiment={activeExperiments.length > 0}
+                onLogMeal={() => navigation.navigate('LogMeal')}
+                onLogSymptom={() => navigation.navigate('SymptomLogger')}
+                onLogMood={() => navigation.navigate('MoodLogger')}
+                onLogProgress={() => navigation.navigate('SymptomLogger')}
+            />
 
         </View>
     );

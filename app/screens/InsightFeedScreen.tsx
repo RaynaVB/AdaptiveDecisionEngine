@@ -11,11 +11,21 @@ import { MICRO_DISCLAIMER_INSIGHTS } from '../constants/legal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 import { TopBar } from '../components/TopBar';
 import { InsightCard } from '../components/InsightCard';
+import { SmartFAB } from '../components/home/SmartFAB';
+import { HealthLabService } from '../../src/services/healthLabService';
+import { ExperimentRun } from '../../src/models/healthlab';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../src/models/navigation';
+
+type InsightScreenProp = StackNavigationProp<RootStackParamList, 'InsightFeed'>;
 
 export default function InsightFeedScreen() {
     const [insights, setInsights] = useState<Insight[]>([]);
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [activeExperiments, setActiveExperiments] = useState<ExperimentRun[]>([]);
+    const navigation = useNavigation<InsightScreenProp>();
 
     const loadInsights = async () => {
         setLoading(true);
@@ -29,6 +39,12 @@ export default function InsightFeedScreen() {
             const response = await InsightService.getInsights();
             const generatedInsights = response.insights;
             
+            // Sync active experiments for SmartFAB
+            const [actives] = await Promise.all([
+                HealthLabService.getActiveExperiments().catch(() => []),
+            ]);
+            setActiveExperiments(actives);
+
             const sorted = sortByGoalRelevance(generatedInsights, profile);
             setInsights(sorted);
         } catch(error) {
@@ -184,6 +200,14 @@ export default function InsightFeedScreen() {
                 <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_INSIGHTS}</Text>
             </ScrollView>
             )}
+
+            <SmartFAB 
+                hasActiveExperiment={activeExperiments.length > 0}
+                onLogMeal={() => navigation.navigate('LogMeal')}
+                onLogSymptom={() => navigation.navigate('SymptomLogger')}
+                onLogMood={() => navigation.navigate('MoodLogger')}
+                onLogProgress={() => navigation.navigate('SymptomLogger')}
+            />
         </View>
     );
 }

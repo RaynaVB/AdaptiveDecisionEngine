@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform, LayoutAnimation, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform, LayoutAnimation, ActivityIndicator, Keyboard } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -421,6 +421,8 @@ export default function LogMealScreen() {
         const query = overrideName || mealNameQuery;
         if (!query.trim()) return;
 
+        Keyboard.dismiss();
+
         try {
             setLoggingState('analyzing');
             setStatusMessage('Searching your library...');
@@ -432,6 +434,7 @@ export default function LogMealScreen() {
                 setStatusMessage('Found in your library!');
                 setConfirmedDish({ label: previousRecipe.dishLabel });
                 setIngredients(previousRecipe.ingredients);
+                setTextDescription(query); // Fix validation sync
                 if (previousRecipe.questions) {
                     setAnalysisQuestions(previousRecipe.questions);
                 }
@@ -480,8 +483,8 @@ export default function LogMealScreen() {
     };
 
     const handleSave = async () => {
-        if (!textDescription && !photoUri) {
-            Alert.alert('Required', 'Please add a photo or text description.');
+        if (!textDescription && !photoUri && !confirmedDish?.label) {
+            Alert.alert('Required', 'Please add a photo or meal name.');
             return;
         }
 
@@ -633,7 +636,7 @@ export default function LogMealScreen() {
                                 </View>
 
                                 {/* Recipe Typeahead Suggestions */}
-                                {filteredSuggestions.length > 0 && loggingState !== 'analyzing' && (
+                                {filteredSuggestions.length > 0 && loggingState === 'idle' && (
                                     <View style={styles.suggestionContainer}>
                                         {filteredSuggestions.map((suggestion, idx) => (
                                             <TouchableOpacity 
@@ -643,6 +646,7 @@ export default function LogMealScreen() {
                                                     const selected = suggestion.dishLabel;
                                                     setMealNameQuery(selected);
                                                     setFilteredSuggestions([]);
+                                                    Keyboard.dismiss();
                                                     // Pass name directly to avoid state race condition
                                                     handleTextAnalysis(selected);
                                                 }}
@@ -893,6 +897,7 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         color: Colors.onPrimaryContrast,
+        textAlign: 'center',
         textShadowColor: 'rgba(0,0,0,0.7)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 4,

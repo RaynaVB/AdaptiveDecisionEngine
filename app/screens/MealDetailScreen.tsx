@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, LayoutAnimation } from 'react-native';
+import React, { useEffect, useState, useLayoutEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, LayoutAnimation, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -51,6 +51,25 @@ export default function MealDetailScreen() {
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Ingredient[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () => (
+                <TouchableOpacity 
+                    onPress={handleSave} 
+                    disabled={isSaving}
+                    style={{ marginRight: 16 }}
+                >
+                    {isSaving ? (
+                        <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : (
+                        <Text style={{ color: Colors.primary, fontWeight: '700', fontSize: 16 }}>Save</Text>
+                    )}
+                </TouchableOpacity>
+            )
+        });
+    }, [navigation, isSaving, meal, occurredAt, selectedSlot, textDescription, selectedReason, confirmedDish, ingredients, analysisQuestions]);
 
     useEffect(() => {
         if (searchQuery.length > 1) {
@@ -141,22 +160,29 @@ export default function MealDetailScreen() {
 
 
     const handleSave = async () => {
-        if (!meal) return;
+        if (!meal || isSaving) return;
+        setIsSaving(true);
+        try {
+            const updatedMeal: MealEvent = {
+                ...meal,
+                occurredAt: occurredAt.toISOString(),
+                mealSlot: selectedSlot,
+                textDescription: textDescription.trim(),
+                mealReason: selectedReason,
+                dishId: confirmedDish?.id,
+                dishLabel: confirmedDish?.label,
+                confirmedIngredients: ingredients,
+                questions: analysisQuestions,
+            };
 
-        const updatedMeal: MealEvent = {
-            ...meal,
-            occurredAt: occurredAt.toISOString(),
-            mealSlot: selectedSlot,
-            textDescription: textDescription.trim(),
-            mealReason: selectedReason,
-            dishId: confirmedDish?.id,
-            dishLabel: confirmedDish?.label,
-            confirmedIngredients: ingredients,
-            questions: analysisQuestions,
-        };
-
-        await StorageService.updateMealEvent(updatedMeal);
-        navigation.goBack();
+            await StorageService.updateMealEvent(updatedMeal);
+            navigation.goBack();
+        } catch (error) {
+            console.error('Update Error:', error);
+            Alert.alert('Error', 'Failed to save changes');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleDelete = () => {
