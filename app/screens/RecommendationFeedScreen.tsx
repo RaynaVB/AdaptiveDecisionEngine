@@ -202,6 +202,16 @@ export default function RecommendationFeedScreen() {
                     </View>
                 )}
 
+                {recommendations.length === 0 && !loading && (
+                    <View style={{ paddingVertical: 100, alignItems: 'center' }}>
+                        <Sparkles size={48} color={Colors.primaryContainer} />
+                        <Text style={{ ...Typography.title, marginTop: 20, color: Colors.onSurface }}>Preparing Recommendations</Text>
+                        <Text style={{ ...Typography.body, textAlign: 'center', marginTop: 12, paddingHorizontal: 40, color: Colors.onSurfaceVariant }}>
+                            Based on your goal, we are calculating the best next steps for your health journey.
+                        </Text>
+                    </View>
+                )}
+                
                 <Text style={styles.disclaimerText}>{MICRO_DISCLAIMER_RECOMMENDATIONS}</Text>
             </ScrollView>
             )}

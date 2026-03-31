@@ -168,8 +168,12 @@ export default function AppNavigator() {
                 let firstSnapshot = true;
                 unsubscribeProfile = onSnapshot(doc(db, 'users', usr.uid), (docSnap) => {
                     if (docSnap.exists()) {
-                        setProfile(docSnap.data() as UserProfile);
+                        const profileData = docSnap.data() as UserProfile;
+                        setProfile(profileData);
+                    } else {
+                        setProfile(null);
                     }
+                    
                     if (firstSnapshot) {
                         firstSnapshot = false;
                         setLoading(false);
@@ -195,7 +199,9 @@ export default function AppNavigator() {
         };
     }, []);
 
-    if (loading) {
+    // Explicitly check for loading OR (user exists but profile hasn't loaded yet)
+    // This prevents flickering into onboarding while waiting for Firestore
+    if (loading || (user && !profile)) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
                 <ActivityIndicator size="large" color={Colors.primary} />

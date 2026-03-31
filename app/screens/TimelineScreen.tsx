@@ -55,7 +55,7 @@ export default function TimelineScreen() {
     const [moods, setMoods] = useState<MoodEvent[]>([]);
     const [symptoms, setSymptoms] = useState<SymptomEvent[]>([]);
     const [weeklyInsights, setWeeklyInsights] = useState<Insight[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [selectedDayEvents, setSelectedDayEvents] = useState<{ dateStr: string; events: TimelineItem[] } | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -470,12 +470,14 @@ export default function TimelineScreen() {
                 contentContainerStyle={styles.listContent}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={Colors.primary} />}
                 ListEmptyComponent={
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyStateTitle}>Nothing here yet</Text>
-                        <Text style={styles.emptyStateBody}>
-                            Tap the + button to log a meal, mood, or symptom. Your recent activity will appear here.
-                        </Text>
-                    </View>
+                    !loading ? (
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyStateTitle}>Nothing here yet</Text>
+                            <Text style={styles.emptyStateBody}>
+                                Tap the + button to log a meal, mood, or symptom. Your recent activity will appear here.
+                            </Text>
+                        </View>
+                    ) : null
                 }
                 ListHeaderComponent={
                     <View style={{ paddingBottom: 24 }}>
