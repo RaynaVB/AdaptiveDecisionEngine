@@ -14,6 +14,7 @@ Veyra relies on a React Native (Expo) frontend paired with a modular Serverless 
 - **Backend Infrastructure (Firebase):**
   - `Firestore`: Primary database storing structured event data (Meals, Symptoms, Moods, Users, Experiments). Moods are stored in the `moods` collection using a `symptomType` + `severity` model. Physical symptoms are stored in the `symptoms` collection.
   - `Auth`: User authentication.
+  - **Authentication Persistence**: The application uses `@react-native-async-storage/async-storage` as a persistence layer for Firebase Authentication. This ensures that user sessions are maintained across app restarts by securely storing the authentication token on the device.
   - `Cloud Functions (Python)`: Decoupled service endpoints to run ML tasks, logic, and intelligent generation offline and at scale.
 
 ---
@@ -110,6 +111,7 @@ The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` 
 
 ### Authentication & Onboarding
 - `Login`, `SignUp`, `ForgotPassword`
+- **Persistent Sessions**: Login state is persisted via `AsyncStorage`, allowing users to stay logged in until they explicitly sign out.
 - `OnboardingWelcome` — medical disclaimer acceptance.
 - `OnboardingProfile` — 6-step profile capture:
   1. Name (stored locally only — never written to Firestore)

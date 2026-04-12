@@ -302,6 +302,7 @@ Four detectors run independently (one failure does not block the others):
 - **Fast Experience**: The core logging path must remain under 30 seconds.
 - **Safe Fallback**: If confidence is too low (e.g., unidentifiable meal, sparse pattern history), the app will recommend a low-risk action or request more data rather than presenting speculative conclusions.
 - **Modular Architecture**: Logging, patterns, recommendations, and HealthLab are kept structurally independent for easy iteration.
+- **Persistent Authentication**: Login sessions are maintained across app restarts using `AsyncStorage` as a persistence layer, reducing friction for returning users.
 - **Privacy by Design**: User PII (name) stored locally only; Firestore stores only anonymous behavioral data keyed by UID.
 - **Adaptive Thresholds**: Pattern engine minimum event requirements scale with user-reported symptom frequency, preventing early users from waiting too long for their first insights.
 
