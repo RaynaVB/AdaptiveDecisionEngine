@@ -287,7 +287,7 @@ Four detectors run independently (one failure does not block the others):
   - Dismiss X → calls `onDismiss(alertId)` (optimistic local removal + Firestore write)
   The CTA and dismiss are independent actions — tapping CTA does not dismiss.
 
-- **`TimelineScreen` integration**: On `loadData()`, `PatternAlertService.getActiveAlerts()` is included in the `Promise.all`. After `setLoading(false)`, `PatternAlertService.scanForAlerts()` runs in the background. Dismissed alerts are tracked in a local `Set` for optimistic UI updates without waiting for Firestore.
+- **`Timeline` integration**: On `loadData()`, `PatternAlertService.getActiveAlerts()` is included in the `Promise.all`. The screen uses an optimized fetching strategy, loading the most recent 15 events per category and deriving the **last 3 distinct days of activity** to display. This ensures the feed is always relevant even after periods of inactivity and performs efficiently as the database grows.
 
 #### Deployment
 `pattern_alerts_service` is a Python 3.12 Cloud Function registered in `firebase.json` under the `patternalerts` codebase. A dedicated GitHub Actions workflow (`deploy-patternalerts.yml`) deploys it independently when changes are pushed to `functions/pattern_alerts_service/**`.

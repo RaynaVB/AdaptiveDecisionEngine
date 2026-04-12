@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, getDoc, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, getDoc, addDoc, Timestamp, limit } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 import { MealEvent, MoodEvent } from '../models/types';
 import { SymptomEvent } from '../models/Symptom';
@@ -61,11 +61,14 @@ export const StorageService = {
         return sanitized;
     },
 
-    async getMealEvents(): Promise<MealEvent[]> {
+    async getMealEvents(limitCount?: number): Promise<MealEvent[]> {
         try {
             if (!auth.currentUser) return [];
-            await this.logAuditAction('VIEW_MEALS', { count_requested: 'all' });
-            const q = query(this.getMealsCollectionRef(), orderBy('occurredAt', 'desc'));
+            await this.logAuditAction('VIEW_MEALS', { count_requested: limitCount || 'all' });
+            let q = query(this.getMealsCollectionRef(), orderBy('occurredAt', 'desc'));
+            if (limitCount) {
+                q = query(q, limit(limitCount));
+            }
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(doc => doc.data() as MealEvent);
         } catch (e) {
@@ -107,10 +110,13 @@ export const StorageService = {
 
     // MOODS
 
-    async getMoodEvents(): Promise<MoodEvent[]> {
+    async getMoodEvents(limitCount?: number): Promise<MoodEvent[]> {
         try {
             if (!auth.currentUser) return [];
-            const q = query(this.getMoodsCollectionRef(), orderBy('occurredAt', 'desc'));
+            let q = query(this.getMoodsCollectionRef(), orderBy('occurredAt', 'desc'));
+            if (limitCount) {
+                q = query(q, limit(limitCount));
+            }
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(doc => doc.data() as MoodEvent);
         } catch (e) {
@@ -141,10 +147,13 @@ export const StorageService = {
 
     // SYMPTOMS
 
-    async getSymptomEvents(): Promise<SymptomEvent[]> {
+    async getSymptomEvents(limitCount?: number): Promise<SymptomEvent[]> {
         try {
             if (!auth.currentUser) return [];
-            const q = query(this.getSymptomsCollectionRef(), orderBy('occurredAt', 'desc'));
+            let q = query(this.getSymptomsCollectionRef(), orderBy('occurredAt', 'desc'));
+            if (limitCount) {
+                q = query(q, limit(limitCount));
+            }
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(doc => doc.data() as SymptomEvent);
         } catch (e) {

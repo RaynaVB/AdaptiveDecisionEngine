@@ -158,10 +158,13 @@ export default function TimelineScreen() {
 
     const loadData = async () => {
         setLoading(true);
+        // FETCH STRATEGY: 
+        // We load the most recent 15 entries for each category.
+        // This avoids loading the entire history while giving us a good snapshot.
         const [loadedMeals, loadedMoods, loadedSymptoms, activeExps, recsResponse, weeklyResponse, insightsResponse, alertsResult] = await Promise.all([
-            StorageService.getMealEvents(),
-            StorageService.getMoodEvents(),
-            StorageService.getSymptomEvents(),
+            StorageService.getMealEvents(15), 
+            StorageService.getMoodEvents(15),
+            StorageService.getSymptomEvents(15),
             HealthLabService.getActiveExperiments().catch(() => []),
             RecommendationService.getRecommendations().catch(() => ({ recommendations: [] })),
             WeeklyPatternsService.getWeeklySummary().catch(() => ({ items: [] })),
@@ -201,12 +204,29 @@ export default function TimelineScreen() {
             setUserProfile(profile);
         }
 
-        const threeDaysAgo = new Date();
-        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+        // Logic for "Last 3 days of data we have"
+        const allEventsForDateDerivation: TimelineItem[] = [
+            ...loadedMeals.map(m => ({ type: 'meal' as const, data: m })),
+            ...loadedMoods.map(m => ({ type: 'mood' as const, data: m })),
+            ...loadedSymptoms.map(s => ({ type: 'symptom' as const, data: s }))
+        ];
 
-        const filteredMeals = loadedMeals.filter(m => new Date(m.occurredAt) >= threeDaysAgo);
-        const filteredMoods = loadedMoods.filter(m => new Date(m.occurredAt) >= threeDaysAgo);
-        const filteredSymptoms = loadedSymptoms.filter(s => new Date(s.occurredAt) >= threeDaysAgo);
+        // 1. Get unique dates (YYYY-MM-DD or similar string representation)
+        const uniqueDateStrings = Array.from(new Set(
+            allEventsForDateDerivation.map(item => new Date(item.data.occurredAt).toDateString())
+        ));
+
+        // 2. Sort dates descending and take top 3
+        const top3Dates = uniqueDateStrings
+            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+            .slice(0, 3);
+
+        const top3DateSet = new Set(top3Dates);
+
+        // 3. Filter the events to only include those on the top 3 dates
+        const filteredMeals = loadedMeals.filter(m => top3DateSet.has(new Date(m.occurredAt).toDateString()));
+        const filteredMoods = loadedMoods.filter(m => top3DateSet.has(new Date(m.occurredAt).toDateString()));
+        const filteredSymptoms = loadedSymptoms.filter(s => top3DateSet.has(new Date(s.occurredAt).toDateString()));
 
         setMeals(filteredMeals);
         setMoods(filteredMoods); 
@@ -565,7 +585,7 @@ export default function TimelineScreen() {
 
                         <View style={styles.recentActivityHeader}>
                             <Text style={styles.recentActivityTitle}>Recent Activity</Text>
-                            <Text style={styles.recentActivitySubtitle}>Showing last 3 days</Text>
+                            <Text style={styles.recentActivitySubtitle}>Showing last 3 days of activity</Text>
                         </View>
                     </View>
                 }
