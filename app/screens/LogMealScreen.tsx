@@ -533,8 +533,8 @@ export default function LogMealScreen() {
             RecommendationService.recomputeRecommendations('meal_logged')
                 .catch(err => console.error("Failed to recompute recommendations:", err));
 
-            // Navigate back immediately without prompt
-            navigation.popToTop();
+            // Navigate to logs tab to see the entry
+            navigation.navigate('Main', { screen: 'Log' });
 
         } catch (error) {
             console.error("Save Error", error);

@@ -139,7 +139,7 @@ export default function SymptomLoggerScreen() {
         PatternAlertService.scanForAlerts()
             .catch(err => console.warn('[PatternAlerts] scan failed:', err));
 
-        navigation.goBack();
+        navigation.navigate('Main', { screen: 'Log' });
     };
 
     const formatDuration = (mins: number | null) => {

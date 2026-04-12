@@ -287,7 +287,8 @@ Four detectors run independently (one failure does not block the others):
   - Dismiss X → calls `onDismiss(alertId)` (optimistic local removal + Firestore write)
   The CTA and dismiss are independent actions — tapping CTA does not dismiss.
 
-- **`Timeline` integration**: On `loadData()`, `PatternAlertService.getActiveAlerts()` is included in the `Promise.all`. The screen uses an optimized fetching strategy, loading the most recent 15 events per category and deriving the **last 3 distinct days of activity** to display. This ensures the feed is always relevant even after periods of inactivity and performs efficiently as the database grows.
+- **`Timeline` integration**: Renders a chronologic activity feed of the latest 3 active days. Optimized to fetch only a recent snapshot (limit 15 per type) to minimize database load.
+- **`Logs` (History) integration**: Provides a complete, infinite-scrolling archive of all user activity. Fetches data in synchronized **3-day time blocks** across categories to ensure a cohesive chronological view. Features auto-fetch logic to skip empty periods until data is found.
 
 #### Deployment
 `pattern_alerts_service` is a Python 3.12 Cloud Function registered in `firebase.json` under the `patternalerts` codebase. A dedicated GitHub Actions workflow (`deploy-patternalerts.yml`) deploys it independently when changes are pushed to `functions/pattern_alerts_service/**`.

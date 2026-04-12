@@ -18,6 +18,7 @@ import HealthLabScreen from './screens/HealthLabScreen';
 import ExperimentDetailScreen from './screens/ExperimentDetailScreen';
 import ExperimentHistoryScreen from './screens/ExperimentHistoryScreen';
 import ExperimentResultScreen from './screens/ExperimentResultScreen';
+import LogsScreen from './screens/LogsScreen';
 
 // New onboarding screens
 import OnboardingWelcomeScreen from './screens/OnboardingWelcomeScreen';
@@ -37,7 +38,7 @@ import { getUserProfile, UserProfile } from '../src/services/userProfile';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import { Sparkles, Lightbulb, Beaker, TrendingUp, Menu, Bell, Home } from 'lucide-react-native';
+import { Sparkles, Lightbulb, Beaker, TrendingUp, Menu, Bell, Home, ScrollText } from 'lucide-react-native';
 import { Colors, Typography } from './constants/Theme';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -132,6 +133,13 @@ function MainTabNavigator() {
                 component={RecommendationFeedScreen} 
                 options={{
                     tabBarIcon: ({ color, size }) => <Lightbulb color={color} size={size} />,
+                }}
+            />
+            <Tab.Screen 
+                name="Log" 
+                component={LogsScreen} 
+                options={{
+                    tabBarIcon: ({ color, size }) => <ScrollText color={color} size={size} />,
                 }}
             />
             <Tab.Screen 

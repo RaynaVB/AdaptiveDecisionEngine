@@ -127,11 +127,8 @@ The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` 
   - `SymptomLogger`: Focused interface for physical symptoms (bloating, headache, etc.) on a **1–3** scale.
   - `MealDetail`: Read/write structured breakdown of a single logged meal event.
 - **Feed & Timeline**
-  - `Timeline`: A chronologic activity feed. To maintain high performance, it uses a **tiered fetching strategy**:
-    - **Optimization**: Instead of loading the full history, the screen fetches the most recent 15 entries per category (Meals, Moods, Symptoms).
-    - **Adaptive Window**: It identifies the most recent **3 distinct days of activity** from this snapshot. This ensures that users see relevant history (e.g., Today, 3 days ago, and 6 days ago) even if they haven't logged data recently. 
-    - **Subtitle**: Displays "Showing last 3 days of activity" to reflect the data-driven window.
-    - **Pattern Alerts**: Also fetches active pattern alerts and renders `EmergingPatternCard` components above the weekly intelligence section. Fires a background `scanForAlerts()` call (2-hour debounce enforced in service layer).
+  - `Timeline`: Renders a chronologic activity feed of the latest 3 active days. Optimized to fetch only a recent snapshot (limit 15 per type) to minimize database load.
+  - `Logs` (History): Provides a complete, infinite-scrolling archive of all user activity. Fetches data in synchronized **3-day time blocks** across categories to ensure a cohesive chronological view. Features auto-fetch logic to skip empty periods until data is found.
 - **Intelligence Surfaces**
   - `InsightFeed`: AI-generated insights organized into four sections — PREDICTIONS, TRIGGERS (incl. energy dip and sleep impact types), PROTECTORS (incl. mood boost type), EMERGING. Insights are sorted by goal relevance using keyword matching against the user's selected goals. Insights with an `actionableInsight.experimentIdToStart` render a tappable "Start Experiment" CTA that navigates directly to HealthLab.
   - `WeeklyPatterns`: Visual display of behavioral patterns over the last evaluated cycle.
