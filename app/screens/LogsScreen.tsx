@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Image, ActivityIndicator, Platform, UIManager, SafeAreaView } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Image, ActivityIndicator, Platform, UIManager, SafeAreaView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -12,7 +12,7 @@ import { formatMealSummary } from '../../src/utils/mealSummary';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 import { TopBar } from '../components/TopBar';
 import { SmartFAB } from '../components/home/SmartFAB';
-import { HealthLabService } from '../../src/services/healthLabService';
+import { HealthLabService as HealthService } from '../../src/services/healthLabService';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -170,11 +170,51 @@ export default function LogsScreen() {
 
     const loadActiveExperiments = async () => {
         try {
-            const experiments = await HealthLabService.getActiveExperiments();
+            const experiments = await HealthService.getActiveExperiments();
             setActiveExperiments(experiments);
         } catch (e) {
             console.error('[LogsScreen] Failed to load experiments:', e);
         }
+    };
+
+    const handleDeleteItem = (item: TimelineItem) => {
+        Alert.alert(
+            "Delete Entry",
+            `Are you sure you want to delete this ${item.type}? This action cannot be undone.`,
+            [
+                { text: "Cancel", style: "cancel" },
+                { 
+                    text: "Delete", 
+                    style: "destructive", 
+                    onPress: async () => {
+                        try {
+                            if (item.type === 'meal') {
+                                await StorageService.deleteMealEvent(item.data.id);
+                            } else if (item.type === 'mood') {
+                                await StorageService.deleteMoodEvent(item.data.id);
+                            } else if (item.type === 'symptom') {
+                                await StorageService.deleteSymptomEvent(item.data.id);
+                            }
+
+                            // Optimistically update the UI
+                            setSections(prev => {
+                                return prev.map(section => ({
+                                    ...section,
+                                    data: section.data.filter(d => d.data.id !== item.data.id)
+                                })).filter(section => section.data.length > 0);
+                            });
+
+                            if (item.type === 'mood') {
+                                setMoods(prev => prev.filter(m => m.id !== item.data.id));
+                            }
+                        } catch (e) {
+                            console.error('[LogsScreen] Failed to delete item:', e);
+                            Alert.alert("Error", "Failed to delete item. Please try again.");
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const getMoodForMeal = (meal: MealEvent) => {
@@ -209,7 +249,8 @@ export default function LogsScreen() {
 
                 <TouchableOpacity
                     style={[styles.cardColumn, { marginTop: 4 }]}
-                    onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
+                    onPress={() => navigation.getParent()?.navigate('MealDetail', { mealId: item.id })}
+                    onLongPress={() => handleDeleteItem({ type: 'meal', data: item })}
                 >
                     <View style={styles.mealHeader}>
                         <Text style={styles.timeColumnText}>{timeString}</Text>
@@ -265,12 +306,16 @@ export default function LogsScreen() {
                     <View style={styles.timelineNodeSmall} />
                 </View>
 
-                <View style={styles.compactRow}>
+                <TouchableOpacity 
+                    style={styles.compactRow}
+                    activeOpacity={0.7}
+                    onLongPress={() => handleDeleteItem({ type: 'mood', data: item })}
+                >
                     <Text style={styles.compactTime}>{timeString}</Text>
                     <Text style={styles.compactEmoji}>{emoji}</Text>
                     <Text style={styles.compactLabel}>{typeLabel}</Text>
                     {intensityStr ? <Text style={styles.compactValue}>{intensityStr}</Text> : null}
-                </View>
+                </TouchableOpacity>
             </View>
         );
     };
@@ -291,7 +336,11 @@ export default function LogsScreen() {
                     <View style={[styles.timelineNodeSmall, { backgroundColor: Colors.error }]} />
                 </View>
 
-                <View style={styles.compactRow}>
+                <TouchableOpacity 
+                    style={styles.compactRow}
+                    activeOpacity={0.7}
+                    onLongPress={() => handleDeleteItem({ type: 'symptom', data: item })}
+                >
                     <Text style={styles.compactTime}>{timeString}</Text>
                     <Zap size={14} color={Colors.error} style={{ marginHorizontal: 8 }} fill={Colors.error} />
                     <Text style={styles.compactLabel}>
@@ -300,7 +349,7 @@ export default function LogsScreen() {
                     <View style={styles.intensityBadgeSmall}>
                         <Text style={styles.intensityTextSmall}>{item.severity}</Text>
                     </View>
-                </View>
+                </TouchableOpacity>
             </View>
         );
     };

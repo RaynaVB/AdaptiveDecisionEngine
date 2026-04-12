@@ -48,16 +48,6 @@ function HomeStackNavigator() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Timeline" component={TimelineScreen} />
-            <Stack.Screen 
-                name="MealDetail" 
-                component={MealDetailScreen}
-                options={{ headerShown: true, title: 'Meal Details' }} 
-            />
-            <Stack.Screen 
-                name="ExperimentDetail" 
-                component={ExperimentDetailScreen}
-                options={{ headerShown: true, title: 'Experiment Details' }} 
-            />
         </Stack.Navigator>
     );
 }
@@ -66,11 +56,6 @@ function HealthLabStackNavigator() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="HealthLab" component={HealthLabScreen} />
-            <Stack.Screen 
-                name="ExperimentDetail" 
-                component={ExperimentDetailScreen}
-                options={{ headerShown: true, title: 'Experiment Details' }} 
-            />
             <Stack.Screen 
                 name="ExperimentHistory" 
                 component={ExperimentHistoryScreen}
@@ -258,6 +243,11 @@ export default function AppNavigator() {
                                     </TouchableOpacity>
                                 )
                             })}
+                        />
+                        <Stack.Screen
+                            name="MealDetail"
+                            component={MealDetailScreen}
+                            options={{ headerShown: true, title: 'Meal Details' }}
                         />
                         <Stack.Screen
                             name="WeeklyPatterns"
