@@ -40,36 +40,51 @@ export default function LogsScreen() {
 
         setLoading(true);
         try {
-            const endDate = reset ? new Date() : (cursorDate || new Date());
-            // Fetch in 3-day blocks as requested
-            const startDate = new Date(endDate.getTime() - 3 * 24 * 60 * 60 * 1000);
+            let currentEndDate = reset ? new Date() : (cursorDate || new Date());
+            let mergedBatch: TimelineItem[] = [];
+            let currentStartDate = new Date(currentEndDate);
+            let currentBatchMoods: MoodEvent[] = [];
+            let iterationCount = 0;
+            const MAX_ITERATIONS = 10; // Search up to 30 days back in one go if empty
 
-            const [batchMeals, batchMoods, batchSymptoms] = await Promise.all([
-                StorageService.getMealEvents(undefined, startDate.toISOString(), endDate.toISOString()),
-                StorageService.getMoodEvents(undefined, startDate.toISOString(), endDate.toISOString()),
-                StorageService.getSymptomEvents(undefined, startDate.toISOString(), endDate.toISOString()),
-            ]);
+            while (mergedBatch.length === 0 && iterationCount < MAX_ITERATIONS) {
+                currentStartDate = new Date(currentEndDate.getTime() - 3 * 24 * 60 * 60 * 1000);
+                
+                const [batchMeals, batchMoods, batchSymptoms] = await Promise.all([
+                    StorageService.getMealEvents(undefined, currentStartDate.toISOString(), currentEndDate.toISOString()),
+                    StorageService.getMoodEvents(undefined, currentStartDate.toISOString(), currentEndDate.toISOString()),
+                    StorageService.getSymptomEvents(undefined, currentStartDate.toISOString(), currentEndDate.toISOString()),
+                ]);
 
-            const mergedBatch: TimelineItem[] = [
-                ...batchMeals.map(m => ({ type: 'meal' as const, data: m })),
-                ...batchMoods.map(m => ({ type: 'mood' as const, data: m })),
-                ...batchSymptoms.map(s => ({ type: 'symptom' as const, data: s }))
-            ];
+                mergedBatch = [
+                    ...batchMeals.map(m => ({ type: 'meal' as const, data: m })),
+                    ...batchMoods.map(m => ({ type: 'mood' as const, data: m })),
+                    ...batchSymptoms.map(s => ({ type: 'symptom' as const, data: s }))
+                ];
 
-            // If we found basically nothing, and we aren't "too far" back, try to fetch the next 3 days immediately
-            // to avoid an empty scroll experience. We'll limit this to 3 recursive jumps for safety.
-            if (mergedBatch.length === 0 && !reset) {
-                // Check if we should keep looking back (avoiding infinite loops if user has no data)
-                // We'll let the user manually trigger the next fetch by scrolling or we could automate one jump.
+                if (mergedBatch.length === 0) {
+                    currentEndDate = currentStartDate;
+                    iterationCount++;
+                } else {
+                    currentBatchMoods = batchMoods;
+                }
+            }
+
+            if (mergedBatch.length === 0) {
+                // If we hit the max iterations and still found nothing, 
+                // we'll stop looking further back for now.
+                setHasMore(false);
+                setLoading(false);
+                return;
             }
 
             mergedBatch.sort((a, b) => new Date(b.data.occurredAt).getTime() - new Date(a.data.occurredAt).getTime());
 
             // Update mood cache for meal rendering
             if (reset) {
-                setMoods(batchMoods);
+                setMoods(currentBatchMoods);
             } else {
-                setMoods(prev => [...prev, ...batchMoods]);
+                setMoods(prev => [...prev, ...currentBatchMoods]);
             }
 
             const grouped: { [key: string]: TimelineItem[] } = {};
@@ -123,13 +138,14 @@ export default function LogsScreen() {
                 });
             }
 
-            setCursorDate(startDate);
+            setCursorDate(currentStartDate);
 
-            // Heuristic for "hasMore": if we fetched 0 items and we are more than 30 days back, stop.
-            // Or just keep allowing it until a hard stop.
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 365); // Let's go back up to a year
-            if (startDate < thirtyDaysAgo && mergedBatch.length === 0) {
+            // Robust hasMore check: if we found items but they are from a search that 
+            // ended very far back, we might check if there's anything else. 
+            // For now, if we found anything, we assume there might be more.
+            const threeYearsAgo = new Date();
+            threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+            if (currentStartDate < threeYearsAgo) {
                 setHasMore(false);
             }
 
@@ -175,7 +191,7 @@ export default function LogsScreen() {
         return validMoods.length > 0 ? validMoods[0] : null;
     };
 
-    const renderMealItem = (item: MealEvent) => {
+    const renderMealItem = (item: MealEvent, timeGap: string | null) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -183,33 +199,30 @@ export default function LogsScreen() {
             <View style={styles.timelineRow}>
                 <View style={styles.leftColumn}>
                     <View style={styles.timelineLine} />
-                    <View style={[styles.iconCircle, { backgroundColor: Colors.mealContainer }]}>
-                        <Utensils size={16} color={Colors.mealIcon} />
-                    </View>
+                    {timeGap && (
+                        <View style={styles.timeGapNode}>
+                            <Text style={styles.timeGapText}>{timeGap}</Text>
+                        </View>
+                    )}
+                    <View style={styles.timelineNode} />
                 </View>
 
                 <TouchableOpacity
-                    style={[styles.card, styles.cardColumn]}
+                    style={[styles.cardColumn, { marginTop: 4 }]}
                     onPress={() => navigation.navigate('MealDetail', { mealId: item.id })}
                 >
+                    <View style={styles.mealHeader}>
+                        <Text style={styles.timeColumnText}>{timeString}</Text>
+                        <Text style={styles.mealSlotLabel}>
+                             • {(item.mealSlot || 'meal').toUpperCase()}
+                        </Text>
+                    </View>
+
                     {item.photoUri ? (
                         <Image source={{ uri: item.photoUri }} style={styles.mealImage} resizeMode="cover" />
-                    ) : null}
-
-                    <View style={{ paddingHorizontal: 4 }}>
-                        <Text style={[styles.summaryText, { fontSize: 18, marginBottom: 4 }]}>{formatMealSummary(item)}</Text>
-                        <Text style={styles.timeColumnText}>
-                            {timeString} • {(item.mealSlot || 'meal').charAt(0).toUpperCase() + (item.mealSlot || 'meal').slice(1)}
-                        </Text>
-
-                        {item.textDescription ? (
-                            <Text style={[styles.description, { marginTop: 8 }]} numberOfLines={2}>{item.textDescription}</Text>
-                        ) : null}
-
-                        <View style={styles.checkmarkContainer}>
-                            <CheckCircle2 size={20} color={Colors.primary} />
-                        </View>
-                    </View>
+                    ) : (
+                        <Text style={styles.summaryText}>{formatMealSummary(item)}</Text>
+                    )}
                 </TouchableOpacity>
             </View>
         );
@@ -233,7 +246,7 @@ export default function LogsScreen() {
         return '😐';
     };
 
-    const renderMoodItem = (item: MoodEvent) => {
+    const renderMoodItem = (item: MoodEvent, timeGap: string | null) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const emoji = getMoodEmoji(item.symptomType, item.severity ?? 0);
@@ -244,25 +257,25 @@ export default function LogsScreen() {
             <View style={styles.timelineRow}>
                 <View style={styles.leftColumn}>
                     <View style={styles.timelineLine} />
-                    <View style={[styles.iconCircle, { backgroundColor: Colors.moodContainer }]}>
-                        <Smile size={18} color={Colors.moodIcon} />
-                    </View>
+                    {timeGap && (
+                        <View style={styles.timeGapNode}>
+                            <Text style={styles.timeGapText}>{timeGap}</Text>
+                        </View>
+                    )}
+                    <View style={styles.timelineNodeSmall} />
                 </View>
 
-                <View style={[styles.card, styles.cardColumn, { flexDirection: 'row', alignItems: 'center', padding: Spacing.s4 }]}>
-                    <Text style={{ fontSize: 32, marginRight: Spacing.s4 }}>{emoji}</Text>
-                    <View style={{ flex: 1 }}>
-                        <Text style={[styles.summaryText, { fontSize: 17, marginBottom: 2 }]}>{typeLabel}</Text>
-                        <Text style={styles.timeColumnText}>
-                            {timeString}{intensityStr ? ` • ${intensityStr}` : ''}
-                        </Text>
-                    </View>
+                <View style={styles.compactRow}>
+                    <Text style={styles.compactTime}>{timeString}</Text>
+                    <Text style={styles.compactEmoji}>{emoji}</Text>
+                    <Text style={styles.compactLabel}>{typeLabel}</Text>
+                    {intensityStr ? <Text style={styles.compactValue}>{intensityStr}</Text> : null}
                 </View>
             </View>
         );
     };
 
-    const renderSymptomItem = (item: SymptomEvent) => {
+    const renderSymptomItem = (item: SymptomEvent, timeGap: string | null) => {
         const date = new Date(item.occurredAt);
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -270,35 +283,47 @@ export default function LogsScreen() {
             <View style={styles.timelineRow}>
                 <View style={styles.leftColumn}>
                     <View style={styles.timelineLine} />
-                    <View style={[styles.iconCircle, { backgroundColor: Colors.errorContainer }]}>
-                        <Zap size={16} color={Colors.error} fill={Colors.error} />
-                    </View>
+                    {timeGap && (
+                        <View style={styles.timeGapNode}>
+                            <Text style={styles.timeGapText}>{timeGap}</Text>
+                        </View>
+                    )}
+                    <View style={[styles.timelineNodeSmall, { backgroundColor: Colors.error }]} />
                 </View>
 
-                <View style={[styles.card, styles.cardColumn, { padding: Spacing.s4 }]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                        <Text style={[styles.summaryText, { fontSize: 18, flex: 1, marginRight: 8 }]}>
-                            {(item.symptomType || 'symptom').charAt(0).toUpperCase() + (item.symptomType || 'symptom').slice(1)}
-                        </Text>
-                        <View style={styles.intensityBadge}>
-                            <Text style={styles.intensityText}>Intensity {item.severity}</Text>
-                        </View>
-                    </View>
-                    <Text style={styles.timeColumnText}>
-                        {timeString} {item.durationMinutes ? `• ${item.durationMinutes}m duration` : ''}
+                <View style={styles.compactRow}>
+                    <Text style={styles.compactTime}>{timeString}</Text>
+                    <Zap size={14} color={Colors.error} style={{ marginHorizontal: 8 }} fill={Colors.error} />
+                    <Text style={styles.compactLabel}>
+                        {(item.symptomType || 'symptom').charAt(0).toUpperCase() + (item.symptomType || 'symptom').slice(1)}
                     </Text>
-                    {item.notes ? (
-                        <Text style={[styles.description, { marginTop: 8 }]} numberOfLines={2}>{item.notes}</Text>
-                    ) : null}
+                    <View style={styles.intensityBadgeSmall}>
+                        <Text style={styles.intensityTextSmall}>{item.severity}</Text>
+                    </View>
                 </View>
             </View>
         );
     };
 
-    const renderItem = ({ item }: { item: TimelineItem }) => {
-        if (item.type === 'meal') return renderMealItem(item.data);
-        if (item.type === 'symptom') return renderSymptomItem(item.data);
-        return renderMoodItem(item.data);
+    const renderItem = ({ item, index, section }: { item: TimelineItem, index: number, section: TimelineSection }) => {
+        let timeGap: string | null = null;
+        if (index > 0) {
+            const prevItem = section.data[index - 1];
+            const currentTime = new Date(item.data.occurredAt).getTime();
+            const prevTime = new Date(prevItem.data.occurredAt).getTime();
+            const diffMs = Math.abs(prevTime - currentTime);
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins >= 1) {
+                const hours = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                timeGap = hours > 0 ? `${hours}h ${mins > 0 ? `${mins}min` : ''}` : `${mins}min`;
+            }
+        }
+
+        if (item.type === 'meal') return renderMealItem(item.data, timeGap);
+        if (item.type === 'symptom') return renderSymptomItem(item.data, timeGap);
+        return renderMoodItem(item.data, timeGap);
     };
 
     return (
@@ -381,11 +406,6 @@ const styles = StyleSheet.create({
         color: Colors.onSurface,
         marginBottom: 8,
     },
-    subtitle: {
-        ...Typography.body,
-        color: Colors.onSurfaceVariant,
-        fontSize: 15,
-    },
     sectionHeader: {
         paddingHorizontal: Spacing.s4,
         paddingTop: Spacing.s4,
@@ -398,7 +418,7 @@ const styles = StyleSheet.create({
     },
     sectionDivider: {
         height: 2,
-        backgroundColor: Colors.primary,
+        backgroundColor: Colors.warning,
         marginTop: Spacing.s1,
         width: 32,
         marginBottom: Spacing.s3,
@@ -410,7 +430,6 @@ const styles = StyleSheet.create({
     timelineRow: {
         flexDirection: 'row',
         paddingHorizontal: Spacing.s4,
-        marginBottom: Spacing.s3,
     },
     leftColumn: {
         width: 44,
@@ -422,30 +441,65 @@ const styles = StyleSheet.create({
         top: 0,
         bottom: 0,
         width: 2,
-        backgroundColor: Colors.surfaceContainer,
+        backgroundColor: Colors.warning,
+        opacity: 0.3,
     },
-    iconCircle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
+    timelineNode: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: Colors.warning,
         zIndex: 1,
-        marginTop: 4,
+        marginTop: 20,
+    },
+    timelineNodeSmall: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: Colors.warning,
+        zIndex: 1,
+        marginTop: 14,
+    },
+    timeGapNode: {
+        position: 'absolute',
+        top: -15,
+        backgroundColor: Colors.background,
+        paddingVertical: 2,
+        zIndex: 2,
+    },
+    timeGapText: {
+        ...Typography.label,
+        fontSize: 11,
+        color: Colors.onSurfaceVariant,
+        opacity: 0.8,
+        fontWeight: '800',
     },
     cardColumn: {
         flex: 1,
+        paddingBottom: Spacing.s4,
     },
     card: {
         backgroundColor: Colors.surfaceLowest,
         borderRadius: Radii.xl,
         padding: Spacing.s3,
         ...Shadows.ambient,
+        marginTop: 4,
+    },
+    mealHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    mealSlotLabel: {
+        ...Typography.label,
+        fontSize: 10,
+        color: Colors.outline,
     },
     summaryText: {
         ...Typography.body,
         fontWeight: '700',
         color: Colors.onSurface,
+        fontSize: 18,
         marginBottom: 4,
     },
     timeColumnText: {
@@ -453,35 +507,76 @@ const styles = StyleSheet.create({
         color: Colors.onSurfaceVariant,
         textTransform: 'none',
         fontSize: 12,
+        fontWeight: '700',
     },
     description: {
         ...Typography.body,
         color: Colors.onSurfaceVariant,
         fontSize: 14,
+        marginTop: 4,
     },
     mealImage: {
         width: '100%',
         height: 180,
         borderRadius: Radii.lg,
-        marginBottom: Spacing.s3,
+        marginBottom: Spacing.s2,
     },
-    intensityBadge: {
-        backgroundColor: Colors.errorContainer,
+    mealIconPlaceholder: {
+        width: '100%',
+        height: 80,
+        backgroundColor: Colors.surfaceContainerLow,
+        borderRadius: Radii.lg,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: Spacing.s2,
+    },
+    compactRow: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingBottom: 20,
+    },
+    compactTime: {
+        ...Typography.label,
+        fontSize: 11,
+        color: Colors.onSurfaceVariant,
+        width: 65,
+    },
+    compactEmoji: {
+        fontSize: 16,
+        marginHorizontal: 8,
+    },
+    compactLabel: {
+        ...Typography.body,
+        fontSize: 15,
+        fontWeight: '500',
+        color: Colors.onSurface,
+        flex: 1,
+    },
+    compactValue: {
+        ...Typography.label,
+        fontSize: 12,
+        fontWeight: '800',
+        color: Colors.primary,
+        backgroundColor: Colors.primarySubtle,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: Radii.md,
     },
-    intensityText: {
+    intensityBadgeSmall: {
+        backgroundColor: Colors.errorContainer,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    intensityTextSmall: {
         ...Typography.label,
         color: Colors.error,
         fontSize: 10,
         fontWeight: '800',
-        textTransform: 'uppercase',
-    },
-    checkmarkContainer: {
-        position: 'absolute',
-        bottom: 12,
-        right: 12,
     },
     emptyState: {
         padding: Spacing.s8,
