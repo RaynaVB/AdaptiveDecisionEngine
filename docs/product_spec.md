@@ -304,6 +304,7 @@ Four detectors run independently (one failure does not block the others):
 - **Modular Architecture**: Logging, patterns, recommendations, and HealthLab are kept structurally independent for easy iteration.
 - **Persistent Authentication**: Login sessions are maintained across app restarts using `AsyncStorage` as a persistence layer, reducing friction for returning users.
 - **Privacy by Design**: User PII (name) stored locally only; Firestore stores only anonymous behavioral data keyed by UID.
+- **TopBar Navigation**: The hamburger menu (top-right) provides access to supplemental analysis (Weekly Story) and user settings. Primary navigation is handled via the bottom tab bar.
 - **Adaptive Thresholds**: Pattern engine minimum event requirements scale with user-reported symptom frequency, preventing early users from waiting too long for their first insights.
 
 *(End of Product Specification)*

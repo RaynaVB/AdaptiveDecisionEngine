@@ -157,7 +157,7 @@ export default function WeeklyPatternsScreen({ navigation }: WeeklyPatternsScree
     return (
         <View style={styles.container}>
             <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
-            <TopBar userProfile={userProfile} />
+            <TopBar userProfile={userProfile} showBack={true} />
 
             {loading && !generation ? (
                 <View style={styles.center}>

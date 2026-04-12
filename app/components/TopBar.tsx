@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform, Alert, Image } from 'react-native';
-import { Menu, Bell, Settings, LogOut, ShieldCheck, Home } from 'lucide-react-native';
+import { Menu, Bell, Settings, LogOut, ShieldCheck, TrendingUp, ArrowLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../../src/services/firebaseConfig';
 import { signOut } from 'firebase/auth';
@@ -11,12 +11,16 @@ interface TopBarProps {
     title?: string;
     showNotification?: boolean;
     userProfile?: UserProfile | null;
+    showBack?: boolean;
+    onBack?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
     title = 'Veyra',
     showNotification = false,
-    userProfile = null
+    userProfile = null,
+    showBack = false,
+    onBack
 }) => {
     const navigation = useNavigation<any>();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -37,11 +41,20 @@ export const TopBar: React.FC<TopBarProps> = ({
     return (
         <View style={styles.container}>
             <View style={styles.leftSection}>
-                <Image 
-                    source={require('../../assets/icon.png')} 
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
+                {showBack ? (
+                    <TouchableOpacity 
+                        onPress={onBack || (() => navigation.goBack())} 
+                        style={styles.backButton}
+                    >
+                        <ArrowLeft color={Colors.primary} size={28} />
+                    </TouchableOpacity>
+                ) : (
+                    <Image 
+                        source={require('../../assets/icon.png')} 
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                )}
                 <Text style={styles.title}>{title}</Text>
             </View>
 
@@ -68,6 +81,17 @@ export const TopBar: React.FC<TopBarProps> = ({
                     onPress={() => setIsMenuOpen(false)}
                 >
                     <View style={styles.menuContent}>
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => {
+                                setIsMenuOpen(false);
+                                navigation.navigate('WeeklyPatterns');
+                            }}
+                        >
+                            <TrendingUp color={Colors.primary} size={20} />
+                            <Text style={styles.menuItemText}>Weekly Story</Text>
+                        </TouchableOpacity>
+
                         <TouchableOpacity
                             style={styles.menuItem}
                             onPress={() => {
@@ -129,6 +153,14 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: Radii.md,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: -Spacing.s2,
     },
     rightSection: {
         flexDirection: 'row',

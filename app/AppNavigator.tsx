@@ -38,7 +38,7 @@ import { getUserProfile, UserProfile } from '../src/services/userProfile';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import { Sparkles, Lightbulb, Beaker, TrendingUp, Menu, Bell, Home, ScrollText } from 'lucide-react-native';
+import { Sparkles, Lightbulb, Beaker, Menu, Bell, Home, ScrollText } from 'lucide-react-native';
 import { Colors, Typography } from './constants/Theme';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -136,13 +136,6 @@ function MainTabNavigator() {
                 }}
             />
             <Tab.Screen 
-                name="Log" 
-                component={LogsScreen} 
-                options={{
-                    tabBarIcon: ({ color, size }) => <ScrollText color={color} size={size} />,
-                }}
-            />
-            <Tab.Screen 
                 name="HealthLabTab" 
                 component={HealthLabStackNavigator} 
                 options={{
@@ -151,10 +144,10 @@ function MainTabNavigator() {
                 }}
             />
             <Tab.Screen 
-                name="Weekly" 
-                component={WeeklyPatternsScreen} 
+                name="Log" 
+                component={LogsScreen} 
                 options={{
-                    tabBarIcon: ({ color, size }) => <TrendingUp color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <ScrollText color={color} size={size} />,
                 }}
             />
         </Tab.Navigator>

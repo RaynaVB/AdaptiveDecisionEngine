@@ -107,7 +107,7 @@ The system delegates domain-specific logic to independent cloud function service
 
 ## 3. Application Flow & Screen Inventory (Frontend)
 
-The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` to coordinate across five main pillars: **Home, Insights, Recommendations, Health Lab, and Weekly**.
+The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` to coordinate across four main tab pillars (Home, Insights, Recommendations, Health Lab, Log) with extended analysis available via the TopBar menu (Weekly Story).
 
 ### Authentication & Onboarding
 - `Login`, `SignUp`, `ForgotPassword`
@@ -133,7 +133,7 @@ The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` 
   - `Logs` (History): Provides a complete, infinite-scrolling archive of all user activity. Fetches data in synchronized **3-day time blocks** across categories to ensure a cohesive chronological view. Features auto-fetch logic to skip empty periods until data is found.
 - **Intelligence Surfaces**
   - `InsightFeed`: AI-generated insights organized into four sections — PREDICTIONS, TRIGGERS (incl. energy dip and sleep impact types), PROTECTORS (incl. mood boost type), EMERGING. Insights are sorted by goal relevance using keyword matching against the user's selected goals. Insights with an `actionableInsight.experimentIdToStart` render a tappable "Start Experiment" CTA that navigates directly to HealthLab.
-  - `WeeklyPatterns`: Visual display of behavioral patterns over the last evaluated cycle.
+  - `WeeklyPatterns`: Visual display of behavioral patterns over the last evaluated cycle. Accessed via the **TopBar hamburger menu** (Weekly Story).
   - `RecommendationFeed`: Personalized interventions in three tiers — PREVENTIVE (symptom-linked), HEALTHLAB EXPERIMENTS (recs with `associatedExperimentId`, accept navigates to HealthLab), OPTIMIZATION (all other). Features Accept/Maybe/Dismiss feedback.
   - `FeedbackHistory`: Archive of users' interactions with past recommendations.
 - **HealthLab (Experimentation)**
@@ -143,6 +143,8 @@ The frontend uses `@react-navigation/stack` and `@react-navigation/bottom-tabs` 
   - `ExperimentHistory`: Archive of completed/abandoned runs.
 - **Components**
   - `ActiveExperimentCard`: Shown on Timeline and HealthLab. Displays experiment name, progress bar (day N / total with percent label), and a nudge row ("Log today: Meals · Energy") derived from the experiment's `requiredEvents`. Template lookup uses `templateId || experimentId || id` for backward compatibility.
+- **TopBar & Navigation Hub**
+  - `TopBar`: Branded header used across main screens. Now includes an optional **back button** for sub-screens (like Weekly Story) and a **hamburger menu** for supplemental actions (Weekly Story, Preferences, Admin). Main navigation is handled by the bottom tab bar.
   - `EmergingPatternCard`: Amber card (`Colors.warning`) rendered on Timeline. Shows "EMERGING PATTERN" label with `AlertTriangle` icon, alert title, summary, evidence pill ("N days in a row"), and a "Test This" CTA. Dismiss (X) and CTA are independent actions.
 
 ---
