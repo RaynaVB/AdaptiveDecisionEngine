@@ -157,7 +157,7 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
   - Advanced ML features: `dishLabel`, canonical `confirmedIngredients`, and dynamically AI-generated clarifying `questions`.
 - **`SymptomEvent`** (shared schema for two distinct collections):
   - **Physical Symptoms** (`/symptoms` collection): `symptomType` is a physical symptom string (bloating, headache, etc.), `severity` on a **1–3** scale.
-  - **Mood Dimensions** (`/moods` collection): `symptomType` ∈ `{mood, stress, social, energy, focus, sleep quality}`, `severity` on a **-2 to +2** bipolar scale.
+  - **Mood Dimensions** (`/moods` collection): `symptomType` ∈ `{mood, stress, social, energy, focus, sleep quality}`, `severity` on a **-2 to +2** bipolar scale. **Note:** Dimensions are only logged if the severity is non-zero (Neutral values are skipped).
   - Pattern engines use a `MOOD_DIMENSIONS` exclusion set to ensure physical and mood events are never mixed in the same correlation analysis.
 - **`UserProfile`** (`/users/{uid}` document):
   - `goals`, `symptoms`, `allergies`, `dietaryPreferences`, `sensitivities`, `avoidedFoods`, `symptomFrequency`.

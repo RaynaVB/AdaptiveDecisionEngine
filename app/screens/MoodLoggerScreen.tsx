@@ -81,7 +81,7 @@ export default function MoodLoggerScreen() {
     };
 
     const handleSave = async () => {
-        const activeEntries = [...entries];
+        const activeEntries = entries.filter(e => e.severity !== 0);
 
         if (customMood.trim() !== '') {
             activeEntries.push({

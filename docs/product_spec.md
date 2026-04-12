@@ -78,7 +78,7 @@ A 6-step profile capture that personalizes the entire app experience from first 
     - **`MoodLoggerScreen`**: Emotional check-ins for 6 dimensions: mood, stress, social, energy, focus, sleep quality.
     - **`SymptomLoggerScreen`**: Streamlined for physical symptoms (bloating, headache, etc.).
 - **Multi-Scale Architecture**:
-    - **Mood Dimensions**: Bipolar **-2 to +2** scale (Neutral at 0). Stored in `/moods` collection with `symptomType` and `severity` fields.
+    - **Mood Dimensions**: Bipolar **-2 to +2** scale (Neutral at 0). Stored in `/moods` collection with `symptomType` and `severity` fields. Only non-zero values are recorded to minimize noise.
     - **Physical Symptoms**: Unipolar **1–3** scale (Mild, Moderate, Severe). Stored in `/symptoms` collection.
 - **Pattern Engine Separation**: Engines use a `MOOD_DIMENSIONS` exclusion set to ensure physical and emotional signals are never mixed in the same correlation analysis.
 
