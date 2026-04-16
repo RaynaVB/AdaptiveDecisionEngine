@@ -45,7 +45,7 @@ export const NotificationService = {
     /**
      * Calculates dynamic reminder times based on past meal logs.
      * Clusters meals into morning (5AM-11AM), afternoon (11AM-4PM), evening (4PM-10PM).
-     * Schedules a reminder 45 mins AFTER the average time of each cluster.
+     * Schedules a reminder 15 mins BEFORE the average time of each cluster.
      * Skip today if a meal was already logged for that slot.
      */
     async scheduleDynamicMealReminders() {
@@ -102,9 +102,9 @@ export const NotificationService = {
         };
 
         const slots = [
-            { id: 'meal_morning', title: 'Morning Intent', body: "Did you catch breakfast? Don't forget to log your morning fuel.", time: scheduleOffset(morningAvg, 45), slot: 'breakfast' },
-            { id: 'meal_afternoon', title: 'Midday Fuel', body: "Checking in on lunch! Log your ingredients to keep your patterns accurate.", time: scheduleOffset(afternoonAvg, 45), slot: 'lunch' },
-            { id: 'meal_evening', title: 'Evening Nourishment', body: "How was dinner? Take a second to log it before the day ends.", time: scheduleOffset(eveningAvg, 45), slot: 'dinner' }
+            { id: 'meal_morning', title: 'Morning Intent', body: "Time for breakfast? Set your intent and log your fuel!", time: scheduleOffset(morningAvg, -15), slot: 'breakfast' },
+            { id: 'meal_afternoon', title: 'Midday Fuel', body: "Lunch is approaching! Log your ingredients to keep your patterns accurate.", time: scheduleOffset(afternoonAvg, -15), slot: 'lunch' },
+            { id: 'meal_evening', title: 'Evening Nourishment', body: "Planning dinner? Take a second to log it and see your insights.", time: scheduleOffset(eveningAvg, -15), slot: 'dinner' }
         ];
 
         // 4. Schedule based on log status

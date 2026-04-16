@@ -101,7 +101,7 @@ The system delegates domain-specific logic to independent cloud function service
 
 7. **`notification_service` (Frontend)**
    - **Role:** Manages local, log-aware notifications for user engagement.
-   - **Mechanism:** Schedules reminders 45 minutes post-meal (based on historical clusters) and daily at 20:30. Logic automatically cancels/defers reminders for a given slot if the user logs data before the reminder fires.
+   - **Mechanism:** Schedules reminders 15 minutes before meal (based on historical clusters) and daily at 20:30. Logic automatically cancels/defers reminders for a given slot if the user logs data before the reminder fires.
 
 ---
 
