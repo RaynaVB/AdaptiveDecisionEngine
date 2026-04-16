@@ -22,6 +22,9 @@ import { auth } from '../../src/services/firebaseConfig';
 import { ingredientService } from '../../src/services/IngredientService';
 import { RecommendationService } from '../../src/services/recommendationService';
 import { Colors, Typography, Radii, Shadows, Spacing } from '../constants/Theme';
+import { AlertService, TriggerMatch } from '../../src/services/AlertService';
+import { AlertSuppressionService } from '../../src/services/AlertSuppressionService';
+import { AlertTriangle, Info, Bell, Trash2, Edit3, ShieldAlert } from 'lucide-react-native';
 
 type LogMealScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LogMeal'>;
 
@@ -59,6 +62,11 @@ export default function LogMealScreen() {
     const [statusMessage, setStatusMessage] = useState('');
     const [mealNameQuery, setMealNameQuery] = useState('');
     const [entryMethod, setEntryMethod] = useState<'none' | 'photo' | 'text'>('none');
+    
+    // Safety Alert State
+    const [showTriggerModal, setShowTriggerModal] = useState(false);
+    const [matchedTriggers, setMatchedTriggers] = useState<TriggerMatch[]>([]);
+    const [pendingMeal, setPendingMeal] = useState<MealEvent | null>(null);
     
     // Recipe Typeahead State
     const [allUserRecipes, setAllUserRecipes] = useState<any[]>([]);
@@ -507,18 +515,41 @@ export default function LogMealScreen() {
             questions: analysisQuestions,
         };
 
-
         if (textDescription) {
             newMeal.textDescription = textDescription;
             newMeal.raw_text = textDescription;
         }
 
         try {
-            if (photoUri) {
-                // Upload image to Firebase Storage
+            // [INTERCEPT] Check for ingredient triggers before saving
+            const triggers = await AlertService.checkMealForTriggers(newMeal);
+
+            if (triggers.length > 0) {
+                setMatchedTriggers(triggers);
+                setPendingMeal(newMeal);
+                setShowTriggerModal(true);
+                setIsSaving(false);
+                return; // Wait for user interaction in modal
+            }
+
+            // No triggers, proceed to final save
+            await handleFinalSave(newMeal);
+        } catch (error) {
+            console.error("Safety Check Error", error);
+            // Fallback: save anyway if safety check fails
+            await handleFinalSave(newMeal);
+        }
+    };
+
+    const handleFinalSave = async (meal: MealEvent) => {
+        try {
+            setIsSaving(true);
+            
+            if (photoUri && !meal.photoUri?.startsWith('http')) {
+                // Upload image if it's a local uri
                 const userId = auth.currentUser?.uid || 'anonymous';
-                const remoteUrl = await uploadImageToFirebase(photoUri, mealId, userId);
-                newMeal.photoUri = remoteUrl;
+                const remoteUrl = await uploadImageToFirebase(photoUri, meal.id, userId);
+                meal.photoUri = remoteUrl;
             }
 
             // Save/Update Recipe in Library if dish name exists
@@ -526,22 +557,110 @@ export default function LogMealScreen() {
                 await StorageService.saveRecipe(confirmedDish.label, ingredients, analysisQuestions);
             }
 
-            await StorageService.addMealEvent(newMeal);
+            await StorageService.addMealEvent(meal);
             await NotificationService.handleUserLoggedActivity('meal');
 
             // Trigger recommendation recompute in background
             RecommendationService.recomputeRecommendations('meal_logged')
                 .catch(err => console.error("Failed to recompute recommendations:", err));
 
-            // Navigate to logs tab to see the entry
+            // Navigate to logs tab
             navigation.navigate('Main', { screen: 'Log' });
 
         } catch (error) {
             console.error("Save Error", error);
-            Alert.alert("Error", "Failed to clear the save process to server.")
+            Alert.alert("Error", "Failed to save the meal. Please try again.");
         } finally {
             setIsSaving(false);
+            setShowTriggerModal(false);
         }
+    };
+
+    const renderSafetyModal = () => {
+        if (!showTriggerModal) return null;
+        
+        return (
+            <Modal
+                visible={showTriggerModal}
+                transparent 
+                animationType="fade"
+                onRequestClose={() => setShowTriggerModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.alertContentRefined}>
+                        <View style={styles.alertHeaderRefined}>
+                            <View style={[styles.alertIconCircle, { backgroundColor: Colors.error + '20' }]}>
+                                <ShieldAlert color={Colors.error} size={32} strokeWidth={2.5} />
+                            </View>
+                            <Text style={styles.alertTitleRefined}>Trigger Warning</Text>
+                            <Text style={styles.alertSubtitleRefined}>
+                                We detected ingredients linked to your symptoms in this meal.
+                            </Text>
+                        </View>
+
+                        <View style={styles.triggerListContainer}>
+                            {matchedTriggers.map((match, idx) => (
+                                <View key={idx} style={styles.triggerItemRefined}>
+                                    <View style={styles.triggerItemIndicator} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.triggerIngredientName}>{match.ingredient}</Text>
+                                        <Text style={styles.triggerSymptomLink}>Known trigger for {match.symptomType}</Text>
+                                    </View>
+                                    <TouchableOpacity 
+                                        style={styles.snoozeMiniBtn}
+                                        onPress={async () => {
+                                            await AlertSuppressionService.snoozeIngredient(match.ingredient);
+                                            // Optimistically remove from current list
+                                            const next = matchedTriggers.filter((_, i) => i !== idx);
+                                            setMatchedTriggers(next);
+                                            if (next.length === 0) {
+                                                if (pendingMeal) handleFinalSave(pendingMeal);
+                                            }
+                                        }}
+                                    >
+                                        <Bell color={Colors.onSurfaceVariant} size={16} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+
+                        <View style={styles.alertActionsColumn}>
+                            <TouchableOpacity 
+                                style={[styles.alertActionBtn, { backgroundColor: Colors.surfaceContainerHigh }]}
+                                onPress={() => {
+                                    setShowTriggerModal(false);
+                                    // Stays on screen to allow modification
+                                }}
+                            >
+                                <Edit3 color={Colors.onSurface} size={18} style={{ marginRight: 10 }} />
+                                <Text style={[styles.alertActionText, { color: Colors.onSurface }]}>I'll modify ingredients</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity 
+                                style={[styles.alertActionBtn, { backgroundColor: Colors.error }]}
+                                onPress={() => {
+                                    setShowTriggerModal(false);
+                                    setPendingMeal(null);
+                                    navigation.goBack(); // Discard and leave
+                                }}
+                            >
+                                <Trash2 color={Colors.onPrimaryContrast} size={18} style={{ marginRight: 10 }} />
+                                <Text style={[styles.alertActionText, { color: Colors.onPrimaryContrast }]}>I won't eat this (Cancel)</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity 
+                                style={styles.alertLinkBtn}
+                                onPress={() => {
+                                    if (pendingMeal) handleFinalSave(pendingMeal);
+                                }}
+                            >
+                                <Text style={styles.alertLinkText}>Log anyway</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        );
     };
 
     return (
@@ -803,6 +922,7 @@ export default function LogMealScreen() {
             </ScrollView>
 
             {renderSearchModal()}
+            {renderSafetyModal()}
 
             <View style={styles.footer}>
                 <TouchableOpacity
@@ -1356,4 +1476,108 @@ const styles = StyleSheet.create({
     resultItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.surfaceContainer },
     resultText: { fontSize: 16, color: Colors.onSurface },
     noResultsText: { textAlign: 'center', marginTop: 20, ...Typography.body, color: Colors.onSurfaceVariant },
+
+    // Safety Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        padding: 24,
+    },
+    alertContentRefined: {
+        backgroundColor: Colors.background,
+        borderRadius: Radii.xl,
+        padding: 24,
+        ...Shadows.ambient,
+    },
+    alertHeaderRefined: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    alertIconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    alertTitleRefined: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: Colors.onSurface,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    alertSubtitleRefined: {
+        fontSize: 14,
+        color: Colors.onSurfaceVariant,
+        textAlign: 'center',
+        lineHeight: 20,
+        paddingHorizontal: 12,
+    },
+    triggerListContainer: {
+        marginBottom: 24,
+    },
+    triggerItemRefined: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.surfaceContainerLow,
+        padding: 16,
+        borderRadius: Radii.lg,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: Colors.surfaceContainer,
+    },
+    triggerItemIndicator: {
+        width: 4,
+        height: '100%',
+        backgroundColor: Colors.error,
+        borderRadius: 2,
+        marginRight: 12,
+    },
+    triggerIngredientName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.onSurface,
+    },
+    triggerSymptomLink: {
+        fontSize: 12,
+        color: Colors.onSurfaceVariant,
+        marginTop: 2,
+    },
+    snoozeMiniBtn: {
+        padding: 8,
+        borderRadius: Radii.md,
+        backgroundColor: Colors.surfaceContainerHigh,
+    },
+    alertActionsColumn: {
+        gap: 12,
+    },
+    alertActionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: Radii.lg,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    alertActionText: {
+        fontSize: 15,
+        fontWeight: 'bold',
+    },
+    alertLinkBtn: {
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    alertLinkText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.outline,
+        textDecorationLine: 'underline',
+    },
 });

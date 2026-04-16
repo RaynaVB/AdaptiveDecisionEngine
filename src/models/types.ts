@@ -140,6 +140,13 @@ export interface Pattern {
   };
 }
 
+export interface InsightMetadata {
+  triggerIngredient?: string;
+  symptomType?: string;
+  knownSensitivities?: string[];
+  [key: string]: any;
+}
+
 export interface Insight {
   id: string; // Map from insightId in backend
   generationId: string;
@@ -166,6 +173,7 @@ export interface Insight {
     actionType: 'start_experiment' | 'log_more' | 'lifestyle_change';
     experimentIdToStart: string;
   };
+  metadata?: InsightMetadata;
   createdAt: string;
 }
 

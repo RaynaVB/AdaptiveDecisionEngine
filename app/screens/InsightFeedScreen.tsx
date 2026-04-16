@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StorageService } from '../../src/services/storage';
 import { Insight } from '../../src/models/types';
 import { InsightService } from '../../src/services/insightService';
@@ -102,7 +103,7 @@ export default function InsightFeedScreen() {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} edges={['top']} />
             
             <TopBar userProfile={userProfile} />
 

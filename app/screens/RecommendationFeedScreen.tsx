@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert, Modal, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StorageService } from '../../src/services/storage';
 import { Recommendation, FeedbackOutcome, FeedbackEvent } from '../../src/models/types';
 import { FeedbackStorageService } from '../../src/services/feedbackStorage';
@@ -135,7 +136,7 @@ export default function RecommendationFeedScreen() {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} edges={['top']} />
 
             <TopBar userProfile={userProfile} />
 

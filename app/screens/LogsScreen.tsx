@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Image, ActivityIndicator, Platform, UIManager, SafeAreaView, Alert } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Image, ActivityIndicator, Platform, UIManager, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -377,7 +378,7 @@ export default function LogsScreen() {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} edges={['top']} />
             <TopBar hideProfile />
 
             <SectionList

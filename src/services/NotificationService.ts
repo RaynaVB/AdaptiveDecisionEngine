@@ -7,7 +7,9 @@ import { MealEvent } from '../models/types';
 // Behavior for local notifications when the app is in foreground
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
-        shouldShowAlert: true,
+        shouldShowAlert: true, // Legacy support
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
     } as any),
@@ -219,4 +221,20 @@ export const NotificationService = {
         });
     },
 
+    /**
+     * Sends an immediate high-priority alert when a trigger ingredient is detected.
+     */
+    async sendImmediateTriggerAlert(ingredientName: string, symptomName: string) {
+        await Notifications.scheduleNotificationAsync({
+            identifier: `trigger_alert_${Date.now()}`,
+            content: {
+                title: '⚠️ Trigger Warning',
+                body: `${ingredientName} is a known trigger for your ${symptomName}.`,
+                data: { category: 'safety_alert', ingredientName, symptomName },
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority.MAX,
+            },
+            trigger: null, // immediate
+        });
+    },
 };

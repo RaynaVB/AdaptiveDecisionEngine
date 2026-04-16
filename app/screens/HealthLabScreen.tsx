@@ -1,6 +1,7 @@
 // app/screens/HealthLabScreen.tsx
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -8,9 +9,6 @@ import { ArrowLeft, Beaker, Play, ChevronRight, History, Sparkles } from 'lucide
 import { HealthLabService, RecommendedExperiment } from '../../src/services/healthLabService';
 import { ExperimentRun, ExperimentDefinition } from '../../src/models/healthlab';
 import { StorageService } from '../../src/services/storage';
-import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
-import { InsightService } from '../../src/services/insightService';
-import { RecommendationService } from '../../src/services/recommendationService';
 import { auth } from '../../src/services/firebaseConfig';
 import { getUserProfile, isInternalUser, UserProfile } from '../../src/services/userProfile';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
@@ -55,31 +53,6 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
         }
     };
 
-    const handleSimulation = useCallback(async () => {
-        Alert.alert(
-            'Run Simulation',
-            'This seeds a completed High-Protein Breakfast experiment with sample data so you can preview the results screen.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Run',
-                    onPress: async () => {
-                        try {
-                            const runId = await ExperimentEngine.seedManualTestExperiment();
-                            // Trigger intelligence recompute so insights reflect the experiment
-                            await Promise.all([
-                                InsightService.recomputeInsights('simulation').catch(() => {}),
-                                RecommendationService.recomputeRecommendations('simulation').catch(() => {}),
-                            ]);
-                            navigation.navigate('ExperimentResult', { runId });
-                        } catch (e) {
-                            Alert.alert('Simulation Failed', 'Check that demo data has been seeded first in Admin.');
-                        }
-                    },
-                },
-            ]
-        );
-    }, [navigation]);
 
     const renderRecommendedCard = (scored: RecommendedExperiment) => {
         const { template: item, reason } = scored;
@@ -116,7 +89,7 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} edges={['top']} />
             
             <TopBar userProfile={userProfile} />
 
@@ -136,17 +109,6 @@ export default function HealthLabScreen({ navigation }: HealthLabScreenProps) {
                         </View>
                     </View>
 
-                    {isInternalUser(userProfile) && (
-                        <View style={styles.debugSection}>
-                            <TouchableOpacity
-                                style={styles.debugButton}
-                                onPress={handleSimulation}
-                            >
-                                <Beaker size={18} color={Colors.primary} style={{ marginRight: 8 }} />
-                                <Text style={styles.debugButtonText}>Run Experiment Simulation</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
 
                     {activeExperiments.length > 0 && (
                         <View style={styles.section}>

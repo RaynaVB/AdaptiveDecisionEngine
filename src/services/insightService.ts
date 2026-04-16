@@ -1,5 +1,7 @@
-import { auth } from './firebaseConfig';
-import { InsightFeedResponse } from '../models/types';
+import { auth, db } from './firebaseConfig';
+import { InsightFeedResponse, Insight } from '../models/types';
+import { collection, doc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
 
 // Cloud Function URL configuration
 const USE_EMULATOR = false;
@@ -48,5 +50,73 @@ export const InsightService = {
             throw new Error(`Failed to recompute insights: ${response.statusText}`);
         }
         return await response.json();
+    },
+
+    async seedMockTriggerInsights(): Promise<void> {
+        const user = auth.currentUser;
+        if (!user) throw new Error("User not authenticated");
+
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            const generationsRef = collection(userRef, 'insight_generations');
+            
+            // 1. Create a dummy generation document
+            const genId = uuidv4();
+            const genDocRef = doc(generationsRef, genId);
+            
+            await setDoc(genDocRef, {
+                id: genId,
+                status: 'completed',
+                createdAt: new Date().toISOString(),
+                trigger: 'manual_mock_seed'
+            });
+
+            // 2. Add specific trigger insights to the nested 'insights' subcollection
+            const insightsSubRef = collection(genDocRef, 'insights');
+
+            const mockInsights: Partial<Insight>[] = [
+                {
+                    id: uuidv4(),
+                    type: 'trigger_pattern',
+                    category: 'triggers',
+                    title: 'Trigger Found: Greek Yogurt',
+                    summary: 'Greek Yogurt is strongly linked to bloating events in your history.',
+                    status: 'active',
+                    confidenceLevel: 'high',
+                    metadata: {
+                        triggerIngredient: 'Greek Yogurt',
+                        symptomType: 'bloating',
+                        knownSensitivities: ['lactose_sensitive']
+                    }
+                },
+                {
+                    id: uuidv4(),
+                    type: 'energy_dip',
+                    category: 'triggers',
+                    title: 'Trigger Found: Chocolate Ice Cream',
+                    summary: 'Chocolate Ice Cream is linked to afternoon energy dips.',
+                    status: 'active',
+                    confidenceLevel: 'medium',
+                    metadata: {
+                        triggerIngredient: 'Chocolate Ice Cream',
+                        symptomType: 'energy',
+                        knownSensitivities: ['sugar_sensitive']
+                    }
+                }
+            ];
+
+            for (const insight of mockInsights) {
+                await setDoc(doc(insightsSubRef, insight.id), {
+                    ...insight,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                });
+            }
+
+            console.log('[InsightService] Mock triggers seeded successfully');
+        } catch (e) {
+            console.error('[InsightService] Mock seeding failed', e);
+            throw e;
+        }
     }
 };

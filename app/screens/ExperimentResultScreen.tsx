@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../src/models/navigation';
@@ -72,7 +73,7 @@ export default function ExperimentResultScreen({ navigation, route }: Experiment
 
     return (
         <View style={styles.container}>
-            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} edges={['top']} />
             
             <View style={styles.header}>
                 <TouchableOpacity 

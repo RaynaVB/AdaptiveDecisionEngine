@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, SafeAreaView, Platform, LayoutAnimation, UIManager, Image, Modal } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl, Alert, Dimensions, Platform, LayoutAnimation, UIManager, Image, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -473,7 +474,7 @@ export default function TimelineScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: Colors.background }]}>
-            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} />
+            <SafeAreaView style={{ flex: 0, backgroundColor: Colors.background }} edges={['top']} />
             
             <TopBar userProfile={userProfile} />
 

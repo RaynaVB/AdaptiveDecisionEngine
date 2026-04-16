@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
 import { updateUserProfile } from '../../src/services/userProfile';
@@ -8,7 +9,8 @@ import { StorageService } from '../../src/services/storage';
 import { InsightService } from '../../src/services/insightService';
 import { RecommendationService } from '../../src/services/recommendationService';
 import { WeeklyPatternsService } from '../../src/services/weeklyPatternsService';
-import { ChevronLeft, Trash2, RotateCcw, Database, ShieldAlert } from 'lucide-react-native';
+import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
+import { ChevronLeft, Trash2, RotateCcw, Database, ShieldAlert, Beaker } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
 
 type AdminScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Admin'>;
@@ -41,6 +43,38 @@ export default function AdminScreen({ navigation }: Props) {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleSimulation = async () => {
+        Alert.alert(
+            'Run Simulation',
+            'This seeds a completed High-Protein Breakfast experiment with sample data so you can preview the results screen.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Run',
+                    onPress: async () => {
+                        setSaving(true);
+                        try {
+                            const runId = await ExperimentEngine.seedManualTestExperiment();
+                            // Trigger intelligence recompute so insights reflect the experiment
+                            await Promise.all([
+                                InsightService.recomputeInsights('simulation').catch(() => {}),
+                                RecommendationService.recomputeRecommendations('simulation').catch(() => {}),
+                            ]);
+                            Alert.alert('Simulation Complete', 'High-Protein Breakfast experiment seeded. You can find it in Health Lab History.', [
+                                { text: 'View Result', onPress: () => navigation.navigate('ExperimentResult', { runId }) },
+                                { text: 'OK' }
+                            ]);
+                        } catch (e) {
+                            Alert.alert('Simulation Failed', 'Check that demo data has been seeded first.');
+                        } finally {
+                            setSaving(false);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     const handleClearMyLogs = async () => {
@@ -124,7 +158,7 @@ export default function AdminScreen({ navigation }: Props) {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <ChevronLeft color={Colors.onSurface} size={28} />
@@ -142,6 +176,36 @@ export default function AdminScreen({ navigation }: Props) {
                         <View>
                             <Text style={styles.adminButtonText}>Seed Demo Logs</Text>
                             <Text style={styles.adminButtonSubtext}>Write test data + generate insights, recs & weekly story</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.adminButton} onPress={handleSimulation} disabled={saving}>
+                        <Beaker color={Colors.primary} size={20} style={{ marginRight: 12 }} />
+                        <View>
+                            <Text style={styles.adminButtonText}>Run Experiment Simulation</Text>
+                            <Text style={styles.adminButtonSubtext}>Seed a completed High-Protein experiment</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={[styles.adminButton, { borderLeftColor: Colors.warning }]} 
+                        onPress={async () => {
+                            setSaving(true);
+                            try {
+                                await InsightService.seedMockTriggerInsights();
+                                Alert.alert('Seeded', 'Mock triggers (Greek Yogurt, Chocolate Ice Cream) have been added to your insights. Try logging them to see the alert.');
+                            } catch (e) {
+                                Alert.alert('Error', 'Mock seeding failed.');
+                            } finally {
+                                setSaving(false);
+                            }
+                        }} 
+                        disabled={saving}
+                    >
+                        <ShieldAlert color={Colors.warning} size={20} style={{ marginRight: 12 }} />
+                        <View>
+                            <Text style={styles.adminButtonText}>Mock: Trigger Alerts</Text>
+                            <Text style={styles.adminButtonSubtext}>Manually inject trigger insights for safety testing</Text>
                         </View>
                     </TouchableOpacity>
 

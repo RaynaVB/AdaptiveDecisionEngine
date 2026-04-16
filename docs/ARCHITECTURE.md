@@ -11,6 +11,7 @@ Veyra relies on a React Native (Expo) frontend paired with a modular Serverless 
 - **Frontend Application (React Native / Expo):**
   - Handles UI logic, local state management, async storage for offline/fast caching.
   - Implements gesture-based interactions, form captures, and renders visual insights securely.
+  - **Layout Management**: Uses `react-native-safe-area-context` for robust, device-specific layout handling, ensuring UI elements respect notches, home indicators, and system overlays across iOS and Android.
 - **Backend Infrastructure (Firebase):**
   - `Firestore`: Primary database storing structured event data (Meals, Symptoms, Moods, Users, Experiments). Moods are stored in the `moods` collection using a `symptomType` + `severity` model. Physical symptoms are stored in the `symptoms` collection.
   - `Auth`: User authentication.
@@ -100,8 +101,17 @@ The system delegates domain-specific logic to independent cloud function service
    - **Mechanism:** Analyzes the full event history to calculate consecutive days of activity. Handles future-dated logs (common in seeding) by starting the count from the current date or the most recent past/present log. Persists personal records and milestones via local storage.
 
 7. **`notification_service` (Frontend)**
-   - **Role:** Manages local, log-aware notifications for user engagement.
-   - **Mechanism:** Schedules reminders 15 minutes before meal (based on historical clusters) and daily at 20:30. Logic automatically cancels/defers reminders for a given slot if the user logs data before the reminder fires.
+   - **Role:** Manages local, log-aware notifications for user engagement and immediate safety alerts.
+   - **Mechanism:** Schedules reminders 15 minutes before meal (based on historical clusters) and daily at 20:30. Uses Expo Notifications with modern `shouldShowBanner` and `shouldShowList` logic for consistent platform behavior. Logic automatically cancels/defers reminders for a given slot if the user logs data before the reminder fires. Also fires immediate `sendImmediateTriggerAlert` notifications when high-priority triggers are detected during meal logging.
+
+8. **`alert_service` (Frontend) [NEW]**
+   - **Role:** Real-time interception of meal logs to check for known triggers.
+   - **Mechanism:** Before saving a `MealEvent` to Firestore, this service matches the confirmed ingredients against the user's active insights (filtered for trigger types). It uses the machine-readable `triggerIngredient` in the insight metadata.
+   - **Snoozing:** Integrates with `AlertSuppressionService` to skip alerts for specific ingredients if the user has opted to "snooze" them (24-hour mute).
+
+9. **`alert_suppression_service` (Frontend) [NEW]**
+   - **Role:** Manages temporary silences (snoozes) for ingredient alerts.
+   - **Mechanism:** Uses `AsyncStorage` to store expiry timestamps for snoozed ingredients. Default snooze duration is 24 hours.
 
 ---
 
@@ -178,7 +188,10 @@ The system relies on deeply structured TypeScript types (see `src/models/types.t
 
 ### 4.3 Intelligence Outputs
 - **`Pattern`**: Extracted behavioral sequences. Includes `confidence`, `severity`, and an `actionableInsight`. Supports ingredient-level detection (e.g., specific triggers or boosters).
-- **`Insight`**: Generative intelligence containing `title`, `summary`, `supportingEvidence` (`matchCount`/`sampleSize`), `confidenceLevel` (adjusted by `boost_by_profile`), and optional `actionableInsight.experimentIdToStart` for direct HealthLab navigation. Trigger insights (types: `trigger_pattern`, `delayed_trigger`, `energy_dip`, `sleep_impact`) carry `metadata.knownSensitivities: string[]` populated from the user's dietary profile.
+- **`Insight`**: Generative intelligence containing `title`, `summary`, `supportingEvidence` (`matchCount`/`sampleSize`), `confidenceLevel` (adjusted by `boost_by_profile`), and optional `actionableInsight.experimentIdToStart` for direct HealthLab navigation. Trigger insights (types: `trigger_pattern`, `delayed_trigger`, `energy_dip`, `sleep_impact`) carry `metadata` including:
+    - `triggerIngredient`: Canonical name of the ingredient (machine-readable for pre-save alerts).
+    - `symptomType`: The linked symptom (e.g., "bloating").
+    - `knownSensitivities`: string[] populated from the user's dietary profile.
 - **`Recommendation`**: Produced by the recommender engine. Includes `priorityScore` (boosted by +0.10 for goal-matched templates), `confidenceScore`, `scores` (impact, feasibility, mlScore, optional `goal_boost: true`), feedback `action` state, and optional `associatedExperimentId` for HealthLab-linked interventions. Supports personalized string interpolation for ingredients (`{trigger}`) and symptoms (`{symptom}`).
 
 ### 4.3 Experimentation Models
@@ -204,6 +217,7 @@ The system uses automated GitHub Actions for Continuous Deployment of backend se
 ## 7. Execution Summary
 1. User interacts with `LogMeal`, `MoodLogger`, or `SymptomLogger`.
 2. Frontend writes structured payload to Firestore (triggering external Python `vision_service` if a meal photo needs parsing).
+   - **Safety Intercept (NEW)**: Before the final write, `LogMealScreen` calls `AlertService.checkMealForTriggers()`. If a match is found against active insights, the system pauses the save and renders a **Safety Warning Modal**. The user can choose to "Log Anyway," "Modify Ingredients," "Snooze" the alert, or "Cancel" (which discards the log entirely to prevent ghost logs).
 3. After each mood or symptom save, `MoodLoggerScreen` / `SymptomLoggerScreen` fires `PatternAlertService.scanForAlerts()` (non-blocking, fire-and-forget). The service enforces a 2-hour debounce via AsyncStorage before making the HTTP call. `pattern_alerts_service` runs 4 independent short-window detectors over the last 3–5 days of Firestore data, deduplicates by `(type, active, non-expired)`, and writes new `PatternAlert` documents to `users/{uid}/pattern_alerts/`.
 4. On demand or on interval, `insights_service` fetches the user's full `UserProfile`. Computes `freq_factor` from `symptomFrequency`, then runs the 9-analyzer pattern engine. After deduplication, `boost_by_profile()` adjusts confidence scores based on `goals` (+0.10) and `symptoms` (+0.15). Trigger insights are decorated with `metadata.knownSensitivities` from the user's allergen profile. New `Insight` records are materialized and cached.
 5. `recommendation_service` similarly fetches `UserProfile`, runs its parallel pattern engine with the same frequency scaling, maps patterns to Action Library templates, applies Contextual Bandit weights, and applies a **+0.10 goal-aware priority boost** for templates whose `targetGoals` intersect the user's stated goals. New `Recommendation` records are persisted.

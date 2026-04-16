@@ -72,6 +72,7 @@ A 6-step profile capture that personalizes the entire app experience from first 
 - **Binary Clarification Questions**: AI asks simplified Yes/No/Not Sure questions (e.g., "Is this dairy-free?") for quick confirmation.
 - **Dish Name Attribution**: Identifies primary "Dish Name" (e.g., "Street Tacos") over generic descriptions.
 - **Continuous Learning**: Changes made to suggested ingredients are saved back to the user's Recipe Library, ensuring the next entry for that meal is more accurate.
+- **Safety Interception (NEW)**: Before any meal is saved to Firestore, the system performs a real-time check against identified triggers. If a match is found, an immediate warning modal is displayed to prevent accidental consumption.
 
 #### 2. Specialized Mood & Symptom Tracking
 - **Decoupled Logging Interfaces**: Dedicated screens for mental and physical states to optimize UX:
@@ -118,7 +119,10 @@ After deduplication, every insight's `confidenceScore` is adjusted based on the 
 - Scores are capped at 1.0; `confidenceLevel` is recomputed after boosting.
 
 **Sensitivity Flagging:**
-Trigger insights produced by P6, P7, P8, and P9 include a `knownSensitivities` list in their `metadata` field. This list is populated when the trigger ingredient matches a user's known sensitivities or allergies (e.g., a coffee-triggered energy dip for a `caffeine_sensitive` user → `knownSensitivities: ["caffeine_sensitive"]`).
+Trigger insights produced by P6, P7, P8, and P9 include a machine-readable `metadata` field. This enables real-time ingredient matching and pre-save alerts. Fields include:
+- `triggerIngredient`: Canonical name used for matching during meal logs.
+- `symptomType`: The specific symptom linked to the ingredient.
+- `knownSensitivities`: A list of matched sensitivity keys from the user's profile.
 
 **Insight Types → UI Sections:**
 - `trigger_pattern`, `mood_trigger`, `correlation`, `energy_dip`, `sleep_impact` → **TRIGGERS**
@@ -295,6 +299,23 @@ Four detectors run independently (one failure does not block the others):
 
 ---
 
+### G. Immediate Safety Alerts (Pre-Save Interception)
+
+A real-time safety system that intercepts "Log Meal" actions to identify ingredients linked to past symptoms or energy dips.
+
+#### Interception Mechanism
+- **Trigger Check**: Before the final write to Firestore, the `AlertService` fetches the user's active, high-confidence trigger insights.
+- **Matching**: Compares canonical names of confirmed ingredients in the current meal against the `triggerIngredient` in the user's insights.
+- **Snooze Support**: Users can "snooze" alerts for specific ingredients for 24 hours, silencing the intercept for that period via AsyncStorage.
+
+#### User Flow
+1. **Warning Selection**: If a trigger is found, a high-urgency modal lists the ingredients and their linked symptoms.
+2. **"I won't eat this"**: Discards the entry to avoid data noise (ghost logs for unconsumed food).
+3. **"I'll modify ingredients"**: Returns the user to the edit screen.
+4. **"Log anyway"**: Bypasses the warning and completes the save.
+
+---
+
 ## 6. Infrastructure & Deployment
 
 - **Independent Backend Services**: Each intelligence engine is a decoupled Python service.
@@ -304,7 +325,9 @@ Four detectors run independently (one failure does not block the others):
 - **Modular Architecture**: Logging, patterns, recommendations, and HealthLab are kept structurally independent for easy iteration.
 - **Persistent Authentication**: Login sessions are maintained across app restarts using `AsyncStorage` as a persistence layer, reducing friction for returning users.
 - **Privacy by Design**: User PII (name) stored locally only; Firestore stores only anonymous behavioral data keyed by UID.
-- **TopBar Navigation**: The hamburger menu (top-right) provides access to supplemental analysis (Weekly Story) and user settings. Primary navigation is handled via the bottom tab bar.
+- **TopBar Navigation**: The hamburger menu (top-right) provides access to supplemental analysis (Weekly Story), user settings, and the **Admin System** (internal users only).
+- **Admin System**: Consolidates developer utilities, including mock seeding (Insight trigger simulation), experiment simulation, and database management tools into a single, gated interface.
+- **Modernized UI Layer**: Employs `react-native-safe-area-context` and updated notification handlers to ensure long-term platform compatibility and a premium, notch-aware visual experience.
 - **Adaptive Thresholds**: Pattern engine minimum event requirements scale with user-reported symptom frequency, preventing early users from waiting too long for their first insights.
 
 *(End of Product Specification)*

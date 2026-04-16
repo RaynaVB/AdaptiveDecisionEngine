@@ -289,8 +289,9 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
       });
     }
 
-    // Symptoms... (unchanged logic, just ensuring it's in the loop)
+    // Symptoms... (ensuring dense correlations for testing triggers)
     if (breakfast.hasDairy) {
+      // Every dairy breakfast results in bloating 2 hours later
       const symT = new Date(date);
       symT.setHours(10, 15, 0, 0);
       symptoms.push({
@@ -303,30 +304,32 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
         source: 'manual',
         severity: 2,
         durationMinutes: 45,
-        notes: 'Stomach feels full and uncomfortable after breakfast',
+        notes: 'Stomach feels full and uncomfortable after dairy',
       });
     }
 
-    if (dinner.hasGluten && i % 3 === 0) {
+    if (dinner.hasGluten) {
+      // Every gluten dinner results in headache
       const symT = new Date(date);
       symT.setHours(23, 30, 0, 0);
       symptoms.push({
         id: uuidv4(),
         createdAt: symT.toISOString(),
         occurredAt: symT.toISOString(),
-        symptomType: 'headache',
+        symptomType: 'headaches', // Match backend pluralization if needed
         category: 'neurological',
         isOngoing: false,
         source: 'manual',
         severity: 1,
         durationMinutes: 60,
-        notes: 'Dull headache later in the evening',
+        notes: 'Dull headache after dinner',
       });
     }
 
-    if (i % 2 !== 0) {
+    // Every chocolate snack leads to a fatigue or energy drop
+    if (lateSnack.dishLabel.includes('Chocolate')) {
       const symT = new Date(date);
-      symT.setHours(15, 30, 0, 0);
+      symT.setHours(23, 50, 0, 0);
       symptoms.push({
         id: uuidv4(),
         createdAt: symT.toISOString(),
@@ -335,9 +338,9 @@ export const generateSeedData = (): { meals: MealEvent[], moods: MoodEvent[], sy
         category: 'energy',
         isOngoing: false,
         source: 'manual',
-        severity: 1,
-        durationMinutes: 90,
-        notes: 'Afternoon energy crash',
+        severity: 2,
+        durationMinutes: 120,
+        notes: 'Sugar crash after chocolate snack',
       });
     }
   }
