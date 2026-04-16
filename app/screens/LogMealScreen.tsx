@@ -351,8 +351,21 @@ export default function LogMealScreen() {
                         setStatusMessage('Checking for allergens...');
 
                         // Map Ingredients
-                        const visibleIngs = ingredientService.resolveIngredients(analysis.visibleComponents);
-                        const suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients);
+                        let visibleIngs = ingredientService.resolveIngredients(analysis.visibleComponents);
+                        let suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients);
+
+                        // Fallback: If dish is resolved, ensure core ingredients are at least in suggested if AI missed them
+                        if (resolvedDish?.id) {
+                            const priors = ingredientService.getIngredientsForDish(resolvedDish.id);
+                            priors.forEach(prior => {
+                                const isAlreadyAccountedFor = 
+                                    visibleIngs.some(v => v.ingredient_id === prior.ingredient_id) ||
+                                    suggestedIngs.some(s => s.ingredient_id === prior.ingredient_id);
+                                if (!isAlreadyAccountedFor) {
+                                    suggestedIngs.push(prior);
+                                }
+                            });
+                        }
 
                         const initialIngredients: ConfirmedIngredient[] = [];
 
@@ -461,8 +474,22 @@ export default function LogMealScreen() {
             setConfirmedDish({ label: analysis.dishName });
 
             // Map Ingredients
-            const visibleIngs = ingredientService.resolveIngredients(analysis.visibleComponents || []);
-            const suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients || []);
+            let visibleIngs = ingredientService.resolveIngredients(analysis.visibleComponents || []);
+            let suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients || []);
+
+            // Fallback: If dish is resolved by name, ensure core ingredients are present
+            const resolvedDish = ingredientService.resolveDish(analysis.dishName || query);
+            if (resolvedDish?.id) {
+                const priors = ingredientService.getIngredientsForDish(resolvedDish.id);
+                priors.forEach(prior => {
+                    const isAlreadyAccountedFor = 
+                        visibleIngs.some(v => v.ingredient_id === prior.ingredient_id) ||
+                        suggestedIngs.some(s => s.ingredient_id === prior.ingredient_id);
+                    if (!isAlreadyAccountedFor) {
+                        suggestedIngs.push(prior);
+                    }
+                });
+            }
 
             const initialIngredients: ConfirmedIngredient[] = [];
 

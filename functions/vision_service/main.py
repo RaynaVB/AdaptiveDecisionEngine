@@ -34,21 +34,34 @@ def handle_analyze_food(data, headers):
         prompt = f"""
             Analyze this food image for a medical-grade symptom tracking app. It is critical to identify ALL possible ingredients that could trigger symptoms (e.g., dairy, gluten, specific spices, oils, legumes).
             
-            Provide the following structured data:
+            DECONSTRUCTION RULE: If you identify a specific dish (e.g. "Burger"), you MUST deconstruct it into its primary constituent ingredients in visibleComponents (e.g. "beef", "bun", "cheese", "lettuce", "tomato"). List physical ingredients identified.
+
+            EXAMPLE ANALYSIS:
+            Image: A cheeseburger with lettuce and tomato.
+            Output: {{
+                "isFood": true,
+                "description": "A cheeseburger with lettuce and tomato on a sesame bun.",
+                "dishName": "Cheeseburger",
+                "visibleComponents": ["beef", "bun", "cheese", "lettuce", "tomato"],
+                "suggestedIngredients": ["butter", "onion", "vegetable oil"],
+                "tags": ["heavy", "savory"],
+                "potentialQuestions": [
+                    {{"id": "q1", "text": "Was there garlic in the beef patty?"}},
+                    {{"id": "q2", "text": "Is there butter on the bun?"}}
+                ]
+            }}
+
+            Provide the following structured data for this image:
             1. isFood: boolean, true if the image is primarily of food.
             2. description: A brief summary of the meal.
             3. dishName: The specific name of the dish.
-            4. visibleComponents: A list of individual ingredients clearly identified in the image. 
-               CRITICAL: Include all primary components of the dish even if only partially visible (e.g. for a burger, this MUST include "beef", "bun", "cheese", "lettuce", "tomato"). High-confidence items belong here.
-            5. suggestedIngredients: A list of ingredients that are almost certainly present in this dish but are TRULY HIDDEN or secondary (e.g. cooking oils, butter, hidden spices, flour in a thickener).
-               Do NOT include primary dish components here if they are identified in the image.
+            4. visibleComponents: A list of individual ingredients clearly identified or logically certain to be part of the visible dish. High-confidence items belong here.
+            5. suggestedIngredients: A list of ingredients that are almost certainly present but are TRULY HIDDEN (e.g. cooking oils, hidden spices, hidden dairy).
             6. tags: Select relevant tags from this exact list: [{', '.join(VALID_TAGS)}].
-            7. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
+            7. potentialQuestions: 2-3 smart follow-up questions to clarify hidden components. 
                Format each question as an object: {{"id": "unique_id", "text": "Question text?"}}.
-               CONSTRAINT: Questions MUST be about a SINGULAR, SPECIFIC ingredient candidate (e.g. "Was there garlic?", "Is there peanut oil?"). 
-               PROHIBITED: Do NOT ask vague questions like "Was a specific oil used?" or "Does this have any allergens?". Each question MUST correspond to a specific YES/NO ingredient check.
 
-            Return ONLY a strict JSON object. If isFood is false, the other fields can be empty/null, but still return the object.
+            Return ONLY a strict JSON object. If isFood is false, fields can be null/empty.
         """
 
         payload = {
