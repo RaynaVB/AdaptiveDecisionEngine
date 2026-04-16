@@ -461,17 +461,37 @@ export default function LogMealScreen() {
             setConfirmedDish({ label: analysis.dishName });
 
             // Map Ingredients
-            const suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients);
-            const initialIngredients: ConfirmedIngredient[] = suggestedIngs.map(ing => ({
-                ingredientId: ing.ingredient_id,
-                canonicalName: ing.canonical_name,
-                confirmedStatus: 'suggested',
-                source: 'inferred_dish_prior',
-                confidence: 0.8
-            }));
+            const visibleIngs = ingredientService.resolveIngredients(analysis.visibleComponents || []);
+            const suggestedIngs = ingredientService.resolveIngredients(analysis.suggestedIngredients || []);
+
+            const initialIngredients: ConfirmedIngredient[] = [];
+
+            // Visible/Definite components go first as confirmed
+            visibleIngs.forEach(ing => {
+                initialIngredients.push({
+                    ingredientId: ing.ingredient_id,
+                    canonicalName: ing.canonical_name,
+                    confirmedStatus: 'confirmed',
+                    source: 'visible',
+                    confidence: 0.95
+                });
+            });
+
+            // Suggested components follow as suggested
+            suggestedIngs.forEach(ing => {
+                if (!initialIngredients.find(i => i.ingredientId === ing.ingredient_id)) {
+                    initialIngredients.push({
+                        ingredientId: ing.ingredient_id,
+                        canonicalName: ing.canonical_name,
+                        confirmedStatus: 'suggested',
+                        source: 'inferred_dish_prior',
+                        confidence: 0.8
+                    });
+                }
+            });
 
             setIngredients(initialIngredients);
-            setTextDescription(mealNameQuery); // Sync with raw text field
+            setTextDescription(query); // Sync with raw text field
 
             // Map Questions
             setAnalysisQuestions(analysis.potentialQuestions.map(q => ({

@@ -38,10 +38,10 @@ def handle_analyze_food(data, headers):
             1. isFood: boolean, true if the image is primarily of food.
             2. description: A brief summary of the meal.
             3. dishName: The specific name of the dish.
-            4. visibleComponents: A comprehensive list of individual ingredients clearly seen in the image. Be specific.
-            5. suggestedIngredients: A list of ingredients that are almost certainly present in this dish but not explicitly visible. Be exhaustive.
-               IMPORTANT: Always include base components (e.g. crust, dough, flour), sauces (e.g. tomato sauce, cream, pesto), and all primary seasonings or fats. 
-               For a burger or sandwich, this MUST include "bun" or "bread". For a pizza, this MUST include "crust" and "tomato sauce".
+            4. visibleComponents: A list of individual ingredients clearly identified in the image. 
+               CRITICAL: Include all primary components of the dish even if only partially visible (e.g. for a burger, this MUST include "beef", "bun", "cheese", "lettuce", "tomato"). High-confidence items belong here.
+            5. suggestedIngredients: A list of ingredients that are almost certainly present in this dish but are TRULY HIDDEN or secondary (e.g. cooking oils, butter, hidden spices, flour in a thickener).
+               Do NOT include primary dish components here if they are identified in the image.
             6. tags: Select relevant tags from this exact list: [{', '.join(VALID_TAGS)}].
             7. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
                Format each question as an object: {{"id": "unique_id", "text": "Question text?"}}.
@@ -113,11 +113,10 @@ def handle_analyze_text(data, headers):
             Provide the following structured data based on the dish name:
             1. description: A brief summary of what this dish typically contains.
             2. dishName: The canonical name of the dish.
-            3. suggestedIngredients: A comprehensive list of ingredients typically present in this dish. Be specific and exhaustive.
-               IMPORTANT: Always include base components (e.g. crust, dough, flour, bread, bun), sauces (e.g. tomato sauce, cream, gravy), and all primary seasonings or fats. 
-               Never skip "obvious" components like "bun" for a burger or "crust" for a pizza.
-            4. tags: Select relevant tags from this exact list: [{', '.join(VALID_TAGS)}].
-            5. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
+            3. visibleComponents: A list of the DEFINITE, primary ingredients that constitute this dish (e.g. for "Cheeseburger", this MUST include "beef", "bun", "cheese").
+            4. suggestedIngredients: A list of secondary ingredients that are likely present but might vary or are hidden (e.g. "onion", "pickles", "ketchup", "mustard", "butter", "cooking oil").
+            5. tags: Select relevant tags from this exact list: [{', '.join(VALID_TAGS)}].
+            6. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
                Format each question as an object: {{"id": "unique_id", "text": "Question text?"}}.
                CONSTRAINT: Questions MUST be about a SINGULAR, SPECIFIC ingredient candidate (e.g. "Was there garlic?", "Is there peanut oil?", "Does this contain MSG?"). 
                PROHIBITED: Do NOT ask vague questions like "Was a specific oil used?" or "Does this have any allergens?". Each question MUST correspond to a specific YES/NO ingredient check.
