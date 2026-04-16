@@ -34,31 +34,32 @@ def handle_analyze_food(data, headers):
         prompt = f"""
             Analyze this food image for a medical-grade symptom tracking app. It is critical to identify ALL possible ingredients that could trigger symptoms (e.g., dairy, gluten, specific spices, oils, legumes).
             
-            DECONSTRUCTION RULE: If you identify a specific dish (e.g. "Burger"), you MUST deconstruct it into its primary constituent ingredients in visibleComponents (e.g. "beef", "bun", "cheese", "lettuce", "tomato"). List physical ingredients identified.
+            DECONSTRUCTION RULE: If you identify a specific dish (e.g. "Burger"), you MUST deconstruct it into its primary constituent ingredients in visibleComponents (e.g. "beef", "bun", "cheese", "lettuce", "tomato").
+            MANDATORY: The primary protein (beef, chicken, fish, etc.) and base starch (bun, bread, rice, pasta) of an identified dish MUST ALWAYS be included in visibleComponents.
 
             EXAMPLE ANALYSIS:
-            Image: A cheeseburger with lettuce and tomato.
+            Image: A cheeseburger with lettuce and tomato on a sesame bun.
             Output: {{
                 "isFood": true,
-                "description": "A cheeseburger with lettuce and tomato on a sesame bun.",
+                "description": "A classic cheeseburger with fresh lettuce, tomato, and melted cheese on a sesame bun.",
                 "dishName": "Cheeseburger",
                 "visibleComponents": ["beef", "bun", "cheese", "lettuce", "tomato"],
-                "suggestedIngredients": ["butter", "onion", "vegetable oil"],
-                "tags": ["heavy", "savory"],
+                "suggestedIngredients": ["butter", "sesame seeds", "onion", "mustard", "vegetable oil"],
+                "tags": ["heavy", "savory", "restaurant"],
                 "potentialQuestions": [
-                    {{"id": "q1", "text": "Was there garlic in the beef patty?"}},
-                    {{"id": "q2", "text": "Is there butter on the bun?"}}
+                    {{"id": "q1", "text": "Was any butter used on the bun?"}},
+                    {{"id": "q2", "text": "Does the patty contain onion or garlic powder?"}}
                 ]
             }}
 
-            Provide the following structured data for this image:
+            Provide the following structured data for the provided image:
             1. isFood: boolean, true if the image is primarily of food.
             2. description: A brief summary of the meal.
             3. dishName: The specific name of the dish.
             4. visibleComponents: A list of individual ingredients clearly identified or logically certain to be part of the visible dish. High-confidence items belong here.
             5. suggestedIngredients: A list of ingredients that are almost certainly present but are TRULY HIDDEN (e.g. cooking oils, hidden spices, hidden dairy).
             6. tags: Select relevant tags from this exact list: [{', '.join(VALID_TAGS)}].
-            7. potentialQuestions: 2-3 smart follow-up questions to clarify hidden components. 
+            7. potentialQuestions: 2-3 smart follow-up questions to clarify unknown ingredients or hidden components. 
                Format each question as an object: {{"id": "unique_id", "text": "Question text?"}}.
 
             Return ONLY a strict JSON object. If isFood is false, fields can be null/empty.
@@ -177,6 +178,53 @@ def handle_analyze_text(data, headers):
     except Exception as e:
         return https_fn.Response(jsonify({"error": str(e)}).get_data(), status=500, headers=headers, mimetype='application/json')
 
+def handle_sync_master_data(data, headers):
+    try:
+        ingredients = data.get('ingredients', [])
+        aliases = data.get('aliases', [])
+        priors = data.get('priors', [])
+
+        db = firestore.client()
+        batch = db.batch()
+        count = 0
+
+        # Batch write ingredients
+        for ing in ingredients:
+            ref = db.collection('ingredients').document(ing['ingredient_id'])
+            batch.set(ref, ing, merge=True)
+            count += 1
+            if count >= 400: # Stay safe under 500 limit
+                batch.commit()
+                batch = db.batch()
+                count = 0
+
+        # Batch write aliases
+        for alias in aliases:
+            ref = db.collection('ingredient_aliases').document(alias['alias_id'])
+            batch.set(ref, alias, merge=True)
+            count += 1
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+
+        # Batch write priors
+        for prior in priors:
+            ref = db.collection('dish_ingredient_priors').document(prior['dish_prior_id'])
+            batch.set(ref, prior, merge=True)
+            count += 1
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+
+        if count > 0:
+            batch.commit()
+
+        return https_fn.Response(jsonify({"success": True, "processed": len(ingredients) + len(aliases) + len(priors)}).get_data(), status=200, headers=headers, mimetype='application/json')
+    except Exception as e:
+        return https_fn.Response(jsonify({"error": str(e)}).get_data(), status=500, headers=headers, mimetype='application/json')
+
 @https_fn.on_request(memory=options.MemoryOption.MB_512, invoker="public")
 def vision_service(req: https_fn.Request) -> https_fn.Response:
     if req.method == 'OPTIONS':
@@ -200,7 +248,11 @@ def vision_service(req: https_fn.Request) -> https_fn.Response:
             data = req.get_json()
             return handle_analyze_text(data, headers)
 
-        return https_fn.Response(jsonify({"error": "Not Found"}).get_data(), status=404, headers=headers, mimetype='application/json')
+        if 'sync-master-data' in path and req.method == 'POST':
+            data = req.get_json()
+            return handle_sync_master_data(data, headers)
+
+        return https_fn.Response(jsonify({"error": "Not Found", "path": path}).get_data(), status=404, headers=headers, mimetype='application/json')
 
     except Exception as e:
         return https_fn.Response(jsonify({"error": str(e)}).get_data(), status=500, headers=headers, mimetype='application/json')

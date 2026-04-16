@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, getDoc, addDoc, Timestamp, limit, where } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, getDoc, addDoc, Timestamp, limit, where, writeBatch } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 import { MealEvent, MoodEvent } from '../models/types';
 import { SymptomEvent } from '../models/Symptom';
@@ -332,6 +332,46 @@ export const StorageService = {
             await this.logAuditAction('ADMIN_CLEAR_ALL_LOGS', { systemWide: true });
         } catch (e) {
             console.error('Failed to clear all system logs', e);
+            throw e;
+        }
+    },
+
+    /**
+     * Admin only: Syncs the master ingredient database from the seed JSON.
+     * Uses batching to stay within Firestore limits.
+     */
+    async syncMasterIngredients(data: any): Promise<void> {
+        console.log('[Storage] Starting Cloud-Native Sync Master Ingredients...');
+        try {
+            // We use the vision service's admin capabilities to bypass security rules
+            const VISION_SERVICE_URL = 'https://vision-service-n5p5ozwbwa-uc.a.run.app/sync-master-data';
+            
+            const response = await fetch(VISION_SERVICE_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ingredients: data.ingredients,
+                    aliases: data.aliases,
+                    priors: data.priors
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server responded with ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('[Storage] Cloud Sync Complete!', result);
+            
+            await this.logAuditAction('ADMIN_SYNC_MASTER_INGREDIENTS', { 
+                processed: result.processed,
+                success: true
+            });
+        } catch (e) {
+            console.error('Failed to sync master ingredients via cloud', e);
             throw e;
         }
     },

@@ -69,6 +69,8 @@ A 6-step profile capture that personalizes the entire app experience from first 
 - **Recipe Library (Persistent User Caching)**: Before calling the AI, the system checks the user's `recipes` collection. If a meal with the same name was logged previously, those ingredients are pre-filled instantly.
 - **Multi-Step AI Analysis**: Gemini 2.5 Flash provides real-time extraction. For images, it identifies dishes and ingredients. For text, it suggests typical ingredients based on the dish name.
 - **Canonical Ingredient Database**: Maps extracted food items against a structured 2,500+ item ingredient library.
+- **Component Deconstruction**: Enforces strict identification of primary protein (e.g., beef, tofu) and base starch (e.g., bun, rice) for common meals, ensuring core components are never missed even in complex photos.
+- **Dish Priors (Safety Net)**: Uses a local dictionary of common meal templates (e.g., "Burger", "Pizza") to suggest baseline ingredients if the AI fails to deconstruct a recognized dish.
 - **Binary Clarification Questions**: AI asks simplified Yes/No/Not Sure questions (e.g., "Is this dairy-free?") for quick confirmation.
 - **Dish Name Attribution**: Identifies primary "Dish Name" (e.g., "Street Tacos") over generic descriptions.
 - **Continuous Learning**: Changes made to suggested ingredients are saved back to the user's Recipe Library, ensuring the next entry for that meal is more accurate.
@@ -326,7 +328,9 @@ A real-time safety system that intercepts "Log Meal" actions to identify ingredi
 - **Persistent Authentication**: Login sessions are maintained across app restarts using `AsyncStorage` as a persistence layer, reducing friction for returning users.
 - **Privacy by Design**: User PII (name) stored locally only; Firestore stores only anonymous behavioral data keyed by UID.
 - **TopBar Navigation**: The hamburger menu (top-right) provides access to supplemental analysis (Weekly Story), user settings, and the **Admin System** (internal users only).
-- **Admin System**: Consolidates developer utilities, including mock seeding (Insight trigger simulation), experiment simulation, and database management tools into a single, gated interface.
+- **Admin System**: Consolidates developer utilities into a gated interface, including:
+    - **Insight Trigger Simulation**: Seeds behavioral clusters to test feed responsiveness.
+    - **Master Ingredient Sync**: Secure, server-side synchronization of ingredients, aliases, and dish priors from local JSON assets to Firestore via Cloud Functions (bypassing permission restrictions).
 - **Modernized UI Layer**: Employs `react-native-safe-area-context` and updated notification handlers to ensure long-term platform compatibility and a premium, notch-aware visual experience.
 - **Adaptive Thresholds**: Pattern engine minimum event requirements scale with user-reported symptom frequency, preventing early users from waiting too long for their first insights.
 

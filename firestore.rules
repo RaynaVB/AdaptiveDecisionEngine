@@ -18,25 +18,29 @@ service cloud.firestore {
 
     function isAdmin() {
       return request.auth != null && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'internal'];
     }
 
-    // Global Ingredient Data (Read-only for all authenticated users)
+    // Global Ingredient Data (Read-only for all authenticated users, Write for Admins)
     match /ingredients/{id} {
       allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
     match /ingredient_aliases/{id} {
       allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
     match /ingredient_relations/{id} {
       allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
     match /ingredient_flags/{id} {
       allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
     match /dish_ingredient_priors/{id} {
       allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

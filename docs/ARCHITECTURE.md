@@ -16,7 +16,8 @@ Veyra relies on a React Native (Expo) frontend paired with a modular Serverless 
   - `Firestore`: Primary database storing structured event data (Meals, Symptoms, Moods, Users, Experiments). Moods are stored in the `moods` collection using a `symptomType` + `severity` model. Physical symptoms are stored in the `symptoms` collection.
   - `Auth`: User authentication.
   - **Authentication Persistence**: The application uses `@react-native-async-storage/async-storage` as a persistence layer for Firebase Authentication. This ensures that user sessions are maintained across app restarts by securely storing the authentication token on the device.
-  - `Cloud Functions (Python)`: Decoupled service endpoints to run ML tasks, logic, and intelligent generation offline and at scale.
+  - `Cloud Functions (Python)`: Decoupled service endpoints to run ML tasks, logic, and intelligent generation offline and at scale. 
+    - **Administrative Sync**: Includes server-side endpoints configured with `firebase-admin` to perform high-volume database seeding and synchronization (e.g., Master Ingredients) while bypassing client-side security rule restrictions.
 
 ---
 
@@ -26,9 +27,11 @@ The system delegates domain-specific logic to independent cloud function service
 
 1. **`vision_service`**
    - **Role:** ML-powered ingredient and dish extraction.
-   - **Mechanism:** Integrates with Gemini 2.5 Flash to:
+   - **Mechanism:** Integrates with Gemini 2.0 Flash Lite to:
      - **Image Analysis**: Analyze meal photos to extract dish names, identify canonical ingredients against a 2,500+ item database, and generate binary clarification questions.
-     - **Text Analysis**: Analyze manual meal name entries (e.g., "Chicken Curry") to suggest typical ingredients, tags, and follow-up questions when a previous user entry is not found.
+     - **Mandatory Deconstruction**: Employs a "Protein & Starch First" rule in the system prompt, forcing the AI to explicitly visible components (e.g., "beef patty," "bun") for recognized dish types even if they are partially obscured.
+     - **Text Analysis**: Analyze manual meal name entries (e.g., "Burger") to suggest typical ingredients, tags, and follow-up questions using a combination of LLM suggestion and local "Dish Priors" (dictionary-based ingredient templates).
+     - **Administrative Sync (`/sync-master-data`)**: A dedicated server-side endpoint that handles batch ingestion of the canonical ingredient database, aliases, and dish priors. By running in the Cloud Function environment, this service uses elevated privileges to ensure master data is always synchronized regardless of client-side Firestore rules.
 
 2. **`health_lab_service`**
    - **Role:** Drives the behavioral experimentation lifecycle.

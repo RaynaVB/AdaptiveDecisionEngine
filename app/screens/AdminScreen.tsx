@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../src/models/navigation';
-import { updateUserProfile } from '../../src/services/userProfile';
+import { updateUserProfile, getUserProfile, UserProfile } from '../../src/services/userProfile';
 import { auth } from '../../src/services/firebaseConfig';
 import { StorageService } from '../../src/services/storage';
 import { InsightService } from '../../src/services/insightService';
@@ -12,6 +12,7 @@ import { WeeklyPatternsService } from '../../src/services/weeklyPatternsService'
 import { ExperimentEngine } from '../../src/services/healthlab/experimentEngine';
 import { ChevronLeft, Trash2, RotateCcw, Database, ShieldAlert, Beaker } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../constants/Theme';
+import seedIngredients from '../../src/data/seed_ingredients.json';
 
 type AdminScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Admin'>;
 
@@ -21,6 +22,18 @@ type Props = {
 
 export default function AdminScreen({ navigation }: Props) {
     const [saving, setSaving] = useState(false);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+
+    useEffect(() => {
+        loadProfile();
+    }, []);
+
+    const loadProfile = async () => {
+        if (auth.currentUser) {
+            const p = await getUserProfile(auth.currentUser.uid);
+            setProfile(p);
+        }
+    };
 
     const handleSeed = async () => {
         setSaving(true);
@@ -40,6 +53,20 @@ export default function AdminScreen({ navigation }: Props) {
         } catch (e) {
             Alert.alert('Error', 'Seeding failed or intelligence generation timed out. Check console.');
             console.error('[Admin] Seed error:', e);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+
+    const handleSyncMasterData = async () => {
+        setSaving(true);
+        try {
+            await StorageService.syncMasterIngredients(seedIngredients);
+            Alert.alert('Success', 'Master ingredient database, aliases, and dish priors have been synchronized.');
+        } catch (e) {
+            Alert.alert('Sync Failed', 'Could not update master data. Ensure you have admin permissions.');
+            console.error('[Admin] Sync error:', e);
         } finally {
             setSaving(false);
         }
@@ -178,6 +205,19 @@ export default function AdminScreen({ navigation }: Props) {
                             <Text style={styles.adminButtonSubtext}>Write test data + generate insights, recs & weekly story</Text>
                         </View>
                     </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={[styles.adminButton, { borderLeftColor: Colors.secondary }]} 
+                        onPress={handleSyncMasterData} 
+                        disabled={saving}
+                    >
+                        <Database color={Colors.secondary} size={20} style={{ marginRight: 12 }} />
+                        <View>
+                            <Text style={styles.adminButtonText}>Sync Master Ingredients</Text>
+                            <Text style={styles.adminButtonSubtext}>Update ingredients, aliases & dish priors from JSON</Text>
+                        </View>
+                    </TouchableOpacity>
+
 
                     <TouchableOpacity style={styles.adminButton} onPress={handleSimulation} disabled={saving}>
                         <Beaker color={Colors.primary} size={20} style={{ marginRight: 12 }} />
@@ -330,11 +370,9 @@ const styles = StyleSheet.create({
     },
     adminButtonSubtext: {
         ...Typography.label,
-        fontSize: 11,
         color: Colors.onSurfaceVariant,
-        marginTop: 2,
-        textTransform: 'none',
-        letterSpacing: 0,
+        fontSize: 12,
+        maxWidth: Dimensions.get('window').width - 120,
     },
     dangerZone: {
         marginTop: 16,

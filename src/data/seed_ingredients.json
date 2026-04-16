@@ -1288,6 +1288,94 @@
       "review_status": "approved",
       "created_at": "2026-03-17T15:32:45.596Z",
       "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_lamb",
+      "canonical_name": "lamb",
+      "display_name": "Lamb",
+      "category": "proteins",
+      "subcategory": "red_meat",
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_bacon",
+      "canonical_name": "bacon",
+      "display_name": "Bacon",
+      "category": "proteins",
+      "subcategory": "processed_meat",
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_ham",
+      "canonical_name": "ham",
+      "display_name": "Ham",
+      "category": "proteins",
+      "subcategory": "processed_meat",
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_orange",
+      "canonical_name": "orange",
+      "display_name": "Orange",
+      "category": "fruits",
+      "subcategory": "citrus",
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_strawberry",
+      "canonical_name": "strawberry",
+      "display_name": "Strawberry",
+      "category": "fruits",
+      "subcategory": "berries",
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_blueberry",
+      "canonical_name": "blueberry",
+      "display_name": "Blueberry",
+      "category": "fruits",
+      "subcategory": "berries",
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_pickles",
+      "canonical_name": "pickles",
+      "display_name": "Pickles",
+      "category": "vegetables",
+      "subcategory": "fermented_vegetables",
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "ingredient_id": "ing_barbecue_sauce",
+      "canonical_name": "barbecue sauce",
+      "display_name": "Barbecue Sauce",
+      "category": "sauces_and_condiments",
+      "subcategory": "sauces",
+      "active": true,
+      "review_status": "approved",
+      "created_at": "2026-03-17T15:32:45.596Z",
+      "updated_at": "2026-03-17T15:32:45.596Z"
     }
   ],
   "aliases": [
@@ -1710,6 +1798,51 @@
       "active": true,
       "created_at": "2026-03-17T15:32:45.596Z",
       "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "alias_id": "alias_beef_extra_1",
+      "alias": "beef patty",
+      "normalized_alias": "beef patty",
+      "ingredient_id": "ing_beef",
+      "alias_type": "synonym",
+      "confidence": 0.99,
+      "active": true
+    },
+    {
+      "alias_id": "alias_beef_extra_2",
+      "alias": "hamburger patty",
+      "normalized_alias": "hamburger patty",
+      "ingredient_id": "ing_beef",
+      "alias_type": "synonym",
+      "confidence": 0.98,
+      "active": true
+    },
+    {
+      "alias_id": "alias_bun_extra_1",
+      "alias": "hamburger bun",
+      "normalized_alias": "hamburger bun",
+      "ingredient_id": "ing_bun",
+      "alias_type": "synonym",
+      "confidence": 0.98,
+      "active": true
+    },
+    {
+      "alias_id": "alias_bun_extra_2",
+      "alias": "sesame bun",
+      "normalized_alias": "sesame bun",
+      "ingredient_id": "ing_bun",
+      "alias_type": "synonym",
+      "confidence": 0.95,
+      "active": true
+    },
+    {
+      "alias_id": "alias_pickles_1",
+      "alias": "pickle",
+      "normalized_alias": "pickle",
+      "ingredient_id": "ing_pickles",
+      "alias_type": "synonym",
+      "confidence": 0.99,
+      "active": true
     }
 
   ],
@@ -2065,6 +2198,51 @@
       "review_status": "approved",
       "created_at": "2026-03-17T15:32:45.596Z",
       "updated_at": "2026-03-17T15:32:45.596Z"
+    },
+    {
+      "dish_prior_id": "prior_burger_beef",
+      "dish_id": "dish_burger",
+      "dish_name": "Burger",
+      "ingredient_id": "ing_beef",
+      "prevalence_score": 0.99,
+      "hidden_likelihood": 0.05,
+      "visibility_score": 0.85
+    },
+    {
+      "dish_prior_id": "prior_burger_bun",
+      "dish_id": "dish_burger",
+      "dish_name": "Burger",
+      "ingredient_id": "ing_bun",
+      "prevalence_score": 0.98,
+      "hidden_likelihood": 0.05,
+      "visibility_score": 0.95
+    },
+    {
+      "dish_prior_id": "prior_cheeseburger_beef",
+      "dish_id": "dish_cheeseburger",
+      "dish_name": "Cheeseburger",
+      "ingredient_id": "ing_beef",
+      "prevalence_score": 0.99,
+      "hidden_likelihood": 0.05,
+      "visibility_score": 0.85
+    },
+    {
+      "dish_prior_id": "prior_cheeseburger_bun",
+      "dish_id": "dish_cheeseburger",
+      "dish_name": "Cheeseburger",
+      "ingredient_id": "ing_bun",
+      "prevalence_score": 0.98,
+      "hidden_likelihood": 0.05,
+      "visibility_score": 0.95
+    },
+    {
+      "dish_prior_id": "prior_cheeseburger_cheese",
+      "dish_id": "dish_cheeseburger",
+      "dish_name": "Cheeseburger",
+      "ingredient_id": "ing_cheese",
+      "prevalence_score": 0.99,
+      "hidden_likelihood": 0.1,
+      "visibility_score": 0.8
     }
   ]
 }
